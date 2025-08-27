@@ -95,7 +95,6 @@ function showMainMenu() {
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.add('hidden');
-    loadLeaderboardHistory();
 }
 
 // Load and display leaderboard history
@@ -394,6 +393,7 @@ function showRoomLobby() {
     
     gameState.phase = 'lobby';
     updateUI();
+    loadLeaderboardHistory();
 }
 
 function startGame() {
