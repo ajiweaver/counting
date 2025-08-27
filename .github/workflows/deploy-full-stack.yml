@@ -1,0 +1,114 @@
+name: Deploy Full Stack (Backend + Frontend)
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      backend:
+        description: 'Deploy backend to Railway'
+        required: true
+        default: true
+        type: boolean
+      frontend:
+        description: 'Deploy frontend to Netlify'
+        required: true
+        default: true
+        type: boolean
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy-backend:
+    if: ${{ github.event.inputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+
+      - name: Install backend dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Deploy Backend to Railway
+        uses: railwayapp/railway-deploy@v3
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+        env:
+          NODE_ENV: production
+
+  deploy-frontend:
+    if: ${{ github.event.inputs.frontend == 'true' }}
+    needs: deploy-backend  # Wait for backend if both are deploying
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Wait for backend (if deployed)
+        if: ${{ github.event.inputs.backend == 'true' }}
+        run: |
+          echo "Waiting for backend to be ready..."
+          sleep 45
+          for i in {1..10}; do
+            if curl -f https://counting-production.up.railway.app/health; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 10
+          done
+
+      - name: Deploy Frontend to Netlify
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            netlify deploy --prod --dir . --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          else
+            netlify deploy --dir . --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  health-check:
+    needs: [deploy-backend, deploy-frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Full Stack Health Check
+        run: |
+          echo "Performing full stack health check..."
+          
+          # Check backend
+          if curl -f https://counting-production.up.railway.app/health; then
+            echo "✅ Backend is healthy"
+          else
+            echo "❌ Backend health check failed"
+            exit 1
+          fi
+          
+          echo "🎉 Full stack deployment completed successfully!"

@@ -95,6 +95,76 @@ function showMainMenu() {
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.add('hidden');
+    loadLeaderboardHistory();
+}
+
+// Load and display leaderboard history
+async function loadLeaderboardHistory() {
+    try {
+        const response = await fetch(`${SERVER_URL}/leaderboard`);
+        const data = await response.json();
+        
+        if (data.success && data.games) {
+            displayLeaderboardHistory(data.games);
+        } else {
+            document.getElementById('history-content').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No games yet</div>';
+        }
+    } catch (error) {
+        console.error('Error loading leaderboard history:', error);
+        document.getElementById('history-content').innerHTML = '<div style="color: #f44; text-align: center; padding: 20px;">Failed to load</div>';
+    }
+}
+
+function displayLeaderboardHistory(games) {
+    const historyContent = document.getElementById('history-content');
+    
+    if (games.length === 0) {
+        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No games yet</div>';
+        return;
+    }
+    
+    const html = games.map(game => {
+        const date = new Date(game.completedAt);
+        const timeAgo = getTimeAgo(date);
+        const winner = game.players[0]; // Already sorted by score
+        const duration = formatDuration(game.duration);
+        
+        return `
+            <div style="margin-bottom: 10px; padding: 8px; background: #444; border-radius: 3px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: #4CAF50;">${winner.name}</strong>
+                        <span style="color: #ccc;">won with ${winner.score} points</span>
+                    </div>
+                    <div style="color: #888; font-size: 10px;">${timeAgo}</div>
+                </div>
+                <div style="color: #aaa; font-size: 10px; margin-top: 2px;">
+                    ${game.players.length} players • ${duration} • Room ${game.roomId}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    historyContent.innerHTML = html;
+}
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+}
+
+function formatDuration(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
 }
 
 function showJoinRoom() {
