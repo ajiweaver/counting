@@ -1,0 +1,53 @@
+name: Deploy Backend to Railway
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'server/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Run tests (if any)
+        run: |
+          cd server
+          # npm test  # Uncomment when you add tests
+
+      - name: Deploy to Railway
+        uses: railwayapp/railway-deploy@v3
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+        env:
+          NODE_ENV: production
+
+      - name: Health Check
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          curl -f https://counting-production.up.railway.app/health || exit 1
+          echo "Backend deployment successful!"

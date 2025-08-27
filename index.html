@@ -180,6 +180,14 @@
             <button onclick="showJoinRoom()">Join Room</button>
             <br>
             <button onclick="window.location.href='about.html'" style="background: #2196F3;">About</button>
+            
+            <!-- Leaderboard History -->
+            <div id="leaderboard-history" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #666;">
+                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #ccc;">Recent Games</h3>
+                <div id="history-content" style="max-height: 200px; overflow-y: auto; font-size: 12px;">
+                    <div style="color: #888; text-align: center; padding: 20px;">Loading...</div>
+                </div>
+            </div>
         </div>
         
         <div class="ui-panel hidden" id="join-room-panel">

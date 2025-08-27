@@ -27,6 +27,7 @@ app.use(express.json());
 // In-memory storage for rooms (use Redis in production)
 const rooms = new Map();
 const playerRooms = new Map(); // Track which room each player is in
+const completedGames = []; // Store completed game results for leaderboard history
 
 // Generate random room ID
 function generateRoomId() {
@@ -209,6 +210,34 @@ class GameRoom {
     return true;
   }
 
+  saveCompletedGame() {
+    if (this.gameState === 'playing' && this.areAllPlayersFinished()) {
+      const gameResult = {
+        roomId: this.roomId,
+        completedAt: new Date().toISOString(),
+        duration: this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0,
+        players: Array.from(this.players.values()).map(player => ({
+          name: player.name,
+          score: player.score,
+          finished: player.finished,
+          isCreator: player.isCreator
+        })).sort((a, b) => b.score - a.score), // Sort by score descending
+        settings: {
+          timePerBoard: this.settings.timePerBoard,
+          unlimited: this.settings.unlimited,
+          unlimitedTime: this.settings.unlimitedTime
+        }
+      };
+      
+      completedGames.unshift(gameResult); // Add to beginning of array
+      
+      // Keep only last 50 games to prevent memory issues
+      if (completedGames.length > 50) {
+        completedGames.splice(50);
+      }
+    }
+  }
+
   getGameState() {
     return {
       roomId: this.roomId,
@@ -327,6 +356,11 @@ io.on('connection', (socket) => {
           players: Array.from(room.players.values())
         });
         
+        // Save game if all players are finished
+        if (room.areAllPlayersFinished()) {
+          room.saveCompletedGame();
+        }
+        
         callback({ success: true });
       } else {
         callback({ success: false, error: 'Could not submit answer' });
@@ -434,7 +468,7 @@ app.get('/', (req, res) => {
     message: 'Count Battle! Multiplayer Server', 
     status: 'running',
     version: '1.0.0',
-    endpoints: ['/health', '/rooms/:roomId'],
+    endpoints: ['/health', '/rooms/:roomId', '/leaderboard'],
     socketNamespace: '/'
   });
 });
@@ -448,11 +482,19 @@ app.get('/rooms/:roomId', (req, res) => {
   }
 });
 
+app.get('/leaderboard', (req, res) => {
+  res.json({ 
+    success: true, 
+    games: completedGames.slice(0, 20) // Return last 20 games
+  });
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     rooms: rooms.size, 
-    connections: io.engine.clientsCount 
+    connections: io.engine.clientsCount,
+    completedGames: completedGames.length
   });
 });
 

@@ -1,0 +1,48 @@
+name: Deploy Frontend to Netlify
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      - name: Deploy to Netlify
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            netlify deploy --prod --dir . --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          else
+            netlify deploy --dir . --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Output Deploy URL
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            echo "Frontend deployed to production: https://your-site.netlify.app"
+          else
+            echo "Frontend deployed to preview - check Netlify dashboard for URL"
+          fi
