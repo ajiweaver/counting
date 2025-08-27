@@ -35,6 +35,105 @@ const SERVER_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3000' 
     : 'https://counting-production.up.railway.app';
 
+// Development mode detection
+const IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
+
+// Mock data for development/testing
+const MOCK_GAMES = [
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+        duration: 127,
+        players: [
+            { name: "clever_tesla", score: 8, finished: true, isCreator: true },
+            { name: "happy_curie", score: 6, finished: true, isCreator: false },
+            { name: "zen_lovelace", score: 4, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123", 
+        completedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+        duration: 203,
+        players: [
+            { name: "wizardly_newton", score: 5, finished: true, isCreator: false },
+            { name: "epic_hopper", score: 5, finished: true, isCreator: true },
+            { name: "clever_tesla", score: 3, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+        duration: 89,
+        players: [
+            { name: "happy_curie", score: 0, finished: true, isCreator: true },
+            { name: "zen_lovelace", score: 0, finished: true, isCreator: false },
+            { name: "epic_hopper", score: 0, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        duration: 156,
+        players: [
+            { name: "clever_tesla", score: 12, finished: true, isCreator: true }
+        ]
+    },
+    {
+        roomId: "XYZ789", // Different room
+        completedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+        duration: 245,
+        players: [
+            { name: "amazing_turing", score: 7, finished: true, isCreator: true },
+            { name: "brilliant_euler", score: 7, finished: true, isCreator: false },
+            { name: "wise_archimedes", score: 7, finished: true, isCreator: false },
+            { name: "funny_fibonacci", score: 7, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+        duration: 67,
+        players: [
+            { name: "focused_darwin", score: 15, finished: true, isCreator: true },
+            { name: "elegant_galileo", score: 14, finished: true, isCreator: false },
+            { name: "jolly_kepler", score: 13, finished: true, isCreator: false },
+            { name: "peaceful_pascal", score: 12, finished: true, isCreator: false },
+            { name: "clever_tesla", score: 11, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        duration: 334,
+        players: [
+            { name: "zen_lovelace", score: 3, finished: true, isCreator: false },
+            { name: "happy_curie", score: 3, finished: true, isCreator: true }
+        ]
+    }
+];
+
+// Development helper functions
+if (IS_DEV_MODE) {
+    // Expose helper functions for testing
+    window.setTestRoomId = function(roomId) {
+        gameState.roomId = roomId;
+        console.log('🚀 Test room ID set to:', roomId);
+        showRoomLobby();
+    };
+    
+    window.showMockData = function() {
+        console.log('🚀 Available mock room IDs:');
+        const roomIds = [...new Set(MOCK_GAMES.map(g => g.roomId))];
+        roomIds.forEach(id => {
+            const count = MOCK_GAMES.filter(g => g.roomId === id).length;
+            console.log(`  - ${id} (${count} games)`);
+        });
+        console.log('\nUse setTestRoomId("ABC123") to test with mock data');
+    };
+    
+    console.log('🚀 Development mode active! Use showMockData() or setTestRoomId("ABC123") in console');
+}
+
 // Initialize socket connection
 function initSocket() {
     socket = io(SERVER_URL);
@@ -91,8 +190,11 @@ function initSocket() {
 
     socket.on('leaderboard-updated', (data) => {
         console.log('Received leaderboard update:', data);
-        if (data.games) {
-            displayLeaderboardHistory(data.games);
+        if (data.games && gameState.roomId) {
+            // Filter to only show games from current room
+            const roomGames = data.games.filter(game => game.roomId === gameState.roomId);
+            console.log(`Real-time update: ${roomGames.length} games for room ${gameState.roomId}`);
+            displayLeaderboardHistory(roomGames);
         }
     });
 }
@@ -104,12 +206,34 @@ function showMainMenu() {
     document.getElementById('room-panel').classList.add('hidden');
 }
 
-// Load and display leaderboard history
+// Load and display leaderboard history for current room
 async function loadLeaderboardHistory() {
     const historyContent = document.getElementById('history-content');
     if (!historyContent) return; // Element doesn't exist yet
     
+    // Only load if we're in a room
+    if (!gameState.roomId) {
+        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Join a room to see history</div>';
+        return;
+    }
+    
     historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
+    
+    // Use mock data in development mode
+    if (IS_DEV_MODE) {
+        console.log('🚀 Development mode: Using mock data');
+        setTimeout(() => {
+            const roomGames = MOCK_GAMES.filter(game => game.roomId === gameState.roomId);
+            console.log(`Mock data: ${roomGames.length} games for room ${gameState.roomId}`);
+            
+            if (roomGames.length > 0) {
+                displayLeaderboardHistory(roomGames);
+            } else {
+                historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">(Dev mode)</small></div>`;
+            }
+        }, 500); // Simulate loading delay
+        return;
+    }
     
     try {
         console.log('Loading leaderboard from:', `${SERVER_URL}/leaderboard`);
@@ -123,7 +247,15 @@ async function loadLeaderboardHistory() {
         console.log('Leaderboard data received:', data);
         
         if (data.success && data.games && data.games.length > 0) {
-            displayLeaderboardHistory(data.games);
+            // Filter games to only show ones from the current room
+            const roomGames = data.games.filter(game => game.roomId === gameState.roomId);
+            console.log(`Filtered to ${roomGames.length} games for room ${gameState.roomId}`);
+            
+            if (roomGames.length > 0) {
+                displayLeaderboardHistory(roomGames);
+            } else {
+                historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong></div>`;
+            }
         } else {
             historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No completed games yet</div>';
         }
@@ -149,20 +281,44 @@ function displayLeaderboardHistory(games) {
     const html = games.map(game => {
         const date = new Date(game.completedAt);
         const timeAgo = getTimeAgo(date);
-        const winner = game.players[0]; // Already sorted by score
         const duration = formatDuration(game.duration);
+        
+        // Find the highest score
+        const highestScore = game.players[0].score;
+        
+        // Find all players with the highest score (ties)
+        const winners = game.players.filter(player => player.score === highestScore);
+        
+        let resultText;
+        let resultColor;
+        
+        if (winners.length === 1) {
+            // Single winner
+            resultText = `${winners[0].name} won with ${highestScore} points`;
+            resultColor = '#4CAF50';
+        } else {
+            // Multiple players tied (always show names)
+            const winnerNames = winners.map(w => w.name).join(', ');
+            if (winners.length === game.players.length) {
+                // Everyone tied
+                resultText = `All tied: ${winnerNames} (${highestScore} pts)`;
+            } else {
+                // Some players tied for first
+                resultText = `${winners.length}-way tie: ${winnerNames} (${highestScore} pts)`;
+            }
+            resultColor = '#FFA726';
+        }
         
         return `
             <div style="margin-bottom: 10px; padding: 8px; background: #444; border-radius: 3px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong style="color: #4CAF50;">${winner.name}</strong>
-                        <span style="color: #ccc;">won with ${winner.score} points</span>
+                        <strong style="color: ${resultColor};">${resultText}</strong>
                     </div>
                     <div style="color: #888; font-size: 10px;">${timeAgo}</div>
                 </div>
                 <div style="color: #aaa; font-size: 10px; margin-top: 2px;">
-                    ${game.players.length} players • ${duration} • Room ${game.roomId}
+                    ${game.players.length} players • ${duration}
                 </div>
             </div>
         `;
@@ -205,6 +361,42 @@ function showJoinRoom() {
 let uiInitialized = false;
 let currentTimePerBoard = defaultTimePerBoard;
 let unlimitedTimeMode = false;
+
+// LocalStorage keys
+const STORAGE_KEYS = {
+    ROOM_ID: 'countbattle_room_id',
+    PLAYER_NAME: 'countbattle_player_name',
+    TIME_PER_BOARD: 'countbattle_time_per_board',
+    UNLIMITED_TIME: 'countbattle_unlimited_time'
+};
+
+// LocalStorage helper functions
+function saveToStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.warn('Failed to save to localStorage:', error);
+    }
+}
+
+function loadFromStorage(key, defaultValue = null) {
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn('Failed to load from localStorage:', error);
+        return defaultValue;
+    }
+}
+
+function clearRoomStorage() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+        console.log('Cleared room storage');
+    } catch (error) {
+        console.warn('Failed to clear room storage:', error);
+    }
+}
 let sliderUpdateInProgress = false;
 
 function initializeUI() {
@@ -218,20 +410,30 @@ function initializeUI() {
     const timeDisplay = document.getElementById('time-display');
     const unlimitedCheckbox = document.getElementById('unlimited-time');
     const timeControls = document.getElementById('time-controls');
+    const playerNameInput = document.getElementById('player-name');
     
-    const savedTime = localStorage.getItem('timePerBoard');
-    const savedUnlimited = localStorage.getItem('unlimitedTime') === 'true';
+    // Load saved settings from localStorage
+    const savedTime = loadFromStorage(STORAGE_KEYS.TIME_PER_BOARD, defaultTimePerBoard);
+    const savedUnlimited = loadFromStorage(STORAGE_KEYS.UNLIMITED_TIME, false);
+    const savedPlayerName = loadFromStorage(STORAGE_KEYS.PLAYER_NAME, '');
+    const savedRoomId = loadFromStorage(STORAGE_KEYS.ROOM_ID, null);
     
     console.log('DOM Elements found:');
     console.log('- timeSlider:', !!timeSlider, timeSlider ? `value=${timeSlider.value}` : 'null');
     console.log('- timeDisplay:', !!timeDisplay);
     console.log('- unlimitedCheckbox:', !!unlimitedCheckbox);
+    console.log('- playerNameInput:', !!playerNameInput);
     console.log('localStorage values:');
     console.log('- savedTime:', savedTime);
     console.log('- savedUnlimited:', savedUnlimited);
-    console.log('Global state:');
-    console.log('- currentTimePerBoard:', currentTimePerBoard);
-    console.log('- defaultTimePerBoard:', defaultTimePerBoard);
+    console.log('- savedPlayerName:', savedPlayerName);
+    console.log('- savedRoomId:', savedRoomId);
+    
+    // Restore player name if saved
+    if (playerNameInput && savedPlayerName) {
+        playerNameInput.value = savedPlayerName;
+        console.log('Restored player name:', savedPlayerName);
+    }
     
     // Initialize unlimited mode checkbox
     if (unlimitedCheckbox) {
@@ -240,7 +442,7 @@ function initializeUI() {
         
         unlimitedCheckbox.addEventListener('change', function(e) {
             unlimitedTimeMode = e.target.checked;
-            localStorage.setItem('unlimitedTime', unlimitedTimeMode);
+            saveToStorage(STORAGE_KEYS.UNLIMITED_TIME, unlimitedTimeMode);
             updateTimeControlsVisibility();
             console.log('Unlimited mode:', unlimitedTimeMode);
         });
@@ -265,7 +467,7 @@ function initializeUI() {
         timeSlider.value = currentTimePerBoard;
         console.log('✓ Set input value to:', timeSlider.value);
         
-        localStorage.setItem('timePerBoard', currentTimePerBoard);
+        saveToStorage(STORAGE_KEYS.TIME_PER_BOARD, currentTimePerBoard);
         console.log('✓ Saved to localStorage:', currentTimePerBoard);
         
         // Simple event handling for number input
@@ -294,7 +496,55 @@ function initializeUI() {
     
     // Update visibility based on unlimited mode
     updateTimeControlsVisibility();
+    
+    // Try to reconnect to saved room if exists
+    if (savedRoomId) {
+        console.log('Found saved room ID:', savedRoomId);
+        tryReconnectToRoom(savedRoomId);
+    }
+    
     uiInitialized = true;
+}
+
+// Try to reconnect to a previously joined room
+function tryReconnectToRoom(roomId) {
+    console.log('Attempting to reconnect to room:', roomId);
+    
+    // Check if room still exists
+    socket.emit('get-room-info', roomId, (response) => {
+        if (response.success) {
+            console.log('Room still exists, attempting to rejoin');
+            
+            // Set up game state
+            gameState.roomId = roomId;
+            let playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                playerName = loadFromStorage(STORAGE_KEYS.PLAYER_NAME, '') || getRandomName();
+                document.getElementById('player-name').value = playerName;
+            }
+            gameState.playerName = playerName;
+            
+            // Try to rejoin the room
+            socket.emit('join-room', {
+                roomId: roomId,
+                playerName: playerName
+            }, (joinResponse) => {
+                if (joinResponse.success) {
+                    console.log('Successfully reconnected to room:', roomId);
+                    updateGameState(joinResponse.gameState);
+                    showRoomLobby();
+                } else {
+                    console.log('Failed to rejoin room:', joinResponse.error);
+                    clearRoomStorage();
+                    showMainMenu();
+                }
+            });
+        } else {
+            console.log('Saved room no longer exists:', response.error);
+            clearRoomStorage();
+            showMainMenu();
+        }
+    });
 }
 
 function updateTimeControlsVisibility() {
@@ -313,7 +563,7 @@ function handleTimeChange(value) {
         console.log('✓ Updated currentTimePerBoard to:', currentTimePerBoard);
         
         // Save to localStorage
-        localStorage.setItem('timePerBoard', currentTimePerBoard);
+        saveToStorage(STORAGE_KEYS.TIME_PER_BOARD, currentTimePerBoard);
         console.log('✓ Saved to localStorage:', currentTimePerBoard);
         
         // Verify localStorage was saved
@@ -345,6 +595,9 @@ function createRoom() {
     
     gameState.playerName = playerName;
     
+    // Save player name to localStorage
+    saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
+    
     // Use unlimited settings with configurable time
     socket.emit('create-room', {
         settings: {
@@ -357,6 +610,12 @@ function createRoom() {
     }, (response) => {
         if (response.success) {
             gameState.roomId = response.roomId;
+            gameState.isCreator = true;
+            
+            // Save room ID to localStorage
+            saveToStorage(STORAGE_KEYS.ROOM_ID, response.roomId);
+            console.log('Saved room ID to localStorage:', response.roomId);
+            
             joinCreatedRoom();
         } else {
             alert('Failed to create room: ' + response.error);
@@ -396,6 +655,10 @@ function joinRoom() {
     gameState.playerName = playerName;
     gameState.roomId = roomCode;
     
+    // Save player name and room ID to localStorage
+    saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
+    saveToStorage(STORAGE_KEYS.ROOM_ID, roomCode);
+    
     socket.emit('join-room', {
         roomId: roomCode,
         playerName: playerName
@@ -403,9 +666,12 @@ function joinRoom() {
         if (response.success) {
             gameState.isCreator = response.player.isCreator;
             updateGameState(response.gameState);
+            console.log('Saved room ID to localStorage:', roomCode);
             showRoomLobby();
         } else {
             alert('Failed to join room: ' + response.error);
+            // Clear room storage if join failed
+            clearRoomStorage();
         }
     });
 }
@@ -414,6 +680,12 @@ function showRoomLobby() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.remove('hidden');
+    
+    // Show dev mode indicator if in development
+    const devIndicator = document.getElementById('dev-mode-indicator');
+    if (devIndicator) {
+        devIndicator.style.display = IS_DEV_MODE ? 'inline' : 'none';
+    }
     
     gameState.phase = 'lobby';
     updateUI();
@@ -431,6 +703,10 @@ function startGame() {
 }
 
 function leaveRoom() {
+    // Clear room storage when leaving
+    clearRoomStorage();
+    console.log('Left room, cleared storage');
+    
     socket.disconnect();
     location.reload(); // Simple way to reset everything
 }

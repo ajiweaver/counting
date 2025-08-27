@@ -166,15 +166,9 @@
             <br>
             <div style="margin: 15px 0; text-align: center;">
                 <label style="display: block; margin: 10px 0;">
-                    <input type="checkbox" id="unlimited-time" style="margin-right: 8px;">
-                    Unlimited time
+                    Seconds per board:
+                    <input type="number" id="time-per-board" min="10" max="120" value="60" step="5" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
-                <div id="time-controls" style="margin-top: 10px;">
-                    <label style="display: block; margin: 10px 0;">
-                        Seconds per board:
-                        <input type="number" id="time-per-board" min="10" max="120" value="60" step="5" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
-                    </label>
-                </div>
             </div>
             <button onclick="createRoom()">Create Room</button>
             <button onclick="showJoinRoom()">Join Room</button>
@@ -199,7 +193,10 @@
             
             <!-- Leaderboard History -->
             <div id="leaderboard-history" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #666;">
-                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #ccc;">Recent Games</h3>
+                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #ccc;">
+                    Room History
+                    <span id="dev-mode-indicator" style="display: none; font-size: 10px; color: #FFA726; margin-left: 5px;">(DEV)</span>
+                </h3>
                 <div id="history-content" style="max-height: 200px; overflow-y: auto; font-size: 12px;">
                     <div style="color: #888; text-align: center; padding: 20px;">Loading...</div>
                 </div>
