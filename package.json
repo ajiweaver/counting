@@ -1,0 +1,17 @@
+{
+  "name": "count-battle",
+  "version": "1.0.0",
+  "description": "Multiplayer Go territory counting game",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "cd server && npm install && npm start",
+    "dev": "cd server && npm run dev",
+    "install-server": "cd server && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["go", "weiqi", "baduk", "territory", "counting", "multiplayer", "game"],
+  "author": "",
+  "license": "MIT"
+}
