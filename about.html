@@ -38,6 +38,14 @@
             color: white;
         }
         
+        .about-panel h2 {
+            color: #4CAF50;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #666;
+            padding-bottom: 10px;
+        }
+        
         .about-panel p {
             margin-bottom: 20px;
             line-height: 1.6;
@@ -82,27 +90,56 @@
             <h1>Count Battle!</h1>
 
             <p>
-                This is a fork of <a href="https://count.antontobi.com/">Anton Tobi's Count!</a> with some minor updates.
+                Count Battle! is a multiplayer Go territory counting game based on <a href="https://count.antontobi.com/">Anton Tobi's Count!</a> 
+            </p>
+
+            <p> 
+                With this version of the game, you can practice counting territory while competing with other players in real-time.
+            </p>
+
+            <h2>How to Play</h2>
+            
+            <p>
+                <strong>Goal:</strong> 
+                For each position, determine which side (Black or White) controls more territory. All positions assume no komi and no prisoners, with equal stones for both sides and no sekis.
             </p>
 
             <p>
-                For each position, count which side is winning, assuming no komi and no prisoners. All positions have the same number of black and white stones, and there are no sekis, so area scoring and territory scoring will give the same result. 
+                <strong>Game Setup:</strong><br>
+                • Set game parameters (time per board, number of boards)<br>
+                • Create a room<br>
+                • Share the room code with friends to join<br>
+                • Wait for all players to be ready, then start the game
             </p>
 
             <p>
-                The positions are manually generated, so there's a relatively small number of them (100 at the moment), which are presented at random orientations. To avoid tempting you to memorize specific positions, for many of them I've included a very similar position where the result is the opposite.
+                <strong>During the Game:</strong><br>
+                • All players will get the same positions, but the colors or orientation might be flipped<br>
+                • Click "Black" or "White" to indicate which side has more territory<br>
+                • The board's background is normally green, but it will turn red when you make a mistake<br>
+                • If your time runs out, you cannot make any more points this round
             </p>
 
             <p>
-                When you load the page, you are prompted to choose a time limit per board in seconds. Leave the field empty to play without timer.
+                <strong>Winning:</strong><br>
+                • Your score is the number of correct answers
+                • The game ends when the first player completes all boards OR time runs out OR you're the last player still playing.<br>
+                • There's a leaderboard dialog in the top-right corner of the board, you can hide it by clicking on it.
+                • Winners will be marked in the leaderboard; a trophy 🏆 is awarded when there's a single, medals 🥇 are awarded for ties<br>
+                • Losers will see a red background<br>
             </p>
 
             <p>
-                The game continues until you run out of time or give an incorrect answer. Set your own personal goal (for instance "20 boards in 20 seconds each") and work towards it by gradually reducing the timer!
+                <strong>Room Features:</strong><br>
+                • View real-time leaderboard during gameplay<br>
+                • See room history with past game results<br>
+                • Total scores tracked across multiple games<br>
+                • The lobby's player list will be sorted by total score, the player with the most right answers will be placed first.<br>
+                • Host controls for restarting or returning to lobby
             </p>
 
             <p>
-                If you're playing from a computer, you might prefer using the left and right arrow keys instead of the black and white buttons on screen (you can also use enter to restart).
+                <strong>Controls:</strong> Use the on-screen buttons or keyboard shortcuts (left/right arrow keys for Black/White, Enter to restart).
             </p>
 
             <div class="back-button-container">

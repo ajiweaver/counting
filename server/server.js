@@ -69,39 +69,101 @@ class GameRoom {
       progressiveDifficulty: settings.progressiveDifficulty || true
     };
     this.createdAt = Date.now();
+    this.creatorUUID = null; // Track creator by UUID for persistent host identity
+    this.creatorReconnectTimeout = null; // Timeout for creator reconnection
   }
 
-  addPlayer(playerId, playerName) {
+  updateSettings(newSettings) {
+    if (this.gameState !== 'waiting') {
+      throw new Error('Cannot update settings while game is in progress');
+    }
+    
+    // Update only provided settings, keep existing ones
+    if (newSettings.timePerBoard !== undefined) {
+      this.settings.timePerBoard = newSettings.timePerBoard;
+    }
+    if (newSettings.totalBoards !== undefined) {
+      this.settings.totalBoards = newSettings.totalBoards;
+    }
+    if (newSettings.unlimited !== undefined) {
+      this.settings.unlimited = newSettings.unlimited;
+    }
+    
+    console.log(`Room ${this.roomId}: Settings updated:`, this.settings);
+  }
+
+  addPlayer(playerId, playerName, playerUUID = null, isDevMode = false) {
     if (this.gameState !== 'waiting') {
       throw new Error('Game already in progress');
     }
     
+    const actualName = playerName || `Player ${this.players.size + 1}`;
+    
+    // First player with UUID becomes the creator
+    if (this.players.size === 0 && !this.creatorUUID && playerUUID) {
+      this.creatorUUID = playerUUID;
+      console.log(`Room ${this.roomId}: Creator UUID set to ${playerUUID}`);
+    }
+    
+    // Check if this player is the creator (by UUID)
+    const isCreator = playerUUID && playerUUID === this.creatorUUID;
+    
+    // If creator is reconnecting, clear the reconnection timeout
+    if (isCreator && this.creatorReconnectTimeout) {
+      console.log(`Creator ${actualName} reconnected, clearing timeout`);
+      clearTimeout(this.creatorReconnectTimeout);
+      this.creatorReconnectTimeout = null;
+    }
+    
     this.players.set(playerId, {
       id: playerId,
-      name: playerName || `Player ${this.players.size + 1}`,
+      name: actualName,
+      uuid: playerUUID,
       score: 0,
       currentAnswer: null,
       finished: false,
-      isCreator: this.players.size === 0
+      isCreator: isCreator,
+      isDevMode: isDevMode
     });
+    
+    if (isCreator) {
+      console.log(`Room ${this.roomId}: Creator ${actualName} (${playerUUID}) ${this.players.size === 1 ? 'joined' : 'reconnected'}`);
+    }
     
     return this.players.get(playerId);
   }
 
   removePlayer(playerId) {
-    const wasCreator = this.players.get(playerId)?.isCreator;
+    const player = this.players.get(playerId);
+    const wasCreator = player?.isCreator;
+    const leavingPlayerName = player?.name;
+    
     this.players.delete(playerId);
     
-    // If creator left and game hasn't started, make someone else creator
-    if (wasCreator && this.gameState === 'waiting' && this.players.size > 0) {
-      const newCreator = this.players.values().next().value;
-      if (newCreator) {
-        newCreator.isCreator = true;
+    // If creator left (disconnected), keep their UUID for potential reconnection
+    // Only reassign if game hasn't started and they don't reconnect
+    if (wasCreator && this.gameState === 'waiting') {
+      console.log(`Creator ${leavingPlayerName} disconnected. Keeping room alive for reconnection.`);
+      
+      // Set a timeout to allow creator reconnection (5 minutes)
+      if (!this.creatorReconnectTimeout) {
+        this.creatorReconnectTimeout = setTimeout(() => {
+          console.log(`Creator reconnection timeout expired for room ${this.roomId}`);
+          this.creatorReconnectTimeout = null;
+          // Room will be cleaned up by the periodic cleanup if still empty
+        }, 5 * 60 * 1000); // 5 minutes
       }
     }
     
-    // Remove empty rooms
-    return this.players.size === 0;
+    // Don't immediately remove empty rooms if creator just disconnected
+    // This allows for page refreshes and reconnections
+    const isEmpty = this.players.size === 0;
+    if (isEmpty && wasCreator && this.gameState === 'waiting') {
+      // Keep room alive for creator reconnection
+      return false;
+    }
+    
+    return isEmpty;
   }
 
   startGame() {
@@ -167,6 +229,9 @@ class GameRoom {
       // Check if player has completed all boards (only in limited mode)
       if (!this.settings.unlimited && currentBoardIndex >= this.settings.totalBoards - 1) {
         player.finished = true;
+        // Auto-finish game when first player completes all boards
+        this.finishAllPlayers();
+        return true; // Early return since game is finished
       }
     } else {
       player.finished = true; // Mark player as finished when they get wrong answer
@@ -174,6 +239,14 @@ class GameRoom {
     
     return true;
   }
+
+  finishAllPlayers() {
+    // Mark all players as finished when the first player completes all boards
+    for (let player of this.players.values()) {
+      player.finished = true;
+    }
+  }
+
 
   updatePlayerScore(playerId, newScore, finished = false) {
     const player = this.players.get(playerId);
@@ -279,7 +352,7 @@ io.on('connection', (socket) => {
   // Join room
   socket.on('join-room', (data, callback) => {
     try {
-      const { roomId, playerName } = data;
+      const { roomId, playerName, playerUUID, isDevMode } = data;
       const room = rooms.get(roomId);
       
       if (!room) {
@@ -287,7 +360,7 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const player = room.addPlayer(socket.id, playerName);
+      const player = room.addPlayer(socket.id, playerName, playerUUID, isDevMode);
       playerRooms.set(socket.id, roomId);
       
       socket.join(roomId);
@@ -305,7 +378,7 @@ io.on('connection', (socket) => {
   });
 
   // Start game (only room creator can start)
-  socket.on('start-game', (callback) => {
+  socket.on('start-game', (data, callback) => {
     try {
       const roomId = playerRooms.get(socket.id);
       const room = rooms.get(roomId);
@@ -319,6 +392,11 @@ io.on('connection', (socket) => {
       if (!player?.isCreator) {
         callback({ success: false, error: 'Only room creator can start game' });
         return;
+      }
+      
+      // Update room settings if provided
+      if (data && data.settings) {
+        room.updateSettings(data.settings);
       }
       
       room.startGame();
@@ -365,6 +443,16 @@ io.on('connection', (socket) => {
         // Save game if all players are finished
         if (room.areAllPlayersFinished()) {
           room.saveCompletedGame();
+          
+          // Broadcast game finished event to all players in the room
+          io.to(roomId).emit('game-finished', {
+            gameState: room.getGameState(),
+            finalResults: {
+              players: Array.from(room.players.values()).sort((a, b) => b.score - a.score),
+              gameCompleted: true
+            }
+          });
+          console.log('Game finished event sent to all players in room:', room.roomId);
           
           // Broadcast leaderboard update to all connected clients
           io.emit('leaderboard-updated', {
@@ -472,6 +560,31 @@ io.on('connection', (socket) => {
       callback({ success: false, error: 'Room not found' });
     }
   });
+
+  // Find existing room by creator UUID
+  socket.on('find-creator-room', (data, callback) => {
+    const { creatorUUID } = data;
+    
+    if (!creatorUUID) {
+      callback({ success: false, error: 'No creator UUID provided' });
+      return;
+    }
+    
+    // Search for room with matching creator UUID in waiting state
+    for (let [roomId, room] of rooms.entries()) {
+      if (room.creatorUUID === creatorUUID && room.gameState === 'waiting') {
+        console.log(`Found existing room ${roomId} for creator ${creatorUUID}`);
+        callback({ 
+          success: true, 
+          roomId: roomId,
+          gameState: room.getGameState()
+        });
+        return;
+      }
+    }
+    
+    callback({ success: false, error: 'No existing room found' });
+  });
 });
 
 // REST API endpoints
@@ -525,6 +638,11 @@ setInterval(() => {
   
   for (let [roomId, room] of rooms.entries()) {
     if (now - room.createdAt > ROOM_TIMEOUT && room.players.size === 0) {
+      // Clean up any pending reconnection timeout
+      if (room.creatorReconnectTimeout) {
+        clearTimeout(room.creatorReconnectTimeout);
+        room.creatorReconnectTimeout = null;
+      }
       rooms.delete(roomId);
       console.log(`Cleaned up old room: ${roomId}`);
     }
