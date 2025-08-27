@@ -109,7 +109,117 @@ const MOCK_GAMES = [
             { name: "zen_lovelace", score: 3, finished: true, isCreator: false },
             { name: "happy_curie", score: 3, finished: true, isCreator: true }
         ]
+    },
+    // Perfect completion cases - players finished all boards successfully
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(), // 3 minutes ago
+        duration: 180, // 3 minutes for 20 boards (9 seconds per board avg)
+        players: [
+            { name: "perfect_hawking", score: 20, finished: true, isCreator: true }, // Completed all 20 boards
+            { name: "brilliant_euler", score: 18, finished: true, isCreator: false }, // Missed 2 boards
+            { name: "focused_darwin", score: 15, finished: true, isCreator: false } // Missed 5 boards
+        ]
+    },
+    {
+        roomId: "ABC123", 
+        completedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(), // 45 minutes ago
+        duration: 240, // 4 minutes for 20 boards (12 seconds per board avg)
+        players: [
+            { name: "flawless_feynman", score: 20, finished: true, isCreator: false }, // Perfect game
+            { name: "amazing_turing", score: 20, finished: true, isCreator: true }, // Also perfect
+            { name: "wise_archimedes", score: 19, finished: true, isCreator: false }, // Almost perfect
+            { name: "clever_tesla", score: 17, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "ABC123",
+        completedAt: new Date(Date.now() - 2.5 * 60 * 60 * 1000).toISOString(), // 2.5 hours ago
+        duration: 420, // 7 minutes for 20 boards (21 seconds per board avg)
+        players: [
+            { name: "methodical_marie", score: 20, finished: true, isCreator: true }, // Completed all boards
+            { name: "patient_pascal", score: 16, finished: true, isCreator: false }
+        ]
+    },
+    {
+        roomId: "XYZ789", // Different room - speed run scenario  
+        completedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(), // 1.5 hours ago
+        duration: 120, // 2 minutes for 20 boards (6 seconds per board avg) - very fast!
+        players: [
+            { name: "lightning_lovelace", score: 20, finished: true, isCreator: true }, // Perfect speed run
+            { name: "rapid_ramanujan", score: 19, finished: true, isCreator: false }, // Almost perfect speed
+            { name: "quick_qutub", score: 14, finished: true, isCreator: false } // Good but not perfect
+        ]
     }
+];
+
+// Mock boards for development testing
+const MOCK_BOARDS = [
+    // Board 0: Simple corner capture - Black wins
+    `. . . . . . . . .
+. . . . . . . . .
+. . X X X . . . .
+. . X O O X . . .
+. . X O . O X . .
+. . X O O O X . .
+. . X X X X . . .
+. . . . . . . . .
+. . . . . . . . .`,
+    
+    // Board 1: Territory battle - White wins
+    `. . . . . . . . .
+. . O O O . . . .
+. O . . . O . . .
+. O . X X . O . .
+. O . X . X O . .
+. O . X X . O . .
+. . O . . O . . .
+. . . O O . . . .
+. . . . . . . . .`,
+    
+    // Board 2: Complex center fight - Black wins by 1
+    `. . . . . . . . .
+. . X O O . . . .
+. X . X O . O . .
+. X X . X O . . .
+. . X X X O O . .
+. . . X O . . . .
+. . X . X O O . .
+. . . X X X O . .
+. . . . . . . . .`,
+    
+    // Board 3: Large territory - White wins big
+    `O O O O O . . . .
+O . . . O . . . .
+O . . . O . . . .
+O . . . O X X X .
+O . . . O X . X .
+O . . . O X . X .
+O . . . O X X X .
+O O O O O . . . .
+. . . . . . . . .`,
+    
+    // Board 4: Close endgame - Black wins by half point
+    `X X O O . . . . .
+X O X O . . . . .
+X O X O . . . . .
+X O O X X . . . .
+X X O O X . . . .
+. X X O O . . . .
+. . X X O . . . .
+. . . X O . . . .
+. . . . . . . . .`,
+    
+    // Board 5: Seki position - Black wins
+    `. . . . . . . . .
+. . X X O O . . .
+. X . X O . O . .
+. X X O O O . . .
+. . X X O . . . .
+. . . X O . . . .
+. . . X O . . . .
+. . . . . . . . .
+. . . . . . . . .`
 ];
 
 // Development helper functions
@@ -131,7 +241,55 @@ if (IS_DEV_MODE) {
         console.log('\nUse setTestRoomId("ABC123") to test with mock data');
     };
     
-    console.log('🚀 Development mode active! Use showMockData() or setTestRoomId("ABC123") in console');
+    window.setTestBoardId = function(boardId) {
+        if (boardId < 0 || boardId >= MOCK_BOARDS.length) {
+            console.error(`❌ Invalid board ID: ${boardId}. Available: 0-${MOCK_BOARDS.length - 1}`);
+            return;
+        }
+        
+        // Replace the boards array temporarily with our mock board at index 0
+        window.originalBoards = window.originalBoards || boards.slice(); // Backup original boards
+        boards[0] = MOCK_BOARDS[boardId];
+        
+        // Set up a simple game state for testing
+        gameState.boardSequence = [0]; // Use our mock board
+        gameState.currentBoard = 0;
+        gameState.phase = 'playing';
+        
+        console.log(`🚀 Test board ${boardId} loaded!`);
+        console.log('Board preview:');
+        console.log(MOCK_BOARDS[boardId]);
+        console.log('\nThis board will be used in the next game. Start a game to test!');
+        
+        // If we're already in a game, load the board immediately
+        if (typeof loadMultiplayerBoard === 'function') {
+            loadMultiplayerBoard(0);
+        }
+    };
+    
+    window.showMockBoards = function() {
+        console.log('🚀 Available mock boards:');
+        MOCK_BOARDS.forEach((board, id) => {
+            const lines = board.trim().split('\n');
+            const description = lines[0].includes('X X X') ? 'Complex' : 
+                               lines.some(l => l.includes('O O O O O')) ? 'Territory' :
+                               'Standard';
+            console.log(`  - ${id}: ${description} position`);
+        });
+        console.log('\nUse setTestBoardId(0) to test with mock board');
+        console.log('Use showMockBoards() to see all available boards');
+    };
+    
+    window.resetBoards = function() {
+        if (window.originalBoards) {
+            boards = window.originalBoards.slice();
+            console.log('🚀 Original boards restored');
+        }
+    };
+    
+    console.log('🚀 Development mode active!');
+    console.log('Game testing: showMockData(), setTestRoomId("ABC123")');
+    console.log('Board testing: showMockBoards(), setTestBoardId(0)');
 }
 
 // Initialize socket connection
@@ -173,7 +331,17 @@ function initSocket() {
         gameState.players = data.players;
         
         // Check if all players are finished
+        const wasAllFinished = gameState.allPlayersFinished;
         gameState.allPlayersFinished = gameState.players.every(player => player.finished);
+        
+        // Auto-show leaderboard when game finishes
+        if (!wasAllFinished && gameState.allPlayersFinished) {
+            console.log('All players finished - auto-showing leaderboard');
+            // Small delay to ensure UI updates are complete
+            setTimeout(() => {
+                showLeaderboard();
+            }, 500);
+        }
         
         updateLeaderboard();
     });
@@ -360,6 +528,7 @@ function showJoinRoom() {
 // Initialize the UI
 let uiInitialized = false;
 let currentTimePerBoard = defaultTimePerBoard;
+let currentTotalBoards = 20; // Default number of boards
 let unlimitedTimeMode = false;
 
 // LocalStorage keys
@@ -367,6 +536,7 @@ const STORAGE_KEYS = {
     ROOM_ID: 'countbattle_room_id',
     PLAYER_NAME: 'countbattle_player_name',
     TIME_PER_BOARD: 'countbattle_time_per_board',
+    TOTAL_BOARDS: 'countbattle_total_boards',
     UNLIMITED_TIME: 'countbattle_unlimited_time'
 };
 
@@ -407,6 +577,7 @@ function initializeUI() {
     
     console.log('=== initializeUI called ===');
     const timeSlider = document.getElementById('time-per-board');
+    const totalBoardsInput = document.getElementById('total-boards');
     const timeDisplay = document.getElementById('time-display');
     const unlimitedCheckbox = document.getElementById('unlimited-time');
     const timeControls = document.getElementById('time-controls');
@@ -414,17 +585,20 @@ function initializeUI() {
     
     // Load saved settings from localStorage
     const savedTime = loadFromStorage(STORAGE_KEYS.TIME_PER_BOARD, defaultTimePerBoard);
+    const savedTotalBoards = loadFromStorage(STORAGE_KEYS.TOTAL_BOARDS, 20);
     const savedUnlimited = loadFromStorage(STORAGE_KEYS.UNLIMITED_TIME, false);
     const savedPlayerName = loadFromStorage(STORAGE_KEYS.PLAYER_NAME, '');
     const savedRoomId = loadFromStorage(STORAGE_KEYS.ROOM_ID, null);
     
     console.log('DOM Elements found:');
     console.log('- timeSlider:', !!timeSlider, timeSlider ? `value=${timeSlider.value}` : 'null');
+    console.log('- totalBoardsInput:', !!totalBoardsInput, totalBoardsInput ? `value=${totalBoardsInput.value}` : 'null');
     console.log('- timeDisplay:', !!timeDisplay);
     console.log('- unlimitedCheckbox:', !!unlimitedCheckbox);
     console.log('- playerNameInput:', !!playerNameInput);
     console.log('localStorage values:');
     console.log('- savedTime:', savedTime);
+    console.log('- savedTotalBoards:', savedTotalBoards);
     console.log('- savedUnlimited:', savedUnlimited);
     console.log('- savedPlayerName:', savedPlayerName);
     console.log('- savedRoomId:', savedRoomId);
@@ -492,6 +666,52 @@ function initializeUI() {
         
         console.log('✓ Added event listeners');
         console.log('=== Time input initialization complete ===');
+    }
+    
+    // Initialize total boards input
+    if (totalBoardsInput) {
+        console.log('=== Initializing total boards input ===');
+        
+        // Set initial value from localStorage or default
+        if (savedTotalBoards && !isNaN(savedTotalBoards)) {
+            currentTotalBoards = parseInt(savedTotalBoards);
+            console.log('✓ Restoring saved total boards:', currentTotalBoards);
+        } else {
+            currentTotalBoards = parseInt(totalBoardsInput.value) || 20;
+            console.log('✓ Using default total boards:', currentTotalBoards);
+        }
+        
+        // Set the input value
+        totalBoardsInput.value = currentTotalBoards;
+        console.log('✓ Set input value to:', totalBoardsInput.value);
+        
+        saveToStorage(STORAGE_KEYS.TOTAL_BOARDS, currentTotalBoards);
+        console.log('✓ Saved to localStorage:', currentTotalBoards);
+        
+        // Event handler for total boards input
+        const boardsChangeHandler = function(e) {
+            let newValue = parseInt(e.target.value);
+            
+            // Validate the value
+            if (isNaN(newValue) || newValue < 5 || newValue > 50) {
+                console.log('❌ Invalid total boards value:', newValue, 'resetting to previous');
+                e.target.value = currentTotalBoards;
+                return;
+            }
+            
+            currentTotalBoards = newValue;
+            console.log('✓ Updated currentTotalBoards to:', currentTotalBoards);
+            
+            // Save to localStorage
+            saveToStorage(STORAGE_KEYS.TOTAL_BOARDS, currentTotalBoards);
+            console.log('✓ Saved to localStorage:', currentTotalBoards);
+        };
+        
+        // Add event listeners
+        totalBoardsInput.addEventListener('change', boardsChangeHandler);
+        totalBoardsInput.addEventListener('blur', boardsChangeHandler);
+        
+        console.log('✓ Total boards input initialization complete');
     }
     
     // Update visibility based on unlimited mode
@@ -598,12 +818,12 @@ function createRoom() {
     // Save player name to localStorage
     saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
     
-    // Use unlimited settings with configurable time
+    // Use settings with configurable time and boards
     socket.emit('create-room', {
         settings: {
             timePerBoard: timePerBoard, // Configurable time per board or -1 for unlimited
-            totalBoards: -1, // Unlimited boards
-            unlimited: true, // Unlimited boards mode
+            totalBoards: currentTotalBoards, // Configurable number of boards
+            unlimited: false, // Use limited boards mode
             unlimitedTime: unlimitedTimeMode, // Unlimited time mode
             progressiveDifficulty: true
         }
@@ -638,6 +858,18 @@ function joinCreatedRoom() {
     });
 }
 
+function handleJoinRoomSuccess(response) {
+    gameState.isCreator = response.player.isCreator;
+    gameState.roomId = response.gameState.roomId;
+    updateGameState(response.gameState);
+    
+    // Save room ID to localStorage
+    saveToStorage(STORAGE_KEYS.ROOM_ID, response.gameState.roomId);
+    console.log('Saved room ID to localStorage:', response.gameState.roomId);
+    
+    showRoomLobby();
+}
+
 function joinRoom() {
     let playerName = document.getElementById('player-name').value.trim();
     const roomCode = document.getElementById('room-code').value.trim().toUpperCase();
@@ -655,19 +887,15 @@ function joinRoom() {
     gameState.playerName = playerName;
     gameState.roomId = roomCode;
     
-    // Save player name and room ID to localStorage
+    // Save player name to localStorage
     saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
-    saveToStorage(STORAGE_KEYS.ROOM_ID, roomCode);
     
     socket.emit('join-room', {
         roomId: roomCode,
         playerName: playerName
     }, (response) => {
         if (response.success) {
-            gameState.isCreator = response.player.isCreator;
-            updateGameState(response.gameState);
-            console.log('Saved room ID to localStorage:', roomCode);
-            showRoomLobby();
+            handleJoinRoomSuccess(response);
         } else {
             alert('Failed to join room: ' + response.error);
             // Clear room storage if join failed
@@ -700,6 +928,76 @@ function startGame() {
             alert('Failed to start game: ' + response.error);
         }
     });
+}
+
+function copyRoomLink() {
+    if (!gameState.roomId) {
+        console.error('No room ID available to copy');
+        return;
+    }
+    
+    // Create shareable link with room ID as parameter
+    const roomLink = `${window.location.origin}${window.location.pathname}?room=${gameState.roomId}`;
+    
+    // Copy to clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+        // Modern clipboard API
+        navigator.clipboard.writeText(roomLink).then(() => {
+            showCopyFeedback('Link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy with clipboard API:', err);
+            fallbackCopyToClipboard(roomLink);
+        });
+    } else {
+        // Fallback for older browsers or non-HTTPS
+        fallbackCopyToClipboard(roomLink);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    // Create temporary textarea
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    
+    try {
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile devices
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopyFeedback('Link copied to clipboard!');
+        } else {
+            showCopyFeedback('Failed to copy link', true);
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showCopyFeedback('Failed to copy link', true);
+    } finally {
+        document.body.removeChild(textarea);
+    }
+}
+
+function showCopyFeedback(message, isError = false) {
+    // Show feedback to user
+    const copyButton = document.querySelector('button[onclick="copyRoomLink()"]');
+    if (copyButton) {
+        const originalText = copyButton.innerHTML;
+        const originalBackground = copyButton.style.background;
+        
+        copyButton.innerHTML = isError ? '❌ Failed' : '✅ Copied!';
+        copyButton.style.background = isError ? '#f44336' : '#4CAF50';
+        copyButton.disabled = true;
+        
+        setTimeout(() => {
+            copyButton.innerHTML = originalText;
+            copyButton.style.background = originalBackground;
+            copyButton.disabled = false;
+        }, 2000);
+    }
+    
+    console.log(message);
 }
 
 function leaveRoom() {
@@ -847,7 +1145,18 @@ function updateUI() {
     gameState.players.forEach(player => {
         const playerEl = document.createElement('div');
         playerEl.className = 'player' + (player.isCreator ? ' creator' : '');
-        playerEl.textContent = `${player.name} ${player.isCreator ? '(Host)' : ''} - Score: ${player.score}`;
+        
+        // Build player text with markers
+        let playerText = player.name;
+        if (player.isCreator) {
+            playerText += ' (Host)';
+        }
+        if (player.id === gameState.playerId) {
+            playerText += ' (You)';
+        }
+        playerText += ` - Score: ${player.score}`;
+        
+        playerEl.textContent = playerText;
         playerListEl.appendChild(playerEl);
     });
     
@@ -1005,7 +1314,14 @@ function submitMultiplayer(guess) {
                     timer = -1;
                     // Mark ourselves as finished locally
                     const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                    if (ourPlayer) ourPlayer.finished = true;
+                    if (ourPlayer) {
+                        ourPlayer.finished = true;
+                        // Auto-show leaderboard when player finishes
+                        console.log('Player completed all boards - auto-showing leaderboard');
+                        setTimeout(() => {
+                            showLeaderboard();
+                        }, 500);
+                    }
                 } else {
                     // In unlimited mode, continue with more boards (this shouldn't happen with 1000 board pool)
                     console.log('Unlimited mode: ran out of boards unexpectedly');
@@ -1017,7 +1333,14 @@ function submitMultiplayer(guess) {
                     document.bgColor = 'crimson';
                     // Mark ourselves as finished locally when we get wrong answer
                     const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                    if (ourPlayer) ourPlayer.finished = true;
+                    if (ourPlayer) {
+                        ourPlayer.finished = true;
+                        // Auto-show leaderboard when player finishes with wrong answer
+                        console.log('Player got wrong answer - auto-showing leaderboard');
+                        setTimeout(() => {
+                            showLeaderboard();
+                        }, 1000); // Longer delay to see the red background effect
+                    }
                 }
             }
             // Don't update leaderboard here - wait for server score-updated event
@@ -1047,6 +1370,48 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing UI and socket');
     initSocket();
     initializeUI();
+    
+    // Check if there's a room ID in the URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomIdFromUrl = urlParams.get('room');
+    
+    if (roomIdFromUrl) {
+        console.log('Found room ID in URL:', roomIdFromUrl);
+        // Wait for socket connection and UI initialization
+        setTimeout(() => {
+            if (socket && socket.connected) {
+                // Auto-join the room directly
+                const playerName = document.getElementById('player-name').value.trim() || getRandomName();
+                document.getElementById('player-name').value = playerName;
+                
+                // Save player name
+                gameState.playerName = playerName;
+                saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
+                
+                // Join the room directly
+                socket.emit('join-room', {
+                    roomId: roomIdFromUrl.toUpperCase(),
+                    playerName: playerName
+                }, (response) => {
+                    if (response.success) {
+                        handleJoinRoomSuccess(response);
+                        // Clear the URL parameter after successful join
+                        const newUrl = window.location.origin + window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                        console.log('Successfully auto-joined room from URL');
+                    } else {
+                        console.error('Failed to auto-join room:', response.error);
+                        // Show join panel as fallback
+                        document.getElementById('room-code').value = roomIdFromUrl.toUpperCase();
+                        showJoinRoom();
+                        alert(`Failed to join room: ${response.error}`);
+                    }
+                });
+            } else {
+                console.log('Socket not ready, will try room reconnection through normal flow');
+            }
+        }, 1000);
+    }
 });
 
 function windowResized() {
@@ -1181,7 +1546,14 @@ function draw() {
                     if (response.success) {
                         // Mark ourselves as finished locally
                         const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                        if (ourPlayer) ourPlayer.finished = true;
+                        if (ourPlayer) {
+                            ourPlayer.finished = true;
+                            // Auto-show leaderboard when player times out
+                            console.log('Player timed out - auto-showing leaderboard');
+                            setTimeout(() => {
+                                showLeaderboard();
+                            }, 1000); // Longer delay to see the blue background effect
+                        }
                         
                         // Update leaderboard to potentially show host controls
                         updateLeaderboard();
