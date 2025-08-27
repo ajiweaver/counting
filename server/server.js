@@ -211,6 +211,8 @@ class GameRoom {
   }
 
   saveCompletedGame() {
+    console.log(`Checking if game ${this.roomId} should be saved. State: ${this.gameState}, All finished: ${this.areAllPlayersFinished()}`);
+    
     if (this.gameState === 'playing' && this.areAllPlayersFinished()) {
       const gameResult = {
         roomId: this.roomId,
@@ -230,11 +232,15 @@ class GameRoom {
       };
       
       completedGames.unshift(gameResult); // Add to beginning of array
+      console.log(`Game ${this.roomId} saved! Total completed games: ${completedGames.length}`);
+      console.log('Game result:', gameResult);
       
       // Keep only last 50 games to prevent memory issues
       if (completedGames.length > 50) {
         completedGames.splice(50);
       }
+    } else {
+      console.log(`Game ${this.roomId} not saved. Requirements not met.`);
     }
   }
 
@@ -359,6 +365,12 @@ io.on('connection', (socket) => {
         // Save game if all players are finished
         if (room.areAllPlayersFinished()) {
           room.saveCompletedGame();
+          
+          // Broadcast leaderboard update to all connected clients
+          io.emit('leaderboard-updated', {
+            games: completedGames.slice(0, 20)
+          });
+          console.log('Game completed and leaderboard updated:', room.roomId);
         }
         
         callback({ success: true });
@@ -483,9 +495,11 @@ app.get('/rooms/:roomId', (req, res) => {
 });
 
 app.get('/leaderboard', (req, res) => {
+  console.log(`Leaderboard API called. Total games: ${completedGames.length}`);
   res.json({ 
     success: true, 
-    games: completedGames.slice(0, 20) // Return last 20 games
+    games: completedGames.slice(0, 20), // Return last 20 games
+    totalGames: completedGames.length
   });
 });
 

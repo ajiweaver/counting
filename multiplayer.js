@@ -88,6 +88,13 @@ function initSocket() {
         updateGameState(data);
         returnToLobbyUI();
     });
+
+    socket.on('leaderboard-updated', (data) => {
+        console.log('Received leaderboard update:', data);
+        if (data.games) {
+            displayLeaderboardHistory(data.games);
+        }
+    });
 }
 
 // UI Functions
@@ -99,18 +106,35 @@ function showMainMenu() {
 
 // Load and display leaderboard history
 async function loadLeaderboardHistory() {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return; // Element doesn't exist yet
+    
+    historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
+    
     try {
+        console.log('Loading leaderboard from:', `${SERVER_URL}/leaderboard`);
         const response = await fetch(`${SERVER_URL}/leaderboard`);
-        const data = await response.json();
         
-        if (data.success && data.games) {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Leaderboard data received:', data);
+        
+        if (data.success && data.games && data.games.length > 0) {
             displayLeaderboardHistory(data.games);
         } else {
-            document.getElementById('history-content').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No games yet</div>';
+            historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No completed games yet</div>';
         }
     } catch (error) {
         console.error('Error loading leaderboard history:', error);
-        document.getElementById('history-content').innerHTML = '<div style="color: #f44; text-align: center; padding: 20px;">Failed to load</div>';
+        historyContent.innerHTML = `<div style="color: #f44; text-align: center; padding: 20px;">
+            Failed to load: ${error.message}<br>
+            <button onclick="loadLeaderboardHistory()" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                Retry
+            </button>
+        </div>`;
     }
 }
 
