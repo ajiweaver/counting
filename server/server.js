@@ -429,6 +429,16 @@ io.on('connection', (socket) => {
 });
 
 // REST API endpoints
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Count Battle! Multiplayer Server', 
+    status: 'running',
+    version: '1.0.0',
+    endpoints: ['/health', '/rooms/:roomId'],
+    socketNamespace: '/'
+  });
+});
+
 app.get('/rooms/:roomId', (req, res) => {
   const room = rooms.get(req.params.roomId);
   if (room) {
