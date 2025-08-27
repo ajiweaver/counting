@@ -33,7 +33,7 @@ let sx, sy, bx, by, wx, wy;
 // Auto-detect server URL based on environment
 const SERVER_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000' 
-    : 'https://x36juiuh.up.railway.app';
+    : 'https://counting-production.up.railway.app';
 
 // Initialize socket connection
 function initSocket() {
