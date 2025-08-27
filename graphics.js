@@ -73,7 +73,7 @@ function draw() {
     fill('white')
     textSize(D)
     
-    textFont('courier')    
+    textFont('Arial')    
     text(score, width/2, R)
     
     pop()
@@ -190,7 +190,7 @@ function submit(guess) {
     started = true
     if (guess === correct) {
         score ++
-        maxTime -= 1000
+        //maxTime -= 1000
         loadBoard()
     } else {
         if (!failed) {

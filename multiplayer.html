@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Count Battle!</title>
+	<meta charset="UTF-8">
+
+	<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+	<script src="p5.min.js"></script>
+	<script src="boards.js"></script>
+	<script src="name-generator.js"></script>
+	<script src="multiplayer.js"></script>
+
+	<meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: white;
+        }
+        
+        .ui-panel {
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        #room-id {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .player-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+        
+        .player {
+            padding: 5px;
+            margin: 5px 0;
+            background: #555;
+            border-radius: 3px;
+        }
+        
+        .player.creator {
+            background: #4CAF50;
+        }
+        
+        #leaderboard {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            display: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+        
+        /* Special styling for emojis in leaderboard */
+        #leaderboard .emoji {
+            font-family: 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+        }
+        
+        #leaderboard-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+            z-index: 101;
+        }
+        
+        #leaderboard-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+            margin: 10px 0;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="ui-overlay">
+        <div class="ui-panel" id="main-menu">
+            <h1>Count Battle!</h1>
+            <input type="text" id="player-name" placeholder="username" maxlength="20">
+            <br>
+            <div style="margin: 15px 0; text-align: center;">
+                <label style="display: block; margin: 10px 0;">
+                    <input type="checkbox" id="unlimited-time" style="margin-right: 8px;">
+                    Unlimited time
+                </label>
+                <div id="time-controls" style="margin-top: 10px;">
+                    <label style="display: block; margin: 10px 0;">
+                        Seconds per board:
+                        <input type="number" id="time-per-board" min="10" max="120" value="60" step="5" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
+                    </label>
+                </div>
+            </div>
+            <button onclick="createRoom()">Create Room</button>
+            <button onclick="showJoinRoom()">Join Room</button>
+            <br>
+            <button onclick="window.location.href='about.html'" style="background: #2196F3;">About</button>
+        </div>
+        
+        <div class="ui-panel hidden" id="join-room-panel">
+            <h2>Join Room</h2>
+            <input type="text" id="room-code" placeholder="Room Code" maxlength="6" style="text-transform: uppercase;">
+            <br>
+            <button onclick="joinRoom()">Join</button>
+            <button onclick="showMainMenu()">Back</button>
+        </div>
+        
+        <div class="ui-panel hidden" id="room-panel">
+            <h2>Room: <span id="room-id"></span></h2>
+            <div id="room-status">Waiting for players...</div>
+            <div class="player-list" id="player-list"></div>
+            <button id="start-button" onclick="startGame()" class="hidden">Start Game</button>
+            <button onclick="leaveRoom()">Leave Room</button>
+        </div>
+    </div>
+    
+    <button id="leaderboard-toggle" onclick="toggleLeaderboard()">📊 Scores</button>
+    
+    <div id="leaderboard" onclick="hideLeaderboard()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Leaderboard</h3>
+            <button onclick="hideLeaderboard(); event.stopPropagation();" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">✕</button>
+        </div>
+        <div id="leaderboard-content"></div>
+        
+        <!-- Host controls during gameplay -->
+        <div id="host-controls" class="hidden" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #666;">
+            <div style="font-size: 12px; margin-bottom: 8px;">Host Controls:</div>
+            <button onclick="restartGame(); event.stopPropagation();" style="font-size: 12px; padding: 5px 8px; margin: 2px; background: #FF9800;">Restart</button>
+            <button onclick="returnToLobbyHost(); event.stopPropagation();" style="font-size: 12px; padding: 5px 8px; margin: 2px; background: #9E9E9E;">Back to Lobby</button>
+        </div>
+    </div>
+</body>
+</html>
