@@ -1,0 +1,22 @@
+[build]
+  # No build step needed for static files
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirect rules (optional)
+[[redirects]]
+  from = "/multiplayer"
+  to = "/multiplayer.html"
+  status = 200
+
+[[redirects]]
+  from = "/about"  
+  to = "/about.html"
+  status = 200

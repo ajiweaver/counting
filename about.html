@@ -1,44 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>About Count!</title>
-    <link rel="stylesheet" type="text/css" href="about.css">
+	<title>About Count Battle!</title>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        #about-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: white;
+        }
+        
+        .about-panel {
+            background: #333;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: left;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .about-panel h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .about-panel p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .about-panel a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        
+        .about-panel a:hover {
+            text-decoration: underline;
+        }
+        
+        .back-button-container {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #666;
+        }
+        
+        button {
+            margin: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+    </style>
 </head>
 <body>
+    <div id="about-overlay">
+        <div class="about-panel">
+            <h1>Count Battle!</h1>
 
-    <h1>Count!</h1>
+            <p>
+                This is a fork of <a href="https://count.antontobi.com/">Anton Tobi's Count!</a> with some minor updates.
+            </p>
 
-    <p>
-        This is a simple tool I made to practice counting territory in go.
-    </p>
+            <p>
+                For each position, count which side is winning, assuming no komi and no prisoners. All positions have the same number of black and white stones, and there are no sekis, so area scoring and territory scoring will give the same result. 
+            </p>
 
-    <p>
-        For each position, count which side is winning, assuming no komi and no prisoners. All positions have the same number of black and white stones, and there are no sekis, so area scoring and territory scoring will give the same result. 
-    </p>
+            <p>
+                The positions are manually generated, so there's a relatively small number of them (100 at the moment), which are presented at random orientations. To avoid tempting you to memorize specific positions, for many of them I've included a very similar position where the result is the opposite.
+            </p>
 
-    <p>
-        The positions are manually generated, so there's a relatively small number of them (100 at the moment), which are presented at random orientations. To avoid tempting you to memorize specific positions, for many of them I've included a very similar position where the result is the opposite.
-    </p>
+            <p>
+                When you load the page, you are prompted to choose a time limit per board in seconds. Leave the field empty to play without timer.
+            </p>
 
-    <p>
-        When you load the page, you are prompted to choose a time limit per board in seconds. Leave the field empty to play without timer.
-    </p>
+            <p>
+                The game continues until you run out of time or give an incorrect answer. Set your own personal goal (for instance "20 boards in 20 seconds each") and work towards it by gradually reducing the timer!
+            </p>
 
-    <p>
-        The game continues until you run out of time or give an incorrect answer. Set your own personal goal (for instance "20 boards in 20 seconds each") and work towards it by gradually reducing the timer!
-    </p>
+            <p>
+                If you're playing from a computer, you might prefer using the left and right arrow keys instead of the black and white buttons on screen (you can also use enter to restart).
+            </p>
 
-    <p>
-        If you're playing from a computer, you might prefer using the left and right arrow keys instead of the black and white buttons on screen (you can also use enter to restart).
-    </p>
-
-    <p>
-        If you have any feedback, please let me know in <a href = "https://forums.online-go.com/t/a-little-game-i-made-to-practice-counting-quickly/30103">this forum thread</a>!
-    </p>
-    
-    
-    <p>
-        <a href = "https://count.ajiweaver.com">Back to game</a>
-    </p>
+            <div class="back-button-container">
+                <button onclick="if (window.history.length > 1) { window.history.back(); } else { window.close(); }">← Go back</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
