@@ -226,15 +226,14 @@ class GameRoom {
     
     if (isCorrect) {
       player.score++;
-      // Check if player has completed all boards (only in limited mode)
-      if (!this.settings.unlimited && currentBoardIndex >= this.settings.totalBoards - 1) {
-        player.finished = true;
-        // Auto-finish game when first player completes all boards
-        this.finishAllPlayers();
-        return true; // Early return since game is finished
-      }
-    } else {
-      player.finished = true; // Mark player as finished when they get wrong answer
+    }
+    
+    // Only mark player as finished when they've completed all boards (regardless of right/wrong answers)
+    if (!this.settings.unlimited && currentBoardIndex >= this.settings.totalBoards - 1) {
+      player.finished = true;
+      // Auto-finish game when first player completes all boards
+      this.finishAllPlayers();
+      return true; // Early return since game is finished
     }
     
     return true;
