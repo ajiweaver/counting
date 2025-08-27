@@ -13,7 +13,7 @@
 # Redirect rules (optional)
 [[redirects]]
   from = "/multiplayer"
-  to = "/multiplayer.html"
+  to = "/index.html"
   status = 200
 
 [[redirects]]
