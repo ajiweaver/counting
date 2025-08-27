@@ -155,6 +155,29 @@
             cursor: pointer;
             border: none;
         }
+        
+        .copy-emoji {
+            display: inline-block;
+            transition: all 0.15s ease;
+        }
+        
+        .copy-emoji:active {
+            transform: scale(0.9) translateY(1px);
+        }
+        
+        .copy-emoji.clicked {
+            transform: scale(0.9) translateY(1px) !important;
+        }
+        
+        @keyframes clickPulse {
+            0% { transform: scale(1) translateY(0); }
+            40% { transform: scale(0.9) translateY(1px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+        
+        .copy-emoji.animate-click {
+            animation: clickPulse 0.12s ease-out;
+        }
 
     </style>
 </head>
@@ -171,7 +194,7 @@
                 </label>
                 <label style="display: block; margin: 10px 0;">
                     Number of boards:
-                    <input type="number" id="total-boards" min="5" max="50" value="20" step="1" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
+                    <input type="number" id="total-boards" min="5" max="50" value="20" step="5" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
             </div>
             <button onclick="createRoom()">Create Room</button>
@@ -189,11 +212,10 @@
         </div>
         
         <div class="ui-panel hidden" id="room-panel">
-            <h2>Room: <span id="room-id"></span></h2>
+            <h2>Room: <span id="room-id"></span><span class="copy-emoji" onclick="copyRoomLinkWithAnimation(this)" style="cursor: pointer; font-size: 18px; margin-left: 8px;" title="Click to copy room link">🔗</span></h2>
             <div id="room-status">Waiting for players...</div>
             <div class="player-list" id="player-list"></div>
             <button id="start-button" onclick="startGame()" class="hidden">Start Game</button>
-            <button onclick="copyRoomLink()" style="background: #FF9800;">📋 Copy Link</button>
             <button onclick="leaveRoom()">Leave Room</button>
             
             <!-- Leaderboard History -->
