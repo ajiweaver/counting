@@ -25,6 +25,7 @@ let correct;
 let failed = false;
 let defaultTimePerBoard = 55;
 let defaultTimePerBoardStep = 5;
+let penaltyMode = false; // Track if player is in penalty delay
 
 // UI variables
 let R, D, halfStrokeWeight;
@@ -1742,6 +1743,7 @@ function startMultiplayerGame() {
     score = 0;
     started = true;
     failed = false;
+    penaltyMode = false;
     
     // Load first board
     loadMultiplayerBoard(0);
@@ -1861,7 +1863,7 @@ function updateLeaderboard() {
 }
 
 function submitMultiplayer(guess) {
-    if (gameState.phase !== 'playing') return;
+    if (gameState.phase !== 'playing' || penaltyMode) return;
     
     const isCorrect = guess === correct;
     
@@ -1906,21 +1908,53 @@ function submitMultiplayer(guess) {
                     console.log('Unlimited mode: ran out of boards unexpectedly');
                 }
             } else {
-                if (!failed) {
-                    timer = -1;
-                    failed = true;
-                    document.bgColor = 'crimson';
-                    // Mark ourselves as finished locally when we get wrong answer
-                    const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                    if (ourPlayer) {
-                        ourPlayer.finished = true;
-                        // Auto-show leaderboard when player finishes with wrong answer
-                        console.log('Player got wrong answer - auto-showing leaderboard');
-                        setTimeout(() => {
-                            showLeaderboard();
-                        }, 1000); // Longer delay to see the red background effect
+                // Wrong answer - apply penalty but continue playing
+                console.log('Wrong answer - applying 1 second penalty');
+                
+                // Enter penalty mode to prevent input
+                penaltyMode = true;
+                
+                // Flash red background for 1 second
+                document.bgColor = 'crimson';
+                
+                // Add 1 second penalty delay before next board
+                setTimeout(() => {
+                    // Exit penalty mode and return to green background
+                    penaltyMode = false;
+                    document.bgColor = 'seagreen';
+                    
+                    // Continue to next board without incrementing score
+                    gameState.currentBoard++;
+                    
+                    // Check if we've reached the end of boards
+                    if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                        loadMultiplayerBoard(gameState.currentBoard);
+                    } else if (!gameState.settings?.unlimited) {
+                        // Game finished - player completed all boards (with some mistakes)
+                        console.log('🎯 Player completed all boards with mistakes! Final score:', score);
+                        gameState.phase = 'finished';
+                        timer = -1;
+                        
+                        // Set completion color
+                        failed = true;
+                        document.bgColor = 'darkgoldenrod';
+                        console.log('🏁 Player completed all boards - set background to darkgoldenrod');
+                        
+                        // Mark ourselves as finished locally
+                        const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+                        if (ourPlayer) {
+                            ourPlayer.finished = true;
+                            // Auto-show leaderboard when player finishes
+                            console.log('Player completed all boards - auto-showing leaderboard');
+                            setTimeout(() => {
+                                showLeaderboard();
+                            }, 500);
+                        }
+                    } else {
+                        // In unlimited mode, continue with more boards
+                        console.log('Unlimited mode: ran out of boards unexpectedly');
                     }
-                }
+                }, 1000); // 1 second penalty delay
             }
             // Don't update leaderboard here - wait for server score-updated event
         }
@@ -2116,6 +2150,9 @@ function draw() {
             }
             textSize(D * 0.7); // Smaller text for completion message
             textStyle(BOLD);
+        } else if (penaltyMode) {
+            // During penalty, show no special text
+            blackText = 'black';
         } else if (IS_DEV_MODE && correct === 'black') {
             blackText = '✓ BLACK'; // Show checkmark for correct answer
             textStyle(BOLD);
@@ -2153,6 +2190,9 @@ function draw() {
             }
             textSize(D * 0.7); // Smaller text for completion message
             textStyle(BOLD);
+        } else if (penaltyMode) {
+            // During penalty, show no special text
+            whiteText = 'white';
         } else if (IS_DEV_MODE && correct === 'white') {
             whiteText = '✓ WHITE'; // Show checkmark for correct answer
             textStyle(BOLD);
@@ -2211,8 +2251,8 @@ function draw() {
 }
 
 function handleClick() {
-    // Only allow clicks during active gameplay
-    if (gameState.phase !== 'playing' || timer <= 0) return;
+    // Only allow clicks during active gameplay and not during penalty
+    if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode) return;
     
     if (dist(mouseX, mouseY, bx, by) < D) {
         submitMultiplayer('black');
@@ -2225,7 +2265,7 @@ function handleClick() {
 }
 
 function keyPressed() {
-    if (gameState.phase !== 'playing' || timer <= 0) return;
+    if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode) return;
     
     if (keyCode === LEFT_ARROW) submitMultiplayer('black');
     if (keyCode === RIGHT_ARROW) submitMultiplayer('white');
