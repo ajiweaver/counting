@@ -66,7 +66,8 @@ class GameRoom {
       totalBoards: settings.totalBoards !== undefined ? settings.totalBoards : -1, // Default unlimited
       unlimited: settings.unlimited !== undefined ? settings.unlimited : true, // Default unlimited
       unlimitedTime: settings.unlimitedTime !== undefined ? settings.unlimitedTime : false, // Default timed
-      progressiveDifficulty: settings.progressiveDifficulty || true
+      progressiveDifficulty: settings.progressiveDifficulty || true,
+      hardMode: settings.hardMode || false // Exact score counting mode
     };
     this.createdAt = Date.now();
     this.creatorUUID = null; // Track creator by UUID for persistent host identity
@@ -431,6 +432,7 @@ io.on('connection', (socket) => {
   // Create room
   socket.on('create-room', (data, callback) => {
     try {
+      console.log('Creating room with settings:', data.settings);
       const roomId = generateRoomId();
       const room = new GameRoom(roomId, data.settings);
       rooms.set(roomId, room);
