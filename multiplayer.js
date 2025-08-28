@@ -29,6 +29,17 @@ let penaltyMode = false; // Track if player is in penalty delay
 let lobbyCountdown = 0; // Countdown timer for automatic lobby return (in seconds)
 let lobbyCountdownActive = false; // Whether countdown is currently active
 
+// Hard mode variables
+let selectedColorValue = 1; // 1 for black, -1 for white
+let selectedDifference = null; // number
+let scoreChoices = []; // array of 4 score difference choices
+
+// Animation variables
+let stoneButtonBounce = 0; // bounce animation for stone button
+let scoreButtonBounces = [0, 0, 0, 0]; // bounce animations for score buttons
+const bounceDecay = 0.85; // how quickly bounce animation fades
+const bounceStrength = 0.3; // strength of bounce effect
+
 // UI variables
 let R, D, halfStrokeWeight;
 let sx, sy, bx, by, wx, wy;
@@ -39,7 +50,8 @@ const SERVER_URL = window.location.hostname === 'localhost'
     : 'https://counting-production.up.railway.app';
 
 // Development mode detection
-const IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
+// Dynamic dev mode that can be toggled locally
+let IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
 
 // Mock data control - separate from dev mode
 let useMockData = false;
@@ -1054,6 +1066,32 @@ function initializeUI() {
         console.log('=== Time input initialization complete ===');
     }
     
+    // Initialize dev mode toggle (only show for localhost)
+    const devModeToggle = document.getElementById('dev-mode-toggle');
+    const devModeCheckbox = document.getElementById('dev-mode-checkbox');
+    
+    if (window.location.hostname === 'localhost') {
+        console.log('=== Initializing dev mode toggle ===');
+        devModeToggle.style.display = 'block';
+        
+        // Set initial state
+        devModeCheckbox.checked = IS_DEV_MODE;
+        
+        // Add event listener for dev mode toggle
+        devModeCheckbox.addEventListener('change', function(e) {
+            IS_DEV_MODE = e.target.checked;
+            console.log('🔧 Dev mode toggled to:', IS_DEV_MODE);
+            
+            // Update dev mode indicator if it exists
+            const devIndicator = document.getElementById('dev-mode-indicator');
+            if (devIndicator) {
+                devIndicator.style.display = IS_DEV_MODE ? 'inline' : 'none';
+            }
+        });
+        
+        console.log('✓ Dev mode toggle initialized, current state:', IS_DEV_MODE);
+    }
+    
     // Initialize total boards input
     if (totalBoardsInput) {
         console.log('=== Initializing total boards input ===');
@@ -1271,6 +1309,10 @@ function createRoom() {
 }
 
 function createNewRoom(playerName, timePerBoard, creatorUUID) {
+    // Get hard mode setting from UI
+    const hardMode = document.getElementById('hard-mode').checked;
+    console.log('🎯 Creating room with hard mode:', hardMode);
+    
     // Use settings with configurable time and boards
     socket.emit('create-room', {
         playerUUID: creatorUUID, // Include UUID for host persistence
@@ -1279,7 +1321,8 @@ function createNewRoom(playerName, timePerBoard, creatorUUID) {
             totalBoards: currentTotalBoards, // Configurable number of boards
             unlimited: false, // Use limited boards mode
             unlimitedTime: unlimitedTimeMode, // Unlimited time mode
-            progressiveDifficulty: true
+            progressiveDifficulty: true,
+            hardMode: hardMode // Exact score counting mode
         }
     }, (response) => {
         if (response.success) {
@@ -1850,6 +1893,259 @@ function startMultiplayerGame() {
     checkLeaderboardOverlap();
 }
 
+// Territory counting function for hard mode
+function calculateTerritoryScore(board) {
+    let blackTerritory = 0;
+    let whiteTerritory = 0;
+    let blackCaptures = 0;
+    let whiteCaptures = 0;
+    
+    // Count stones on the board
+    for (let x = 0; x < board.width; x++) {
+        for (let y = 0; y < board.height; y++) {
+            const stone = board[x][y];
+            if (stone === -1) {
+                blackCaptures++;
+            } else if (stone === 1) {
+                whiteCaptures++;
+            }
+        }
+    }
+    
+    // Simple territory counting using flood fill
+    let visited = Array(board.width).fill(null).map(() => Array(board.height).fill(false));
+    
+    for (let x = 0; x < board.width; x++) {
+        for (let y = 0; y < board.height; y++) {
+            if (board[x][y] === 0 && !visited[x][y]) {
+                // Empty point - determine territory
+                let territory = [];
+                let surroundingColors = new Set();
+                
+                // Flood fill to find connected empty territory
+                function floodFill(px, py) {
+                    if (px < 0 || px >= board.width || py < 0 || py >= board.height) return;
+                    if (visited[px][py]) return;
+                    
+                    if (board[px][py] === 0) {
+                        visited[px][py] = true;
+                        territory.push([px, py]);
+                        floodFill(px + 1, py);
+                        floodFill(px - 1, py);
+                        floodFill(px, py + 1);
+                        floodFill(px, py - 1);
+                    } else {
+                        // Found a stone - note its color
+                        surroundingColors.add(board[px][py]);
+                    }
+                }
+                
+                floodFill(x, y);
+                
+                // Determine territory ownership
+                if (surroundingColors.size === 1) {
+                    const owner = Array.from(surroundingColors)[0];
+                    if (owner === -1) {
+                        blackTerritory += territory.length;
+                    } else if (owner === 1) {
+                        whiteTerritory += territory.length;
+                    }
+                }
+                // If surrounded by both colors or no stones, it's neutral (no points)
+            }
+        }
+    }
+    
+    const blackScore = blackTerritory + blackCaptures;
+    const whiteScore = whiteTerritory + whiteCaptures;
+    const difference = blackScore - whiteScore;
+    
+    return {
+        blackScore,
+        whiteScore,
+        difference, // Positive if black is winning, negative if white is winning
+        winningColor: difference > 0 ? 'black' : difference < 0 ? 'white' : 'tie',
+        scoreDifference: Math.abs(difference)
+    };
+}
+
+// Draw functions for different game modes
+function drawNormalModeUI() {
+    fill('black');
+    if (keyIsDown(LEFT_ARROW)) {
+        textSize(D + 12);
+    } else if (dist(mouseX, mouseY, bx, by) < D) {
+        if (mouseIsPressed) textSize(D + 12);
+        else textSize(D + 6);
+    } else {
+        textSize(D);
+    }
+    
+    // Show different text based on game state and dev mode
+    let blackText = 'black';
+    if (penaltyMode) {
+        blackText = 'black';
+    } else if (IS_DEV_MODE && correct === 'black') {
+        blackText = '✓ BLACK';
+        textStyle(BOLD);
+    } else if (IS_DEV_MODE && correct === 'white') {
+        blackText = 'black';
+        textStyle(NORMAL);
+    }
+    
+    text(blackText, bx, by);
+    textStyle(NORMAL);
+
+    fill('white');
+    if (keyIsDown(RIGHT_ARROW)) {
+        textSize(D + 12);
+    } else if (dist(mouseX, mouseY, wx, wy) < D) {
+        if (mouseIsPressed) textSize(D + 12);
+        else textSize(D + 6);
+    } else {
+        textSize(D);
+    }
+    
+    let whiteText = 'white';
+    if (penaltyMode) {
+        whiteText = 'white';
+    } else if (IS_DEV_MODE && correct === 'white') {
+        whiteText = '✓ WHITE';
+        textStyle(BOLD);
+    } else if (IS_DEV_MODE && correct === 'black') {
+        whiteText = 'white';
+        textStyle(NORMAL);
+    }
+    
+    text(whiteText, wx, wy);
+    textStyle(NORMAL);
+}
+
+function drawHardModeUI() {
+    // Update bounce animations
+    stoneButtonBounce *= bounceDecay;
+    for (let i = 0; i < scoreButtonBounces.length; i++) {
+        scoreButtonBounces[i] *= bounceDecay;
+    }
+    
+    // Single stone toggle button (left side, higher position to avoid clipping)
+    const stoneRadius = D * 0.4;
+    const stoneX = width * 0.25;
+    const stoneY = height - stoneRadius * 2.2; // Moved higher to avoid clipping
+    
+    // Calculate bounce scale for stone button
+    const stoneScale = 1 + stoneButtonBounce * bounceStrength;
+    
+    // Draw toggle stone button (changes between black and white)
+    push();
+    translate(stoneX, stoneY);
+    scale(stoneScale);
+    
+    // In dev mode, show correct color with special stroke
+    let strokeColor, strokeWeight_val = 3;
+    if (IS_DEV_MODE && window.currentTerritoryScore) {
+        const isCorrectColor = (selectedColorValue === 1 && window.currentTerritoryScore.winningColor === 'black') ||
+                              (selectedColorValue === -1 && window.currentTerritoryScore.winningColor === 'white');
+        if (isCorrectColor) {
+            strokeColor = '#00FF00'; // Green stroke for correct color
+            strokeWeight_val = 5;
+        } else {
+            strokeColor = selectedColorValue === 1 ? 'white' : '#333333';
+        }
+    } else {
+        strokeColor = selectedColorValue === 1 ? 'white' : '#333333';
+    }
+    
+    if (selectedColorValue === 1) {
+        // Black stone
+        fill('#333333');
+        stroke(strokeColor);
+        strokeWeight(strokeWeight_val);
+        ellipse(0, 0, stoneRadius * 2);
+        fill('black');
+        noStroke();
+        ellipse(0, 0, stoneRadius * 1.6);
+    } else {
+        // White stone
+        fill('white');
+        stroke(strokeColor);
+        strokeWeight(strokeWeight_val);
+        ellipse(0, 0, stoneRadius * 2);
+    }
+    pop();
+    
+    // Score difference buttons (arranged in a horizontal row)
+    if (scoreChoices.length === 4) {
+        const buttonRadius = D * 0.25;
+        const totalWidth = width * 0.45; // Total width for all buttons
+        const startX = width * 0.5; // Start from center-right
+        const buttonY = stoneY; // Same height as stone button
+        const spacing = totalWidth / 3; // Space between 4 buttons
+        
+        for (let i = 0; i < 4; i++) {
+            const buttonX = startX + (i * spacing);
+            const score = scoreChoices[i];
+            
+            // Calculate bounce scale for this button
+            const buttonScale = 1 + scoreButtonBounces[i] * bounceStrength;
+            
+            // Determine button color based on selected color and whether it's selected
+            let buttonColor, textColor;
+            
+            // Check if this is the correct score in dev mode
+            const isCorrectScore = IS_DEV_MODE && window.currentTerritoryScore && 
+                                 score === window.currentTerritoryScore.scoreDifference;
+            
+            if (isCorrectScore) {
+                // Golden color for correct answer in dev mode
+                buttonColor = '#FFD700';
+                textColor = 'black';
+            } else if (selectedColorValue === 1) {
+                // Black theme
+                buttonColor = selectedDifference === score ? '#FFD700' : '#333333';
+                textColor = selectedDifference === score ? 'black' : 'white';
+            } else {
+                // White theme
+                buttonColor = selectedDifference === score ? '#FFD700' : 'white';
+                textColor = selectedDifference === score ? 'black' : '#333333';
+            }
+            
+            // Draw button with bounce animation
+            push();
+            translate(buttonX, buttonY);
+            scale(buttonScale);
+            fill(buttonColor);
+            stroke(selectedDifference === score ? '#FFD700' : '#999999');
+            strokeWeight(2);
+            ellipse(0, 0, buttonRadius * 2);
+            
+            // Draw number
+            fill(textColor);
+            textAlign(CENTER, CENTER);
+            textSize(buttonRadius * 0.9);
+            
+            // In dev mode, make the correct score button bold
+            if (IS_DEV_MODE && window.currentTerritoryScore) {
+                const isCorrectScore = score === window.currentTerritoryScore.scoreDifference;
+                if (isCorrectScore) {
+                    textStyle(BOLD);
+                }
+            }
+            
+            text(score.toString(), 0, 0);
+            textStyle(NORMAL); // Reset style
+            pop();
+            
+            // Store button positions for click detection
+            if (!window.hardModeButtons) window.hardModeButtons = [];
+            window.hardModeButtons[i] = { x: buttonX, y: buttonY, radius: buttonRadius, score: score };
+        }
+    }
+    
+    // Store stone button position for click detection
+    window.hardModeStone = { x: stoneX, y: stoneY, radius: stoneRadius };
+}
+
 function loadMultiplayerBoard(boardIndex) {
     if (boardIndex >= gameState.boardSequence.length) {
         // Game finished
@@ -1880,6 +2176,42 @@ function loadMultiplayerBoard(boardIndex) {
             if (transpose) [a, b] = [b, a];
             board[x][y] = {'O':1,'X':-1,'.':0}[textBoard[b][a]] * (-1)**invert;
         }
+    }
+    
+    // Calculate territory score for hard mode
+    let territoryScore = null;
+    if (gameState.settings && gameState.settings.hardMode) {
+        territoryScore = calculateTerritoryScore(board);
+        
+        // Show detailed scoring in dev mode
+        if (IS_DEV_MODE) {
+            console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackScore}, White: ${territoryScore.whiteScore}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
+        }
+        
+        // Store the territory info for answer validation
+        window.currentTerritoryScore = territoryScore;
+        
+        // Generate score choice buttons (correct answer ±1 for 4 total)
+        const correctDifference = territoryScore.scoreDifference;
+        scoreChoices = [];
+        
+        // Generate 4 choices around the correct answer
+        for (let i = -1; i <= 2; i++) {
+            const choice = Math.max(0, correctDifference + i); // Don't allow negative scores
+            scoreChoices.push(choice);
+        }
+        
+        // Shuffle choices so correct answer isn't always in the same position
+        for (let i = scoreChoices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [scoreChoices[i], scoreChoices[j]] = [scoreChoices[j], scoreChoices[i]];
+        }
+        
+        // Reset hard mode selections and animations
+        selectedColorValue = 1; // Start with black
+        selectedDifference = null;
+        stoneButtonBounce = 0;
+        scoreButtonBounces = [0, 0, 0, 0];
     }
     
     failed = false;
@@ -2250,61 +2582,22 @@ function draw() {
         pop();
     }
 
-    // Buttons and game over screen (only show buttons if player hasn't finished)
+    // Buttons and game interface (only show if player hasn't finished)
     if (!failed && timer > 0) {
         textAlign(CENTER, CENTER);
-
-        fill('black');
-        if (keyIsDown(LEFT_ARROW)) {
-            textSize(D + 12);
-        } else if (dist(mouseX, mouseY, bx, by) < D) {
-            if (mouseIsPressed) textSize(D + 12);
-            else textSize(D + 6);
-        } else {
-            textSize(D);
+        
+        // Check if we're in hard mode
+        if (gameState.phase !== 'finished') {
+            if (gameState.settings && gameState.settings.hardMode) {
+                // Hard mode: Show stone selection buttons and score buttons
+                drawHardModeUI();
+            } else {
+                // Normal mode: Show traditional Black/White text buttons
+                drawNormalModeUI();
+            }
         }
         
-        // Show different text based on game state and dev mode
-        let blackText = 'black';
-        if (penaltyMode) {
-            // During penalty, show no special text
-            blackText = 'black';
-        } else if (IS_DEV_MODE && correct === 'black') {
-            blackText = '✓ BLACK'; // Show checkmark for correct answer
-            textStyle(BOLD);
-        } else if (IS_DEV_MODE && correct === 'white') {
-            blackText = 'black'; // Keep normal text for wrong answer
-            textStyle(NORMAL);
-        }
-        
-        text(blackText, bx, by);
-        textStyle(NORMAL); // Reset style
-
-        fill('white');
-        if (keyIsDown(RIGHT_ARROW)) {
-            textSize(D + 12);
-        } else if (dist(mouseX, mouseY, wx, wy) < D) {
-            if (mouseIsPressed) textSize(D + 12);
-            else textSize(D + 6);
-        } else {
-            textSize(D);
-        }
-        
-        // Show different text based on game state and dev mode
-        let whiteText = 'white';
-        if (penaltyMode) {
-            // During penalty, show no special text
-            whiteText = 'white';
-        } else if (IS_DEV_MODE && correct === 'white') {
-            whiteText = '✓ WHITE'; // Show checkmark for correct answer
-            textStyle(BOLD);
-        } else if (IS_DEV_MODE && correct === 'black') {
-            whiteText = 'white'; // Keep normal text for wrong answer
-            textStyle(NORMAL);
-        }
-        
-        text(whiteText, wx, wy);
-        textStyle(NORMAL); // Reset style
+        // Handle timer countdown and game logic
         
         if (started && gameState.phase === 'playing' && timer > 0) {
             timer -= deltaTime;
@@ -2356,14 +2649,184 @@ function draw() {
     }
 }
 
+function handleHardModeClick() {
+    // Check stone toggle button click
+    if (window.hardModeStone) {
+        const stone = window.hardModeStone;
+        
+        if (dist(mouseX, mouseY, stone.x, stone.y) < stone.radius) {
+            // Toggle between black (1) and white (-1)
+            selectedColorValue = selectedColorValue === 1 ? -1 : 1;
+            console.log(`Toggled to ${selectedColorValue === 1 ? 'black' : 'white'} (${selectedColorValue})`);
+            
+            // Trigger bounce animation for stone button
+            stoneButtonBounce = 1;
+            return;
+        }
+    }
+    
+    // Check score button clicks
+    if (window.hardModeButtons) {
+        for (let i = 0; i < window.hardModeButtons.length; i++) {
+            const button = window.hardModeButtons[i];
+            if (dist(mouseX, mouseY, button.x, button.y) < button.radius) {
+                selectedDifference = button.score;
+                console.log(`Selected score difference: ${button.score}`);
+                
+                // Trigger bounce animation for clicked score button
+                scoreButtonBounces[i] = 1;
+                
+                // Submit answer with color value and score
+                submitHardModeAnswer(selectedColorValue, selectedDifference);
+                return;
+            }
+        }
+    }
+}
+
+function submitHardModeAnswer(colorValue, scoreDiff) {
+    // Calculate the signed score (positive for black, negative for white)
+    const signedScore = colorValue * scoreDiff;
+    console.log(`🎯 Hard mode calculation:`);
+    console.log(`   Color value: ${colorValue} (${colorValue === 1 ? 'black' : 'white'})`);
+    console.log(`   Score difference: ${scoreDiff}`);
+    console.log(`   Final signed score: ${colorValue} × ${scoreDiff} = ${signedScore}`);
+    
+    // Validate hard mode answer using territory score
+    if (window.currentTerritoryScore) {
+        const territoryScore = window.currentTerritoryScore;
+        const correctColorValue = territoryScore.winningColor === 'black' ? 1 : -1;
+        const correctSignedScore = correctColorValue * territoryScore.scoreDifference;
+        
+        console.log(`🎯 Correct answer: ${territoryScore.winningColor} by ${territoryScore.scoreDifference} = ${correctSignedScore}`);
+        
+        const isCorrect = signedScore === correctSignedScore;
+        console.log(`✅ Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
+        
+        // Submit with proper validation
+        const colorString = colorValue === 1 ? 'black' : 'white';
+        submitMultiplayerHardMode(colorString, isCorrect);
+    } else {
+        console.log('❌ No territory score available for validation');
+        // Fallback to simple color validation
+        const colorString = colorValue === 1 ? 'black' : 'white';
+        submitMultiplayer(colorString);
+    }
+}
+
+function submitMultiplayerHardMode(guess, isCorrect) {
+    console.log(`📤 Submitting hard mode answer: ${guess}, isCorrect: ${isCorrect}`);
+    
+    socket.emit('submit-answer', { 
+        answer: guess, 
+        isCorrect: isCorrect,
+        currentBoardIndex: gameState.currentBoard
+    }, (response) => {
+        console.log('📥 Server response:', response);
+        if (response.success) {
+            if (isCorrect) {
+                console.log('✅ Correct answer - advancing to next board');
+                
+                // Increment score and board index (matching normal mode behavior)
+                score++;
+                gameState.currentBoard++;
+                
+                // Load next board
+                if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                    loadMultiplayerBoard(gameState.currentBoard);
+                } else if (!gameState.settings?.unlimited) {
+                    // Game finished - player completed all boards
+                    console.log('🎯 Player completed all boards! Final score:', score);
+                    gameState.phase = 'finished';
+                    timer = -1;
+                    
+                    // Set blue color for individual completion
+                    failed = true;
+                    document.bgColor = 'royalblue';
+                    console.log('🏁 Player completed all boards individually - set background to royalblue');
+                    
+                    // Mark ourselves as finished locally
+                    const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+                    if (ourPlayer) {
+                        ourPlayer.finished = true;
+                        
+                        // Auto-show leaderboard when player finishes
+                        setTimeout(() => {
+                            showLeaderboard();
+                        }, 1000);
+                    }
+                } else {
+                    console.log('Unlimited mode: ran out of boards unexpectedly');
+                }
+            } else {
+                // Wrong answer - apply penalty if game is still active and there's more than 1 second left
+                if (gameState.phase !== 'finished' && timer > 1000) {
+                    console.log('❌ Wrong answer - applying 1 second penalty');
+                    
+                    // Enter penalty mode to prevent input
+                    penaltyMode = true;
+                    
+                    // Flash red background for 1 second
+                    document.bgColor = 'crimson';
+                    
+                    // Add 1 second penalty delay
+                    setTimeout(() => {
+                        penaltyMode = false;
+                        
+                        // Advance to next board (without incrementing score)
+                        gameState.currentBoard++;
+                        
+                        // Load next board and return to green background
+                        if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                            document.bgColor = 'seagreen';
+                            loadMultiplayerBoard(gameState.currentBoard);
+                        } else if (!gameState.settings?.unlimited) {
+                            // Game finished - player completed all boards (with some mistakes)
+                            console.log('🎯 Player completed all boards with mistakes! Final score:', score);
+                            gameState.phase = 'finished';
+                            timer = -1;
+                            
+                            // Set blue color for individual completion
+                            failed = true;
+                            document.bgColor = 'royalblue';
+                            console.log('🏁 Player completed all boards individually - set background to royalblue');
+                            
+                            // Mark ourselves as finished locally
+                            const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+                            if (ourPlayer) {
+                                ourPlayer.finished = true;
+                                
+                                // Auto-show leaderboard when player finishes
+                                setTimeout(() => {
+                                    showLeaderboard();
+                                }, 1000);
+                            }
+                        } else {
+                            console.log('Unlimited mode: ran out of boards unexpectedly');
+                        }
+                    }, 1000);
+                } else {
+                    console.log('Game finished or less than 1 second remaining - skipping penalty');
+                }
+            }
+        }
+    });
+}
+
 function handleClick() {
     // Only allow clicks during active gameplay, not during penalty, and player hasn't finished
     if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode || failed) return;
     
-    if (dist(mouseX, mouseY, bx, by) < D) {
-        submitMultiplayer('black');
-    } else if (dist(mouseX, mouseY, wx, wy) < D) {
-        submitMultiplayer('white');
+    if (gameState.settings && gameState.settings.hardMode) {
+        // Hard mode click handling
+        handleHardModeClick();
+    } else {
+        // Normal mode click handling
+        if (dist(mouseX, mouseY, bx, by) < D) {
+            submitMultiplayer('black');
+        } else if (dist(mouseX, mouseY, wx, wy) < D) {
+            submitMultiplayer('white');
+        }
     }
     
     mouseX = -1;

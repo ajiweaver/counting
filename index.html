@@ -222,6 +222,14 @@
                     Number of boards:
                     <input type="number" id="total-boards" min="1" max="50" value="1" step="1" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
+                <label style="display: block; margin: 10px 0;">
+                    <input type="checkbox" id="hard-mode" style="margin-right: 8px;">
+                    Hard Mode (exact score counting)
+                </label>
+                <label id="dev-mode-toggle" style="display: none; margin: 10px 0; color: #FFA726;">
+                    <input type="checkbox" id="dev-mode-checkbox" style="margin-right: 8px;">
+                    Development Mode (show correct answers)
+                </label>
             </div>
             <button onclick="createRoom()">Create Room</button>
             <button onclick="showJoinRoom()">Join Room</button>
