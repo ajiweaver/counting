@@ -216,7 +216,7 @@
             <div style="margin: 15px 0; text-align: center;">
                 <label style="display: block; margin: 10px 0;">
                     Seconds per board:
-                    <input type="number" id="time-per-board" min="10" max="120" value="60" step="5" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
+                    <input type="number" id="time-per-board" min="1" max="120" value="60" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
                 <label style="display: block; margin: 10px 0;">
                     Number of boards:
@@ -261,9 +261,8 @@
     <button id="leaderboard-toggle" onclick="toggleLeaderboard()">📊 Scores</button>
     
     <div id="leaderboard" onclick="hideLeaderboard()">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="margin-bottom: 10px;">
             <h3 style="margin: 0;">Leaderboard</h3>
-            <button onclick="hideLeaderboard(); event.stopPropagation();" style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">✕</button>
         </div>
         <div id="leaderboard-content"></div>
         
