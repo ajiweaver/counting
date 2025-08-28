@@ -228,6 +228,23 @@ class GameRoom {
     if (answer === 'resign') {
       player.finished = true;
       console.log(`Player ${player.name} resigned`);
+      // Check if we should end the game early after this resignation
+      if (this.shouldEndGameEarly()) {
+        this.finishAllPlayers();
+        return 'game-finished'; // Return special flag to indicate game finished
+      }
+      return true;
+    }
+    
+    // Handle timeout - only finish this player, not all players
+    if (answer === 'timeout') {
+      player.finished = true;
+      console.log(`Player ${player.name} timed out`);
+      // Check if we should end the game early after this timeout
+      if (this.shouldEndGameEarly()) {
+        this.finishAllPlayers();
+        return 'game-finished'; // Return special flag to indicate game finished
+      }
       return true;
     }
     
@@ -238,19 +255,88 @@ class GameRoom {
     // Only mark player as finished when they've completed all boards (regardless of right/wrong answers)
     if (!this.settings.unlimited && currentBoardIndex >= this.settings.totalBoards - 1) {
       player.finished = true;
-      // Auto-finish game when first player completes all boards
-      this.finishAllPlayers();
-      return true; // Early return since game is finished
+      
+      // Check if we should end the game early
+      if (this.shouldEndGameEarly()) {
+        this.finishAllPlayers();
+        return 'game-finished'; // Return special flag to indicate game finished
+      }
     }
     
     return true;
   }
 
+  shouldEndGameEarly() {
+    const allPlayers = Array.from(this.players.values());
+    const finishedPlayers = allPlayers.filter(p => p.finished);
+    const activePlayers = allPlayers.filter(p => !p.finished);
+    
+    // If no one has finished yet, don't end the game
+    if (finishedPlayers.length === 0) {
+      return false;
+    }
+    
+    // Find the highest score among finished players
+    const highestScore = Math.max(...finishedPlayers.map(p => p.score));
+    
+    // Check if anyone achieved a perfect score (all boards correct)
+    const perfectScore = this.settings.totalBoards;
+    const hasPerfectScore = finishedPlayers.some(p => p.score === perfectScore);
+    
+    if (hasPerfectScore) {
+      console.log(`Game ending early: Player achieved perfect score of ${perfectScore}`);
+      return true;
+    }
+    
+    // If there are still active players, check if they can mathematically catch up
+    if (activePlayers.length > 0) {
+      // The maximum score any player can achieve is the total number of boards
+      const maxPossibleScore = this.settings.totalBoards;
+      
+      // If any active player could theoretically beat or tie the current leader's score,
+      // continue the game
+      if (maxPossibleScore >= highestScore) {
+        console.log(`Game continues: Active players could potentially score up to ${maxPossibleScore} (leader has ${highestScore})`);
+        return false;
+      }
+      
+      console.log(`Game ending early: Maximum possible score (${maxPossibleScore}) cannot beat leader's score of ${highestScore}`);
+      return true;
+    }
+    
+    // All players are finished
+    console.log('Game ending: All players have finished');
+    return true;
+  }
+
   finishAllPlayers() {
-    // Mark all players as finished when the first player completes all boards
+    // Mark all players as finished when the game should end
     for (let player of this.players.values()) {
       player.finished = true;
     }
+    
+    // The game should now be finished, return true to indicate this
+    return true;
+  }
+
+  // Helper method to emit game-finished event
+  emitGameFinished(io) {
+    if (this.areAllPlayersFinished()) {
+      this.saveCompletedGame();
+      
+      // Broadcast game finished event to all players in the room
+      io.to(this.roomId).emit('game-finished', {
+        gameState: this.getGameState(),
+        finalResults: {
+          players: Array.from(this.players.values()).sort((a, b) => b.score - a.score),
+          gameCompleted: true
+        }
+      });
+      console.log('Game finished event sent to all players in room:', this.roomId);
+      
+      return true; // Game was finished
+    }
+    return false; // Game was not finished
   }
 
 
@@ -427,8 +513,8 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const success = room.submitAnswer(socket.id, data.answer, data.isCorrect, data.currentBoardIndex);
-      if (success) {
+      const result = room.submitAnswer(socket.id, data.answer, data.isCorrect, data.currentBoardIndex);
+      if (result) {
         const player = room.players.get(socket.id);
         
         // Broadcast answer and score update to all players
@@ -446,8 +532,18 @@ io.on('connection', (socket) => {
           players: Array.from(room.players.values())
         });
         
-        // Save game if all players are finished
-        if (room.areAllPlayersFinished()) {
+        // Check if the game finished due to early ending (timeout/resign)
+        if (result === 'game-finished') {
+          // Use the new helper method to emit game-finished event
+          room.emitGameFinished(io);
+          
+          // Broadcast leaderboard update to all connected clients
+          io.emit('leaderboard-updated', {
+            games: completedGames.slice(0, 20)
+          });
+          console.log('Game completed and leaderboard updated:', room.roomId);
+        } else if (room.areAllPlayersFinished()) {
+          // Normal flow - save game if all players are finished
           room.saveCompletedGame();
           
           // Broadcast game finished event to all players in the room
