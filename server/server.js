@@ -224,6 +224,13 @@ class GameRoom {
     
     player.currentAnswer = answer;
     
+    // Handle resignation - only finish this player, not all players
+    if (answer === 'resign') {
+      player.finished = true;
+      console.log(`Player ${player.name} resigned`);
+      return true;
+    }
+    
     if (isCorrect) {
       player.score++;
     }

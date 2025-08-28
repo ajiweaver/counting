@@ -26,6 +26,8 @@ let failed = false;
 let defaultTimePerBoard = 55;
 let defaultTimePerBoardStep = 5;
 let penaltyMode = false; // Track if player is in penalty delay
+let lobbyCountdown = 0; // Countdown timer for automatic lobby return (in seconds)
+let lobbyCountdownActive = false; // Whether countdown is currently active
 
 // UI variables
 let R, D, halfStrokeWeight;
@@ -551,10 +553,12 @@ function initSocket() {
         updateGameState(data.gameState);
         await updateUI();
         
-        // Reload leaderboard history when someone joins (including when you rejoin)
-        if (gameState.phase === 'lobby' && gameState.roomId) {
+        // Only reload leaderboard history when the current user joins (not when others join)
+        const joinedPlayer = data.player;
+        if (gameState.phase === 'lobby' && gameState.roomId && 
+            joinedPlayer && joinedPlayer.id === gameState.playerId) {
             setTimeout(() => {
-                console.log('🔄 Loading history after player join - roomId:', gameState.roomId);
+                console.log('🔄 Loading history after current user joined - roomId:', gameState.roomId);
                 loadLeaderboardHistory();
             }, 500); // Increased delay to ensure game state is fully set
         }
@@ -633,6 +637,11 @@ function initSocket() {
             document.bgColor = 'crimson'; // Red for loss
             console.log('💥 Game finished - You lost. Setting background to crimson');
         }
+        
+        // Start 5-second countdown to return to lobby
+        lobbyCountdown = 5;
+        lobbyCountdownActive = true;
+        console.log('⏰ Started 5-second countdown to return to lobby');
         
         // Auto-show leaderboard after a longer delay to let players see the final board
         setTimeout(() => {
@@ -1068,7 +1077,7 @@ function initializeUI() {
             let newValue = parseInt(e.target.value);
             
             // Validate the value
-            if (isNaN(newValue) || newValue < 5 || newValue > 50) {
+            if (isNaN(newValue) || newValue < 1 || newValue > 50) {
                 console.log('❌ Invalid total boards value:', newValue, 'resetting to previous');
                 e.target.value = currentTotalBoards;
                 return;
@@ -1360,6 +1369,7 @@ async function showRoomLobby() {
     document.getElementById('leaderboard').style.display = 'none';
     document.getElementById('leaderboard-toggle').style.display = 'none';
     
+    
     // Show dev mode indicator if in development
     const devIndicator = document.getElementById('dev-mode-indicator');
     if (devIndicator) {
@@ -1477,6 +1487,64 @@ function showCopyFeedback(message, isError = false) {
     console.log(message);
 }
 
+function updateResignButtonVisibility() {
+    const resignButton = document.getElementById('resign-button');
+    if (resignButton) {
+        // Show resign button only during active gameplay (not finished)
+        if (gameState.phase === 'playing' && !failed) {
+            resignButton.style.display = 'block';
+        } else {
+            resignButton.style.display = 'none';
+        }
+    }
+}
+
+function resignGame() {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to resign? This will end your game immediately.')) {
+        return;
+    }
+    
+    console.log('Player resigned from the game');
+    
+    // Mark ourselves as finished locally (resignation only affects current player)
+    const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+    if (ourPlayer) {
+        ourPlayer.finished = true;
+    }
+    
+    // Set resign state for current player only
+    gameState.phase = 'finished';
+    timer = -1;
+    failed = true;
+    penaltyMode = false; // Clear any penalty mode
+    
+    // Set resign background color (different from other end states)
+    document.bgColor = 'dimgray'; // Gray for resignation
+    console.log('Player resigned - set background to dimgray');
+    
+    // Start 5-second countdown to return to lobby (for resignation)
+    lobbyCountdown = 5;
+    lobbyCountdownActive = true;
+    console.log('⏰ Player resigned - started 5-second countdown to return to lobby');
+    
+    // Submit resignation to server (only affects current player)
+    socket.emit('submit-answer', { 
+        answer: 'resign', 
+        isCorrect: false,
+        currentBoardIndex: gameState.currentBoard // Current board, not end
+    }, (response) => {
+        console.log('Resignation submitted to server');
+        if (response.success) {
+            // Auto-show leaderboard after resignation
+            setTimeout(() => {
+                showLeaderboard();
+            }, 1000);
+        }
+    });
+    
+}
+
 function leaveRoom() {
     // Clear room storage when leaving
     clearRoomStorage();
@@ -1511,6 +1579,7 @@ async function returnToLobbyUI() {
     document.getElementById('ui-overlay').style.display = 'flex';
     document.getElementById('leaderboard').style.display = 'none';
     document.getElementById('leaderboard-toggle').style.display = 'none';
+    
     
     gameState.phase = 'lobby';
     await updateUI();
@@ -1735,6 +1804,7 @@ function startMultiplayerGame() {
     document.getElementById('leaderboard').style.display = 'block';
     document.getElementById('leaderboard-toggle').style.display = 'none';
     
+    
     // Hide host controls initially (they'll show when all players finish)
     const hostControls = document.getElementById('host-controls');
     hostControls.classList.add('hidden');
@@ -1744,6 +1814,8 @@ function startMultiplayerGame() {
     started = true;
     failed = false;
     penaltyMode = false;
+    lobbyCountdown = 0;
+    lobbyCountdownActive = false;
     
     // Load first board
     loadMultiplayerBoard(0);
@@ -1897,37 +1969,46 @@ function submitMultiplayer(guess) {
                     const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
                     if (ourPlayer) {
                         ourPlayer.finished = true;
+                        
+                        // Start 5-second countdown to return to lobby (for individual completion)
+                        lobbyCountdown = 5;
+                        lobbyCountdownActive = true;
+                        console.log('⏰ Player finished - started 5-second countdown to return to lobby');
+                        
                         // Auto-show leaderboard when player finishes
                         console.log('Player completed all boards - auto-showing leaderboard');
                         setTimeout(() => {
                             showLeaderboard();
                         }, 500);
                     }
+                    
                 } else {
                     // In unlimited mode, continue with more boards (this shouldn't happen with 1000 board pool)
                     console.log('Unlimited mode: ran out of boards unexpectedly');
                 }
             } else {
-                // Wrong answer - apply penalty but continue playing
-                console.log('Wrong answer - applying 1 second penalty');
-                
-                // Enter penalty mode to prevent input
-                penaltyMode = true;
+                // Wrong answer - only apply penalty if game is still active
+                if (gameState.phase !== 'finished') {
+                    console.log('Wrong answer - applying 1 second penalty');
+                    
+                    // Enter penalty mode to prevent input
+                    penaltyMode = true;
                 
                 // Flash red background for 1 second
                 document.bgColor = 'crimson';
                 
                 // Add 1 second penalty delay before next board
                 setTimeout(() => {
-                    // Exit penalty mode and return to green background
+                    // Exit penalty mode
                     penaltyMode = false;
-                    document.bgColor = 'seagreen';
                     
                     // Continue to next board without incrementing score
                     gameState.currentBoard++;
                     
                     // Check if we've reached the end of boards
                     if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                        // Continue with next board - return to green background
+                        document.bgColor = 'seagreen';
                         loadMultiplayerBoard(gameState.currentBoard);
                     } else if (!gameState.settings?.unlimited) {
                         // Game finished - player completed all boards (with some mistakes)
@@ -1935,7 +2016,7 @@ function submitMultiplayer(guess) {
                         gameState.phase = 'finished';
                         timer = -1;
                         
-                        // Set completion color
+                        // Set completion color - keep golden background for completion
                         failed = true;
                         document.bgColor = 'darkgoldenrod';
                         console.log('🏁 Player completed all boards - set background to darkgoldenrod');
@@ -1944,17 +2025,27 @@ function submitMultiplayer(guess) {
                         const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
                         if (ourPlayer) {
                             ourPlayer.finished = true;
+                            
+                            // Start 5-second countdown to return to lobby (for completion with mistakes)
+                            lobbyCountdown = 5;
+                            lobbyCountdownActive = true;
+                            console.log('⏰ Player finished with mistakes - started 5-second countdown to return to lobby');
+                            
                             // Auto-show leaderboard when player finishes
                             console.log('Player completed all boards - auto-showing leaderboard');
                             setTimeout(() => {
                                 showLeaderboard();
                             }, 500);
                         }
+                        
                     } else {
                         // In unlimited mode, continue with more boards
                         console.log('Unlimited mode: ran out of boards unexpectedly');
                     }
                 }, 1000); // 1 second penalty delay
+                } else {
+                    console.log('Game already finished - skipping penalty');
+                }
             }
             // Don't update leaderboard here - wait for server score-updated event
         }
@@ -2033,16 +2124,16 @@ function windowResized() {
     R = floor(min(window.innerWidth/10, window.innerHeight/12)/2)-1;
     D = 2 * R;
     width = 10 * D;
-    height = 12 * D;
+    height = 13 * D;
     halfStrokeWeight = ceil(D/70);
     strokeWeight(2 * halfStrokeWeight);
 
     sx = width/2;
     sy = 1.5*R;
     bx = width/2 - 2*D;
-    by = height - 1.5*R;
+    by = height - 2.5*R;
     wx = width/2 + 2*D;
-    wy = height - 1.5*R;
+    wy = height - 2.5*R;
     
     resizeCanvas(width, height);
     
@@ -2055,6 +2146,32 @@ function draw() {
     if (gameState.phase !== 'playing' && gameState.phase !== 'finished') {
         clear();
         return;
+    }
+    
+    // Update resign button visibility based on current game state
+    updateResignButtonVisibility();
+    
+    // Update lobby countdown when active
+    if (lobbyCountdownActive && lobbyCountdown > 0) {
+        lobbyCountdown -= deltaTime / 1000; // Convert from milliseconds to seconds
+        
+        // When countdown reaches 0, return to lobby
+        if (lobbyCountdown <= 0) {
+            lobbyCountdownActive = false;
+            lobbyCountdown = 0;
+            console.log('⏰ Countdown finished - automatically returning to lobby');
+            
+            // Only host can trigger return to lobby, but all players get returned by server
+            if (gameState.isCreator) {
+                socket.emit('return-to-lobby', (response) => {
+                    if (response.success) {
+                        console.log('✅ Successfully triggered return to lobby for all players');
+                    } else {
+                        console.error('❌ Failed to return to lobby:', response.error);
+                    }
+                });
+            }
+        }
     }
     
     clear();
@@ -2141,16 +2258,7 @@ function draw() {
         
         // Show different text based on game state and dev mode
         let blackText = 'black';
-        if (gameState.phase === 'finished') {
-            const winResult = didCurrentPlayerWin();
-            if (winResult.isWinner) {
-                blackText = winResult.isTie ? 'You tied!' : 'You won!';
-            } else {
-                blackText = 'You lost!';
-            }
-            textSize(D * 0.7); // Smaller text for completion message
-            textStyle(BOLD);
-        } else if (penaltyMode) {
+        if (penaltyMode) {
             // During penalty, show no special text
             blackText = 'black';
         } else if (IS_DEV_MODE && correct === 'black') {
@@ -2163,11 +2271,6 @@ function draw() {
         
         text(blackText, bx, by);
         textStyle(NORMAL); // Reset style
-        
-        // Reset text size if it was changed
-        if (gameState.phase === 'finished') {
-            textSize(D);
-        }
 
         fill('white');
         if (keyIsDown(RIGHT_ARROW)) {
@@ -2181,16 +2284,7 @@ function draw() {
         
         // Show different text based on game state and dev mode
         let whiteText = 'white';
-        if (gameState.phase === 'finished') {
-            const winResult = didCurrentPlayerWin();
-            if (winResult.isWinner) {
-                whiteText = winResult.isTie ? 'You tied!' : 'You won!';
-            } else {
-                whiteText = 'You lost!';
-            }
-            textSize(D * 0.7); // Smaller text for completion message
-            textStyle(BOLD);
-        } else if (penaltyMode) {
+        if (penaltyMode) {
             // During penalty, show no special text
             whiteText = 'white';
         } else if (IS_DEV_MODE && correct === 'white') {
@@ -2203,11 +2297,6 @@ function draw() {
         
         text(whiteText, wx, wy);
         textStyle(NORMAL); // Reset style
-        
-        // Reset text size if it was changed
-        if (gameState.phase === 'finished') {
-            textSize(D);
-        }
         
         if (started && gameState.phase === 'playing' && timer > 0) {
             timer -= deltaTime;
@@ -2229,12 +2318,19 @@ function draw() {
                         const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
                         if (ourPlayer) {
                             ourPlayer.finished = true;
+                            
+                            // Start 5-second countdown to return to lobby (for timeout)
+                            lobbyCountdown = 5;
+                            lobbyCountdownActive = true;
+                            console.log('⏰ Player timed out - started 5-second countdown to return to lobby');
+                            
                             // Auto-show leaderboard when player times out
                             console.log('Player timed out - auto-showing leaderboard');
                             setTimeout(() => {
                                 showLeaderboard();
                             }, 1000); // Longer delay to see the blue background effect
                         }
+                        
                         
                         // Update leaderboard to potentially show host controls
                         updateLeaderboard();
@@ -2247,6 +2343,16 @@ function draw() {
         noStroke();
         fill(0, 200);
         text(`Game over!\nYour score: ${score}`, width/2, by);
+    }
+    
+    // Show countdown to lobby return when game is finished
+    if (gameState.phase === 'finished' && lobbyCountdownActive && lobbyCountdown > 0) {
+        textAlign(CENTER, CENTER);
+        textSize(16);
+        fill(255, 255, 255, 200);
+        noStroke();
+        // Position below the black/white buttons
+        text(`Returning to lobby in ${Math.ceil(lobbyCountdown)} seconds...`, width/2, height-20);
     }
 }
 
