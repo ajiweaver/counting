@@ -72,6 +72,50 @@ const SERVER_URL = window.location.hostname === 'localhost'
 // Dynamic dev mode that can be toggled locally
 let IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
 
+// Override console methods to only show output in dev mode
+if (typeof window !== 'undefined') {
+    const originalConsole = {
+        log: console.log,
+        error: console.error,
+        warn: console.warn,
+        info: console.info,
+        debug: console.debug
+    };
+    
+    console.log = function(...args) {
+        if (IS_DEV_MODE) {
+            originalConsole.log.apply(console, args);
+        }
+    };
+    
+    console.error = function(...args) {
+        if (IS_DEV_MODE) {
+            originalConsole.error.apply(console, args);
+        }
+    };
+    
+    console.warn = function(...args) {
+        if (IS_DEV_MODE) {
+            originalConsole.warn.apply(console, args);
+        }
+    };
+    
+    console.info = function(...args) {
+        if (IS_DEV_MODE) {
+            originalConsole.info.apply(console, args);
+        }
+    };
+    
+    console.debug = function(...args) {
+        if (IS_DEV_MODE) {
+            originalConsole.debug.apply(console, args);
+        }
+    };
+    
+    // Store original console for potential restoration
+    window.originalConsole = originalConsole;
+}
+
 // Mock data control - separate from dev mode
 let useMockData = false;
 
@@ -639,7 +683,7 @@ window.debugLeaderboard = async function(roomId = null) {
                 'Total Games': data.totalGames,
                 'Available Room IDs': roomIds.join(', '),
                 'Current Room': gameState.roomId || 'None',
-                'Games for Current Room': gameState.roomId ? data.games.filter(g => g.roomId === gameState.roomId).length : 0
+                'Games for Current Room': gameState.roomId ? data.games.filter(g => String(g.roomId).trim() === String(gameState.roomId).trim()).length : 0
             });
             
             if (roomId || gameState.roomId) {
@@ -897,7 +941,7 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
                 if (roomGames.length > 0) {
                     displayLeaderboardHistory(roomGames);
                 } else {
-                    historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">(Dev mode)</small></div>`;
+                    displayLeaderboardHistory([]);
                 }
             }, 500); // Simulate loading delay
             return;
@@ -933,9 +977,13 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
             console.log('- Available room IDs:', availableRoomIds.map(id => `${id} (${typeof id})`));
             
             const roomGames = data.games.filter(game => {
-                const match = game.roomId === gameState.roomId;
+                // Normalize both IDs to strings and trim whitespace for comparison
+                const gameRoomId = String(game.roomId).trim();
+                const currentRoomId = String(gameState.roomId).trim();
+                const match = gameRoomId === currentRoomId;
                 if (!match) {
                     console.log(`- Game roomId: "${game.roomId}" (${typeof game.roomId}) !== gameState.roomId: "${gameState.roomId}" (${typeof gameState.roomId})`);
+                    console.log(`- Normalized comparison: "${gameRoomId}" === "${currentRoomId}" = ${match}`);
                 }
                 return match;
             });
@@ -959,31 +1007,11 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
                     historyRetryCount = 0;
                 }
                 
-                // Show recent games from other rooms as examples, but with a clear message
-                const recentGames = data.games.slice(0, 3); // Show last 3 games from any room
-                if (recentGames.length > 0) {
-                    historyContent.innerHTML = `
-                        <div style="color: #888; text-align: center; padding: 20px;">
-                            No completed games yet<br>for room <strong>${gameState.roomId}</strong>
-                            <br><small style="color: #666;">Total games in system: ${data.games.length}</small>
-                            <br><button onclick="loadLeaderboardHistory(false, true)" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button>
-                        </div>
-                        <div style="color: #aaa; font-size: 11px; text-align: center; margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
-                            Recent games from other rooms:
-                        </div>
-                    `;
-                    // Temporarily store the original content element
-                    const originalHistoryContent = historyContent.innerHTML;
-                    displayLeaderboardHistory(recentGames);
-                    // Extract just the games and append to our custom layout
-                    const gamesHTML = historyContent.innerHTML;
-                    historyContent.innerHTML = originalHistoryContent + gamesHTML;
-                } else {
-                    historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">Total games in system: ${data.games.length}</small><br><button onclick="loadLeaderboardHistory(false, true)" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button></div>`;
-                }
+                // Show empty table when no games for this room
+                displayLeaderboardHistory([]);
             }
         } else {
-            historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No completed games yet</div>';
+            displayLeaderboardHistory([]);
         }
     } catch (error) {
         console.error('Error loading leaderboard history:', error);
@@ -1003,7 +1031,7 @@ function displayLeaderboardHistory(games) {
     const historyContent = document.getElementById('history-content');
     
     if (games.length === 0) {
-        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No games yet</div>';
+        historyContent.innerHTML = '';
         return;
     }
     
@@ -2634,9 +2662,7 @@ function loadMultiplayerBoard(boardIndex) {
     correct = invert ? "white" : "black";
     
     // Show correct answer in dev mode console
-    if (IS_DEV_MODE) {
-        console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correct.toUpperCase()}`);
-    }
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correct.toUpperCase()}`);
 
     for (let x = 0; x < board.width; x++) {
         board[x] = {};
@@ -2658,18 +2684,9 @@ function loadMultiplayerBoard(boardIndex) {
         // Use the processed board that matches what the player sees, and pass the board number for dead stones
         territoryScore = calculateTerritoryScore(board, deadstones);
         
-        // Apply color inversion to the scoring result to match the displayed board
-        if (invert) {
-            const originalWinner = territoryScore.winningColor;
-            territoryScore.winningColor = originalWinner === 'black' ? 'white' : 
-                                        originalWinner === 'white' ? 'black' : 'tie';
-            territoryScore.difference = -territoryScore.difference;
-        }
-        
         // Show detailed scoring in dev mode
-        if (IS_DEV_MODE) {
-            console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackTerritory}, White: ${territoryScore.whiteTerritory}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
-        }
+        console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackTerritory}, White: ${territoryScore.whiteTerritory}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
+        console.log(`🎯 DEV MODE: Loading board ${boardIndex + 1}/${gameState.boardSequence.length} (board #${boardNumber}) - boardNumber: ${boardNumber}`);
         
         // Store the territory info for answer validation
         window.currentTerritoryScore = territoryScore;
