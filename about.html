@@ -107,6 +107,7 @@
             <p>
                 <strong>Game Setup:</strong><br>
                 • Set game parameters (time per board, number of boards)<br>
+                • Toggle Hard Mode for exact territory counting instead of just winner determination<br>
                 • Create a room<br>
                 • Share the room code with friends to join<br>
                 • Wait for all players to be ready, then start the game
@@ -115,17 +116,20 @@
             <p>
                 <strong>During the Game:</strong><br>
                 • All players will get the same positions, but the colors or orientation might be flipped<br>
-                • Click "Black" or "White" to indicate which side has more territory<br>
+                • <strong>Normal Mode:</strong> Click "Black" or "White" to indicate which side has more territory<br>
+                • <strong>Hard Mode:</strong> Select the exact territory difference from multiple choice options<br>
                 • The board's background is normally green, but it will turn red when you make a mistake<br>
+                • Players in development mode will have a wrench icon 🔧 in the player list and leaderboard<br>
                 • If your time runs out, you cannot make any more points this round
             </p>
 
             <p>
                 <strong>Winning:</strong><br>
-                • Your score is the number of correct answers
-                • The game ends when the first player completes all boards OR time runs out OR you're the last player standing.<br>
-                • There's a leaderboard dialog in the top-right corner of the board, you can hide it by clicking on it.
-                • Winners will be marked in the leaderboard; a trophy 🏆 is awarded when there's a single, medals 🥇 are awarded for ties<br>
+                • Your score is the number of correct answers<br>
+                • The game ends when the first player completes all boards OR time runs out<br>
+                • There's a leaderboard dialog in the top-right corner of the board, you can hide it by clicking on it<br>
+                • Winners will be marked in the leaderboard; a trophy 🏆 is awarded when there's a single winner, medals 🥇 are awarded for ties<br>
+                • Player status is indicated with icons: 🎮 for playing, ✅ for finished<br>
                 • Losers will see a red background<br>
             </p>
 
@@ -140,6 +144,13 @@
 
             <p>
                 <strong>Controls:</strong> Use the on-screen buttons or keyboard shortcuts (left/right arrow keys for Black/White, Enter to restart).
+            </p>
+
+            <p>
+                <strong>Development Features:</strong><br>
+                • When running on localhost, a Board Editor is available for creating and modifying Go positions<br>
+                • Development Mode toggle shows correct answers during gameplay (localhost only)<br>
+                • Visual board editor supports stone placement, dead stone marking, and real-time territory scoring<br>
             </p>
 
             <div class="back-button-container">

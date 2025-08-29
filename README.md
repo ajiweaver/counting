@@ -8,24 +8,28 @@ Count Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) bu
 
 ### How to Play
 1. **Create or join a room** with friends using a 6-character room code
-2. **Set game parameters** (time per board: 10-120s, number of boards: 5-50)
-3. **Compete in real-time** to correctly identify whether Black or White controls more territory
-4. **Track your progress** with persistent scoring and room history
+2. **Set game parameters** (time per board: 1-600s, number of boards: 1-50)
+3. **Choose difficulty**: Normal mode (Black/White winner) or Hard mode (exact territory counting)
+4. **Compete in real-time** to correctly identify territory control
+5. **Track your progress** with persistent scoring and room history
 
 ## 🚀 Features
 
 - **Real-time multiplayer** with Socket.IO
+- **Two game modes**: Normal (Black/White winner) and Hard (exact territory counting)
 - **Customizable game settings** (timer, board count)
-- **Live leaderboards** during gameplay
+- **Live leaderboards** during gameplay with status icons (🎮 playing, ✅ finished)
 - **Persistent room history** and total scores
 - **Visual feedback** (green for correct, red for incorrect, gold for winners)
-- **Trophy/medal system** for winners and ties
+- **Trophy/medal system** for winners and ties (🏆 single winner, 🥇 ties)
+- **Development mode indicators** (🔧 wrench icon for dev mode players)
 - **Host controls** for game management
 - **Mobile-responsive** design
 
 ## 🛠️ Technical Stack
 
 - **Frontend**: Vanilla JavaScript, p5.js for game rendering
+- **Territory Scoring**: lightvector/goscorer library for accurate Go scoring
 - **Backend**: Node.js, Express, Socket.IO
 - **Deployment**: Railway (server), Netlify (client)
 - **Real-time Communication**: WebSocket connections via Socket.IO
@@ -70,7 +74,8 @@ The game auto-detects the environment:
 - Each Go position shows equal stones for Black and White
 - No komi, no prisoners, no sekis
 - Area scoring and territory scoring give identical results
-- Score = number of correct territory assessments
+- **Normal Mode**: Score = number of correct Black/White winner identifications
+- **Hard Mode**: Score = number of correct exact territory difference selections
 
 ### Game Flow
 1. **Lobby Phase**: Players join and wait for game start
@@ -88,8 +93,14 @@ The game auto-detects the environment:
 counting/
 ├── index.html          # Main game interface
 ├── about.html          # Game instructions
+├── board-editor.html   # Visual board editor (localhost only)
 ├── multiplayer.js      # Client-side multiplayer logic
-├── boards.js          # Go board positions and rendering
+├── board-editor.js     # Board editor functionality
+├── boards.js          # Normal mode Go board positions
+├── boards_hard.js      # Hard mode Go board positions
+├── deadstones.js       # Normal mode dead stone data
+├── deadstones_hard.js  # Hard mode dead stone data
+├── goscorer.js         # Go territory scoring library
 ├── name-generator.js   # Random player name generation
 ├── style.css          # Game styling
 ├── server/
@@ -100,8 +111,20 @@ counting/
 
 ## 🔧 Development Features
 
-When running locally, additional debug functions are available in the browser console:
+When running on localhost, additional features become available:
 
+### Visual Board Editor
+- **Access**: Board Editor button appears on main menu (localhost only)
+- **Features**: Visual stone placement, dead stone marking, territory scoring
+- **Export**: Generate updated boards.js and deadstones.js files
+- **Keyboard Shortcuts**: Navigation, tool selection, undo/redo support
+
+### Development Mode
+- **Toggle**: Development Mode checkbox (localhost only)
+- **Features**: Shows correct answers during gameplay
+- **Visual Indicator**: Players in dev mode get wrench icon 🔧 in UI
+
+### Debug Console Functions
 ```javascript
 // Mock data testing
 showMockData()          // Enable mock data for testing
@@ -129,8 +152,10 @@ setTestBoardId(0)       // Load specific board for testing
 
 - **Responsive UI** with mobile-first approach
 - **Real-time feedback** with background color changes
-- **Trophy system** with emoji indicators (🏆 for single winner, 🥉 for ties)
+- **Trophy system** with emoji indicators (🏆 for single winner, 🥇 for ties)
+- **Status indicators** (🎮 playing, ✅ finished, 🔧 dev mode)
 - **Smooth animations** for interactions and state changes
+- **Tooltips** for enhanced user experience
 
 ## 📄 License
 
