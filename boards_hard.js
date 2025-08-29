@@ -144,12 +144,12 @@ o...ox...
 .oxx...x.
 .oox....x
 .oxxxxxxo
-.xooxoxoo
+oxooxoxoo
 ..oxoooo.
 oooxxoo..
 oxooxoxo.
 oxxxxxxo.
-.x.x.xoo.
+ox.x.xoo.
 
 .oxxx....
 ..oox.x..
@@ -193,7 +193,7 @@ xxooooo..
 
 ...oxx...
 ....oxx..
-...ooox..
+..oooox..
 ...xox...
 ..ooxx.x.
 ..ox.....
@@ -561,7 +561,7 @@ o.oooxxo.
 .oox..x.x
 .oxxx....
 
-..o.xoo..
+....xoo..
 xx.xxxo..
 oxxxxo.o.
 oooxooo..
