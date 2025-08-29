@@ -2,6 +2,8 @@
 
 A real-time multiplayer Go territory counting game where players compete to correctly identify which side controls more territory in various Go positions.
 
+**🎮 [Play Now at count.ajiweaver.com](https://count.ajiweaver.com)**
+
 ## 🎮 Game Overview
 
 Count Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) but adds multiplayer functionality with rooms, real-time competition, and persistent scoring across games.
