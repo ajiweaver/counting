@@ -7,7 +7,19 @@
 	<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 	<script src="p5.min.js"></script>
 	<script src="boards.js"></script>
+	<script src="deadstones.js"></script>
+	<script src="boards_hard.js"></script>
+	<script src="deadstones_hard.js"></script>
 	<script src="name-generator.js"></script>
+	<script type="module">
+		import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './goscorer.js';
+		// Make goscorer functions available globally
+		window.EMPTY = EMPTY;
+		window.BLACK = BLACK; 
+		window.WHITE = WHITE;
+		window.territoryScoring = territoryScoring;
+		window.finalTerritoryScore = finalTerritoryScore;
+	</script>
 	<script src="multiplayer.js"></script>
 
 	<meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
@@ -216,11 +228,11 @@
             <div style="margin: 15px 0; text-align: center;">
                 <label style="display: block; margin: 10px 0;">
                     Seconds per board:
-                    <input type="number" id="time-per-board" min="1" max="120" value="60" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
+                    <input type="number" id="time-per-board" min="1" max="600" value="60" step="1" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
                 <label style="display: block; margin: 10px 0;">
                     Number of boards:
-                    <input type="number" id="total-boards" min="1" max="50" value="1" step="1" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
+                    <input type="number" id="total-boards" min="1" max="50" value="10" step="1" style="width: 80px; margin-left: 10px; padding: 5px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 3px;">
                 </label>
                 <label style="display: block; margin: 10px 0;">
                     <input type="checkbox" id="hard-mode" style="margin-right: 8px;">
@@ -235,6 +247,7 @@
             <button onclick="showJoinRoom()">Join Room</button>
             <br>
             <button onclick="window.location.href='about.html'" style="background: #2196F3;">About</button>
+            <button id="board-editor-link" onclick="window.location.href='board-editor.html'" style="background: #FF6B6B; display: none;">🎨 Board Editor</button>
         </div>
         
         <div class="ui-panel hidden" id="join-room-panel">

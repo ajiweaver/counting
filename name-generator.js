@@ -128,6 +128,7 @@ const right = [
     "hunhyun",
     "ichiriki",
     "iyama",
+    "jeong",
     "jie",
     "jinseo",
     "jowa",

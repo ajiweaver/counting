@@ -1,3 +1,20 @@
+// goscorer functions are imported via inline module script in index.html and made available globally
+
+// Helper functions to get correct board data based on hard mode
+function getCurrentBoards() {
+    if (gameState.settings && gameState.settings.hardMode && typeof window.boardsHard !== 'undefined') {
+        return window.boardsHard;
+    }
+    return boards;
+}
+
+function getCurrentDeadStones() {
+    if (gameState.settings && gameState.settings.hardMode && typeof window.deadStonesHard !== 'undefined') {
+        return window.deadStonesHard;
+    }
+    return window.deadStones;
+}
+
 // Multiplayer game state
 let socket;
 let gameState = {
@@ -20,14 +37,16 @@ let leaderboardAutoHidden = false;
 let board;
 let score = 0;
 let timer = 0;
+let maxTime = 0; // Maximum time for current game
 let started = false;
 let correct;
 let failed = false;
-let defaultTimePerBoard = 55;
-let defaultTimePerBoardStep = 5;
+let defaultTimePerBoard = 60;
+let defaultTotalBoards = 10;
 let penaltyMode = false; // Track if player is in penalty delay
 let lobbyCountdown = 0; // Countdown timer for automatic lobby return (in seconds)
 let lobbyCountdownActive = false; // Whether countdown is currently active
+let lobbyCountdownCancelled = false; // Whether countdown was cancelled by user
 
 // Hard mode variables
 let selectedColorValue = 1; // 1 for black, -1 for white
@@ -267,29 +286,66 @@ if (IS_DEV_MODE) {
     };
     
     window.setTestBoardId = function(boardId) {
-        if (boardId < 0 || boardId >= MOCK_BOARDS.length) {
-            console.error(`❌ Invalid board ID: ${boardId}. Available: 0-${MOCK_BOARDS.length - 1}`);
+        // If no boardId provided, randomly choose one from the real boards
+        if (boardId === undefined || boardId === null) {
+            boardId = Math.floor(Math.random() * boards.length);
+            console.log(`🎲 Randomly selected board ID: ${boardId}`);
+        }
+        
+        if (boardId < 0 || boardId >= boards.length) {
+            console.error(`❌ Invalid board ID: ${boardId}. Available: 0-${boards.length - 1}`);
             return;
         }
         
-        // Replace the boards array temporarily with our mock board at index 0
-        window.originalBoards = window.originalBoards || boards.slice(); // Backup original boards
-        boards[0] = MOCK_BOARDS[boardId];
-        
-        // Set up a simple game state for testing
-        gameState.boardSequence = [0]; // Use our mock board
+        // Set up a simple game state for testing using the real board ID
+        gameState.boardSequence = [boardId]; // Use the actual board ID
         gameState.currentBoard = 0;
         gameState.phase = 'playing';
         
+        // Ensure we're not in a failed state so buttons show
+        failed = false;
+        
         console.log(`🚀 Test board ${boardId} loaded!`);
         console.log('Board preview:');
-        console.log(MOCK_BOARDS[boardId]);
-        console.log('\nThis board will be used in the next game. Start a game to test!');
+        const currentBoards = getCurrentBoards();
+        console.log(currentBoards[boardId]);
+        console.log('\nBoard will render immediately with dead stone support!');
         
-        // If we're already in a game, load the board immediately
+        // Clear UI overlay and set up for immediate board testing
+        document.getElementById('ui-overlay').style.display = 'none';
+        
+        // Set up game variables for testing
+        started = true;
+        failed = false;
+        penaltyMode = false;
+        score = 0;
+        maxTime = 600000; // Set maxTime for the timer bar to work properly
+        
+        // Set up game state with UI mode settings
+        if (!gameState.settings) {
+            gameState.settings = {};
+        }
+        
+        // Check current hard mode setting from UI or use default
+        const hardModeCheckbox = document.getElementById('hard-mode');
+        gameState.settings.hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+        
+        console.log(`🎮 Testing in ${gameState.settings.hardMode ? 'HARD' : 'NORMAL'} mode`);
+        
+        // Load the board and force rendering
         if (typeof loadMultiplayerBoard === 'function') {
             loadMultiplayerBoard(0);
         }
+        
+        // Force canvas redraw by triggering draw function if it exists
+        if (typeof window.redraw === 'function') {
+            window.redraw();
+        }
+        
+        // Also start timer for test mode
+        timer = 0;
+        
+        console.log('🎯 Board loaded and rendering triggered!');
     };
     
     window.showMockBoards = function() {
@@ -305,6 +361,65 @@ if (IS_DEV_MODE) {
         console.log('Use showMockBoards() to see all available boards');
     };
     
+    window.setRealBoardId = function(boardId) {
+        // If no boardId provided, randomly choose one
+        if (boardId === undefined || boardId === null) {
+            boardId = Math.floor(Math.random() * boards.length);
+            console.log(`🎲 Randomly selected real board ID: ${boardId}`);
+        }
+        
+        if (boardId < 0 || boardId >= boards.length) {
+            console.error(`❌ Invalid board ID: ${boardId}. Available: 0-${boards.length - 1}`);
+            return;
+        }
+        
+        // Clear UI overlay and set up for immediate board testing
+        document.getElementById('ui-overlay').style.display = 'none';
+        
+        // Set up game variables for testing
+        started = true;
+        failed = false;
+        penaltyMode = false;
+        timer = 600000; // 600 seconds for testing
+        score = 0;
+        
+        // Set maxTime for the timer bar to work properly
+        maxTime = 600000;
+        
+        // Set up a simple game state for testing with real boards
+        gameState.boardSequence = [boardId]; // Use the selected real board
+        gameState.currentBoard = 0;
+        gameState.phase = 'playing';
+        
+        // Ensure we're not in a failed state so buttons show
+        failed = false;
+        
+        console.log(`🚀 Real board ${boardId} loaded!`);
+        console.log(`Board preview (first few lines):`);
+        const currentBoards = getCurrentBoards();
+        const boardLines = currentBoards[boardId].trim().split('\n').slice(0, 3);
+        boardLines.forEach(line => console.log(line));
+        if (currentBoards[boardId].trim().split('\n').length > 3) {
+            console.log('...');
+        }
+        
+        // Set up game state with UI mode settings
+        if (!gameState.settings) {
+            gameState.settings = {};
+        }
+        
+        // Check current hard mode setting from UI or use default
+        const hardModeCheckbox = document.getElementById('hard-mode');
+        gameState.settings.hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+        
+        console.log(`🎮 Testing in ${gameState.settings.hardMode ? 'HARD' : 'NORMAL'} mode`);
+        
+        // Load the board immediately
+        if (typeof loadMultiplayerBoard === 'function') {
+            loadMultiplayerBoard(0);
+        }
+    };
+
     window.resetBoards = function() {
         if (window.originalBoards) {
             boards = window.originalBoards.slice();
@@ -361,7 +476,7 @@ if (IS_DEV_MODE) {
     
     console.log('🚀 Development mode active!');
     console.log('Game testing: showMockData(), hideMockData(), setTestRoomId("ABC123")');
-    console.log('Board testing: showMockBoards(), setTestBoardId(0)');
+    console.log('Board testing: showMockBoards(), setTestBoardId(), setRealBoardId()');
     console.log('Data testing: queryLeaderboard(), queryLeaderboard("ROOM123")');
 }
 
@@ -569,10 +684,11 @@ function initSocket() {
         const joinedPlayer = data.player;
         if (gameState.phase === 'lobby' && gameState.roomId && 
             joinedPlayer && joinedPlayer.id === gameState.playerId) {
+            // Don't load if showRoomLobby will be called soon (which loads it anyway)
             setTimeout(() => {
-                console.log('🔄 Loading history after current user joined - roomId:', gameState.roomId);
-                loadLeaderboardHistory();
-            }, 500); // Increased delay to ensure game state is fully set
+                console.log('🔄 Loading history after current user joined (if not loaded recently) - roomId:', gameState.roomId);
+                loadLeaderboardHistory(); // This will be debounced if called too frequently
+            }, 1000); // Longer delay to avoid conflict with showRoomLobby
         }
     });
     
@@ -653,6 +769,7 @@ function initSocket() {
         // Start 10-second countdown to return to lobby
         lobbyCountdown = 10;
         lobbyCountdownActive = true;
+        lobbyCountdownCancelled = false; // Reset cancelled flag
         console.log(`⏰ Started ${lobbyCountdown}-second countdown to return to lobby`);
         
         // Auto-show leaderboard after a longer delay to let players see the final board
@@ -676,6 +793,28 @@ function initSocket() {
 
 // UI Functions
 function showMainMenu() {
+    // Clear the canvas and reset background
+    if (typeof clear === 'function') {
+        clear();
+    }
+    
+    // Reset document background color to default
+    document.bgColor = '';
+    document.body.style.backgroundColor = '';
+    
+    // Hide all game-related UI elements
+    document.getElementById('leaderboard').style.display = 'none';
+    document.getElementById('leaderboard-toggle').style.display = 'none';
+    document.getElementById('resign-button').style.display = 'none';
+    
+    // Reset leaderboard visibility flag
+    leaderboardVisible = false;
+    
+    // Reset game state variables
+    failed = false;
+    started = false;
+    gameState.phase = 'menu';
+    
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.add('hidden');
@@ -685,44 +824,85 @@ function showMainMenu() {
 let historyRetryCount = 0;
 const MAX_HISTORY_RETRIES = 1;
 
+// Track leaderboard history calls for debugging
+let leaderboardHistoryCallCount = 0;
+let lastHistoryLoadTime = 0;
+let historyLoadInProgress = false;
+const HISTORY_LOAD_DEBOUNCE_MS = 2000; // Don't reload more than once every 2 seconds
+
+// Debug function to show leaderboard loading stats
+function debugLeaderboardStats() {
+    console.log('=== LEADERBOARD STATS ===');
+    console.log('Total calls:', leaderboardHistoryCallCount);
+    console.log('Last load time:', new Date(lastHistoryLoadTime).toLocaleTimeString());
+    console.log('Time since last load:', Date.now() - lastHistoryLoadTime, 'ms');
+    console.log('Load in progress:', historyLoadInProgress);
+    console.log('========================');
+}
+
+// Reset counter (useful for testing)
+function resetLeaderboardStats() {
+    leaderboardHistoryCallCount = 0;
+    lastHistoryLoadTime = 0;
+    historyLoadInProgress = false;
+    console.log('✅ Leaderboard stats reset');
+}
+
 // Load and display leaderboard history for current room
-async function loadLeaderboardHistory(isRetry = false) {
-    console.log('🔄 Loading leaderboard history for room:', gameState.roomId);
+async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
+    leaderboardHistoryCallCount++;
+    console.log(`🔄 Loading leaderboard history (#${leaderboardHistoryCallCount}) for room:`, gameState.roomId);
+    
+    // Debounce frequent calls
+    const now = Date.now();
+    if (!forceLoad && !isRetry) {
+        if (historyLoadInProgress) {
+            console.log('⏭️ Skipping - history load already in progress');
+            return;
+        }
+        if (now - lastHistoryLoadTime < HISTORY_LOAD_DEBOUNCE_MS) {
+            console.log(`⏭️ Skipping - too soon (${now - lastHistoryLoadTime}ms < ${HISTORY_LOAD_DEBOUNCE_MS}ms)`);
+            return;
+        }
+    }
+    
+    historyLoadInProgress = true;
+    lastHistoryLoadTime = now;
     console.log('🔍 Current gameState.phase:', gameState.phase);
     console.log('🔍 UI overlay visible:', document.getElementById('ui-overlay').style.display !== 'none');
     
-    const historyContent = document.getElementById('history-content');
-    if (!historyContent) {
-        console.warn('⚠️ History content element not found');
-        return; // Element doesn't exist yet
-    }
-    
-    // Only load if we're in a room
-    if (!gameState.roomId) {
-        console.warn('⚠️ No room ID available for leaderboard history');
-        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Join a room to see history</div>';
-        return;
-    }
-    
-    historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
-    
-    // Use mock data only when explicitly enabled
-    if (useMockData) {
-        console.log('🚀 Development mode: Using mock data');
-        setTimeout(() => {
-            const roomGames = MOCK_GAMES.filter(game => game.roomId === gameState.roomId);
-            console.log(`Mock data: ${roomGames.length} games for room ${gameState.roomId}`);
-            
-            if (roomGames.length > 0) {
-                displayLeaderboardHistory(roomGames);
-            } else {
-                historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">(Dev mode)</small></div>`;
-            }
-        }, 500); // Simulate loading delay
-        return;
-    }
-    
     try {
+        const historyContent = document.getElementById('history-content');
+        if (!historyContent) {
+            console.warn('⚠️ History content element not found');
+            return; // Element doesn't exist yet
+        }
+        
+        // Only load if we're in a room
+        if (!gameState.roomId) {
+            console.warn('⚠️ No room ID available for leaderboard history');
+            historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Join a room to see history</div>';
+            return;
+        }
+        
+        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
+        
+        // Use mock data only when explicitly enabled
+        if (useMockData) {
+            console.log('🚀 Development mode: Using mock data');
+            setTimeout(() => {
+                const roomGames = MOCK_GAMES.filter(game => game.roomId === gameState.roomId);
+                console.log(`Mock data: ${roomGames.length} games for room ${gameState.roomId}`);
+                
+                if (roomGames.length > 0) {
+                    displayLeaderboardHistory(roomGames);
+                } else {
+                    historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">(Dev mode)</small></div>`;
+                }
+            }, 500); // Simulate loading delay
+            return;
+        }
+        
         // Add cache-busting timestamp to ensure fresh data
         const timestamp = Date.now();
         const url = `${SERVER_URL}/leaderboard?t=${timestamp}`;
@@ -786,7 +966,7 @@ async function loadLeaderboardHistory(isRetry = false) {
                         <div style="color: #888; text-align: center; padding: 20px;">
                             No completed games yet<br>for room <strong>${gameState.roomId}</strong>
                             <br><small style="color: #666;">Total games in system: ${data.games.length}</small>
-                            <br><button onclick="loadLeaderboardHistory()" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button>
+                            <br><button onclick="loadLeaderboardHistory(false, true)" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button>
                         </div>
                         <div style="color: #aaa; font-size: 11px; text-align: center; margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
                             Recent games from other rooms:
@@ -799,7 +979,7 @@ async function loadLeaderboardHistory(isRetry = false) {
                     const gamesHTML = historyContent.innerHTML;
                     historyContent.innerHTML = originalHistoryContent + gamesHTML;
                 } else {
-                    historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">Total games in system: ${data.games.length}</small><br><button onclick="loadLeaderboardHistory()" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button></div>`;
+                    historyContent.innerHTML = `<div style="color: #888; text-align: center; padding: 20px;">No completed games yet<br>for room <strong>${gameState.roomId}</strong><br><small style="color: #666;">Total games in system: ${data.games.length}</small><br><button onclick="loadLeaderboardHistory(false, true)" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">🔄 Refresh</button></div>`;
                 }
             }
         } else {
@@ -809,10 +989,13 @@ async function loadLeaderboardHistory(isRetry = false) {
         console.error('Error loading leaderboard history:', error);
         historyContent.innerHTML = `<div style="color: #f44; text-align: center; padding: 20px;">
             Failed to load: ${error.message}<br>
-            <button onclick="loadLeaderboardHistory()" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            <button onclick="loadLeaderboardHistory(false, true)" style="margin-top: 10px; padding: 5px 10px; background: #666; color: white; border: none; border-radius: 3px; cursor: pointer;">
                 Retry
             </button>
         </div>`;
+    } finally {
+        historyLoadInProgress = false;
+        console.log('✅ History load completed/failed - flag reset');
     }
 }
 
@@ -923,7 +1106,8 @@ const STORAGE_KEYS = {
     PLAYER_UUID: 'countbattle_player_uuid', // Unique identifier for host persistence
     TIME_PER_BOARD: 'countbattle_time_per_board',
     TOTAL_BOARDS: 'countbattle_total_boards',
-    UNLIMITED_TIME: 'countbattle_unlimited_time'
+    UNLIMITED_TIME: 'countbattle_unlimited_time',
+    HARD_MODE: 'countbattle_hard_mode'
 };
 
 // LocalStorage helper functions
@@ -933,6 +1117,96 @@ function saveToStorage(key, value) {
     } catch (error) {
         console.warn('Failed to save to localStorage:', error);
     }
+}
+
+// Test function to analyze territory scores for all boards
+window.testAllTerritoryScores = function(maxBoards = 99) {
+    console.log('🧪 Testing territory scores for all boards...');
+    
+    const results = [];
+    const uniqueResults = new Map();
+    
+    const currentBoards = getCurrentBoards();
+    const currentDeadStones = getCurrentDeadStones();
+    for (let i = 0; i <= maxBoards && i < currentBoards.length; i++) {
+        try {
+            const score = calculateTerritoryScore(currentBoards[i], currentDeadStones[i]);
+            const resultKey = `${score.winningColor}:${score.difference}`;
+            
+            results.push({
+                boardIndex: i,
+                winningColor: score.winningColor,
+                difference: score.difference,
+                blackScore: score.blackScore,
+                whiteScore: score.whiteScore
+            });
+            
+            if (!uniqueResults.has(resultKey)) {
+                uniqueResults.set(resultKey, []);
+            }
+            uniqueResults.get(resultKey).push(i);
+            
+        } catch (error) {
+            console.error(`❌ Error processing board ${i}:`, error);
+        }
+    }
+    
+    console.log(`📊 Analyzed ${results.length} boards. Found ${uniqueResults.size} unique results:`);
+    console.log('\n=== UNIQUE TERRITORY SCORING RESULTS ===');
+    
+    // Sort by winning color and difference
+    const sortedResults = Array.from(uniqueResults.entries()).sort((a, b) => {
+        const [colorA, diffA] = a[0].split(':');
+        const [colorB, diffB] = b[0].split(':');
+        
+        if (colorA !== colorB) {
+            return colorA.localeCompare(colorB);
+        }
+        return parseInt(diffA) - parseInt(diffB);
+    });
+    
+    sortedResults.forEach(([key, boardIndices]) => {
+        const [color, diff] = key.split(':');
+        console.log(`\n${color.toUpperCase()} wins by ${diff}:`);
+        console.log(`  Boards: [${boardIndices.slice(0, 10).join(', ')}${boardIndices.length > 10 ? `, ... +${boardIndices.length - 10} more` : ''}]`);
+        
+        // Show detailed example for first board
+        const exampleBoard = boardIndices[0];
+        const exampleResult = results.find(r => r.boardIndex === exampleBoard);
+        console.log(`  Example (board ${exampleBoard}): Black=${exampleResult.blackScore}, White=${exampleResult.whiteScore}`);
+    });
+    
+    console.log('\n=== SUMMARY ===');
+    const blackWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('black')).length;
+    const whiteWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('white')).length;
+    console.log(`Black winning positions: ${blackWins}`);
+    console.log(`White winning positions: ${whiteWins}`);
+    
+    return results;
+};
+
+// Debug function to check hard mode state consistency
+function debugHardModeState() {
+    const checkbox = document.getElementById('hard-mode');
+    const checkboxValue = checkbox ? checkbox.checked : 'NOT FOUND';
+    const localStorageValue = loadFromStorage(STORAGE_KEYS.HARD_MODE, false);
+    const gameStateValue = gameState.settings ? gameState.settings.hardMode : 'NOT SET';
+    
+    console.log('=== HARD MODE STATE DEBUG ===');
+    console.log('Checkbox value:', checkboxValue);
+    console.log('localStorage value:', localStorageValue);
+    console.log('gameState.settings.hardMode:', gameStateValue);
+    console.log('All in sync?', 
+        checkboxValue === localStorageValue && 
+        localStorageValue === gameStateValue);
+    console.log('===============================');
+    
+    return {
+        checkbox: checkboxValue,
+        localStorage: localStorageValue,
+        gameState: gameStateValue,
+        inSync: checkboxValue === localStorageValue && localStorageValue === gameStateValue
+    };
 }
 
 function loadFromStorage(key, defaultValue = null) {
@@ -983,7 +1257,7 @@ function initializeUI() {
     
     // Load saved settings from localStorage
     const savedTime = loadFromStorage(STORAGE_KEYS.TIME_PER_BOARD, defaultTimePerBoard);
-    const savedTotalBoards = loadFromStorage(STORAGE_KEYS.TOTAL_BOARDS, 20);
+    const savedTotalBoards = loadFromStorage(STORAGE_KEYS.TOTAL_BOARDS, defaultTotalBoards);
     const savedUnlimited = loadFromStorage(STORAGE_KEYS.UNLIMITED_TIME, false);
     const savedPlayerName = loadFromStorage(STORAGE_KEYS.PLAYER_NAME, '');
     const savedRoomId = loadFromStorage(STORAGE_KEYS.ROOM_ID, null);
@@ -1042,25 +1316,34 @@ function initializeUI() {
         saveToStorage(STORAGE_KEYS.TIME_PER_BOARD, currentTimePerBoard);
         console.log('✓ Saved to localStorage:', currentTimePerBoard);
         
-        // Simple event handling for number input
-        const changeHandler = function(e) {
+        // Event handling for number input - only validate on blur to allow editing
+        const blurHandler = function(e) {
             let newValue = parseInt(e.target.value);
             
-            // Validate the value
-            if (isNaN(newValue) || newValue < 1 || newValue > 120) {
+            // Validate the value only when user is done editing (blur event)
+            if (isNaN(newValue) || newValue < 1 || newValue > 600) {
                 console.log('❌ Invalid value:', newValue, 'resetting to previous');
                 e.target.value = currentTimePerBoard;
                 return;
             }
             
-            e.target.value = newValue;
             console.log('🎯 Number input changed to:', newValue);
             handleTimeChange(newValue);
         };
         
-        // Add event listeners
-        timeSlider.addEventListener('change', changeHandler);
-        timeSlider.addEventListener('blur', changeHandler); // Also validate on blur
+        // Add event listeners - update on input, validate on blur
+        timeSlider.addEventListener('input', function(e) {
+            let newValue = parseInt(e.target.value);
+            
+            console.log('🎯 Number input changed to:', newValue);
+            handleTimeChange(newValue);
+        });
+        timeSlider.addEventListener('blur', blurHandler);
+        timeSlider.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                blurHandler(e);
+            }
+        });
         
         console.log('✓ Added event listeners');
         console.log('=== Time input initialization complete ===');
@@ -1073,6 +1356,13 @@ function initializeUI() {
     if (window.location.hostname === 'localhost') {
         console.log('=== Initializing dev mode toggle ===');
         devModeToggle.style.display = 'block';
+        
+        // Show board editor link on localhost
+        const boardEditorLink = document.getElementById('board-editor-link');
+        if (boardEditorLink) {
+            boardEditorLink.style.display = 'inline-block';
+            console.log('🎨 Board editor link enabled for localhost');
+        }
         
         // Set initial state
         devModeCheckbox.checked = IS_DEV_MODE;
@@ -1090,6 +1380,51 @@ function initializeUI() {
         });
         
         console.log('✓ Dev mode toggle initialized, current state:', IS_DEV_MODE);
+    }
+    
+    // Initialize hard mode toggle
+    const hardModeCheckbox = document.getElementById('hard-mode');
+    if (hardModeCheckbox) {
+        console.log('=== Initializing hard mode toggle ===');
+        
+        // Set initial state (default to false)
+        const savedHardMode = loadFromStorage(STORAGE_KEYS.HARD_MODE, false);
+        hardModeCheckbox.checked = savedHardMode;
+        console.log('✓ Set hard mode initial state to:', savedHardMode);
+        
+        // Initialize gameState.settings.hardMode with saved value
+        if (!gameState.settings) {
+            gameState.settings = {};
+        }
+        gameState.settings.hardMode = savedHardMode;
+        console.log('✓ Initialized gameState.settings.hardMode to:', gameState.settings.hardMode);
+        
+        // Add event listener for hard mode toggle
+        hardModeCheckbox.addEventListener('change', function(e) {
+            const isHardMode = e.target.checked;
+            console.log('🎯 Hard mode toggled to:', isHardMode);
+            
+            // Update gameState.settings.hardMode immediately
+            if (!gameState.settings) {
+                gameState.settings = {};
+            }
+            gameState.settings.hardMode = isHardMode;
+            console.log('✓ Updated gameState.settings.hardMode to:', gameState.settings.hardMode);
+            
+            // Save to localStorage
+            saveToStorage(STORAGE_KEYS.HARD_MODE, isHardMode);
+            console.log('✓ Saved hard mode to localStorage:', isHardMode);
+            
+            // Debug state after toggle
+            setTimeout(debugHardModeState, 10); // Small delay to ensure all updates are complete
+        });
+        
+        console.log('✓ Hard mode toggle initialized');
+        
+        // Debug initial state
+        setTimeout(debugHardModeState, 10);
+    } else {
+        console.error('❌ Hard mode checkbox not found in DOM');
     }
     
     // Initialize total boards input
@@ -1112,11 +1447,11 @@ function initializeUI() {
         saveToStorage(STORAGE_KEYS.TOTAL_BOARDS, currentTotalBoards);
         console.log('✓ Saved to localStorage:', currentTotalBoards);
         
-        // Event handler for total boards input
-        const boardsChangeHandler = function(e) {
+        // Event handler for total boards input - only validate on blur to allow editing
+        const boardsBlurHandler = function(e) {
             let newValue = parseInt(e.target.value);
             
-            // Validate the value
+            // Validate the value only when user is done editing (blur event)
             if (isNaN(newValue) || newValue < 1 || newValue > 50) {
                 console.log('❌ Invalid total boards value:', newValue, 'resetting to previous');
                 e.target.value = currentTotalBoards;
@@ -1131,9 +1466,23 @@ function initializeUI() {
             console.log('✓ Saved to localStorage:', currentTotalBoards);
         };
         
-        // Add event listeners
-        totalBoardsInput.addEventListener('change', boardsChangeHandler);
-        totalBoardsInput.addEventListener('blur', boardsChangeHandler);
+        // Add event listeners - update on input, validate on blur
+        totalBoardsInput.addEventListener('input', function(e) {
+            let newValue = parseInt(e.target.value);
+            
+            currentTotalBoards = newValue;
+            console.log('✓ Updated currentTotalBoards to:', currentTotalBoards);
+            
+            // Save to localStorage
+            saveToStorage(STORAGE_KEYS.TOTAL_BOARDS, currentTotalBoards);
+            console.log('✓ Saved to localStorage:', currentTotalBoards);
+        });
+        totalBoardsInput.addEventListener('blur', boardsBlurHandler);
+        totalBoardsInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                boardsBlurHandler(e);
+            }
+        });
         
         console.log('✓ Total boards input initialization complete');
     }
@@ -1192,12 +1541,7 @@ function tryReconnectToRoom(roomId) {
                     setTimeout(async () => {
                         console.log('Force updating UI after reconnection');
                         await updateUI();
-                        
-                        // Also reload leaderboard history after reconnection
-                        if (gameState.roomId) {
-                            console.log('Force reloading leaderboard history after reconnection');
-                            loadLeaderboardHistory();
-                        }
+                        // Note: showRoomLobby() already loads leaderboard history, so we don't need to do it again here
                     }, 100);
                 } else {
                     console.log('Failed to rejoin room:', joinResponse.error);
@@ -1310,8 +1654,10 @@ function createRoom() {
 
 function createNewRoom(playerName, timePerBoard, creatorUUID) {
     // Get hard mode setting from UI
-    const hardMode = document.getElementById('hard-mode').checked;
-    console.log('🎯 Creating room with hard mode:', hardMode);
+    const hardModeCheckbox = document.getElementById('hard-mode');
+    const hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+    console.log('🎯 Creating room with hard mode checkbox:', hardModeCheckbox ? 'found' : 'not found');
+    console.log('🎯 Creating room with hard mode value:', hardMode);
     
     // Use settings with configurable time and boards
     socket.emit('create-room', {
@@ -1436,11 +1782,18 @@ function startGame() {
     
     // Use current settings from UI
     const timePerBoard = unlimitedTimeMode ? -1 : currentTimePerBoard;
+    const hardModeCheckbox = document.getElementById('hard-mode');
+    const hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
     const settings = {
         timePerBoard: timePerBoard,
         totalBoards: currentTotalBoards,
-        unlimited: false
+        unlimited: false,
+        hardMode: hardMode // Include hard mode setting
     };
+    
+    console.log('🎯 Starting game with hard mode checkbox:', hardModeCheckbox ? 'found' : 'not found');
+    console.log('🎯 Starting game with hard mode value:', hardMode);
+    console.log('🎯 Full settings object:', settings);
     
     socket.emit('start-game', { settings: settings }, (response) => {
         if (!response.success) {
@@ -1617,11 +1970,29 @@ function returnToLobbyHost() {
 }
 
 async function returnToLobbyUI() {
-    // Show UI overlay and room panel
-    document.getElementById('ui-overlay').style.display = 'flex';
+    // Clear the canvas and reset background
+    if (typeof clear === 'function') {
+        clear();
+    }
+    
+    // Reset document background color to default
+    document.bgColor = '';
+    document.body.style.backgroundColor = '';
+    
+    // Reset game state variables that might affect drawing
+    failed = false;
+    started = false;
+    
+    // Hide all game-related UI elements
     document.getElementById('leaderboard').style.display = 'none';
     document.getElementById('leaderboard-toggle').style.display = 'none';
+    document.getElementById('resign-button').style.display = 'none';
     
+    // Reset leaderboard visibility flag
+    leaderboardVisible = false;
+    
+    // Show UI overlay and room panel
+    document.getElementById('ui-overlay').style.display = 'flex';
     
     gameState.phase = 'lobby';
     await updateUI();
@@ -1653,6 +2024,11 @@ function hideLeaderboard() {
 }
 
 function showLeaderboard() {
+    // Don't show leaderboard if we're in menu or lobby phase
+    if (gameState.phase === 'menu' || gameState.phase === 'lobby') {
+        return;
+    }
+    
     const leaderboard = document.getElementById('leaderboard');
     const toggle = document.getElementById('leaderboard-toggle');
     
@@ -1712,7 +2088,37 @@ function updateGameState(serverGameState) {
     }
     
     if (serverGameState.settings) {
+        // Preserve local hard mode setting if user has set it
+        const localHardMode = gameState.settings ? gameState.settings.hardMode : undefined;
+        const hardModeCheckbox = document.getElementById('hard-mode');
+        const currentUIHardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+        
+        console.log('🔄 Updating settings from server...');
+        console.log('- Current local hardMode:', localHardMode);
+        console.log('- Current UI hardMode:', currentUIHardMode);
+        console.log('- Server hardMode:', serverGameState.settings.hardMode);
+        
+        // Update settings from server
         gameState.settings = serverGameState.settings;
+        
+        // Preserve user's local hard mode preference if they've set it
+        // Only use server's hardMode if we don't have a local preference or if it's a new room creation
+        if (localHardMode !== undefined && gameState.phase !== 'menu') {
+            // We're in a room and user had a local preference, keep it
+            gameState.settings.hardMode = currentUIHardMode;
+            console.log('✓ Preserved local hard mode setting:', currentUIHardMode);
+        } else if (serverGameState.settings.hardMode !== undefined) {
+            // New room or no local preference, use server setting
+            gameState.settings.hardMode = serverGameState.settings.hardMode;
+            if (hardModeCheckbox) {
+                hardModeCheckbox.checked = serverGameState.settings.hardMode;
+                console.log('✓ Updated UI from server hard mode:', serverGameState.settings.hardMode);
+            }
+            // Also update localStorage to keep it in sync
+            saveToStorage(STORAGE_KEYS.HARD_MODE, serverGameState.settings.hardMode);
+            console.log('✓ Synced hard mode to localStorage:', serverGameState.settings.hardMode);
+        }
+        
         // Update maxTime based on server settings
         if (serverGameState.settings.unlimitedTime) {
             maxTime = Infinity; // No timer
@@ -1721,6 +2127,11 @@ function updateGameState(serverGameState) {
             maxTime = serverGameState.settings.timePerBoard * 1000; // Convert to milliseconds
             console.log('Updated maxTime from server settings:', maxTime);
         }
+        
+        console.log('✓ Final hardMode setting:', gameState.settings.hardMode);
+        
+        // Debug state after server update
+        setTimeout(debugHardModeState, 50);
     }
 }
 
@@ -1893,77 +2304,111 @@ function startMultiplayerGame() {
     checkLeaderboardOverlap();
 }
 
-// Territory counting function for hard mode
-function calculateTerritoryScore(board) {
-    let blackTerritory = 0;
-    let whiteTerritory = 0;
-    let blackCaptures = 0;
-    let whiteCaptures = 0;
+// Convert board string representation to goscorer format
+function convertBoardStringToStones(boardString) {
+    const rows = boardString.split("\n").map(row => row.trim()).filter(row => row !== "");
+    const ysize = rows.length;
+    const xsize = rows[0].length;
+
+    const stones = Array.from({length: ysize}, () => Array.from({length: xsize}, () => window.EMPTY));
+
+    for(let y = 0; y < ysize; y++) {
+        for(let x = 0; x < xsize; x++) {
+            let c = rows[y][x];
+            if(c === "x" || c === "X") {
+                stones[y][x] = window.BLACK;
+            } else if(c === "o" || c === "O") {
+                stones[y][x] = window.WHITE;
+            }
+            // '.' remains EMPTY (0)
+        }
+    }
+    return stones;
+}
+
+
+// Convert deadstones string representation to an object
+function convertDeadStoneStringToObject(boardString, flipX=false, flipY=false, transpose=false) {
+
+    const deadStonesLines = boardString.split('\n').map(row => row.trim()).filter(row => row !== '');
+    const textDeadStones = deadStonesLines.map(row => row.split(''));
+    const deadStonesParser = {'y':1,'x':0,'o':0,'.':0}
+    deadstones = {width: textDeadStones[0].length, height: textDeadStones.length};
+    for (let x = 0; x < deadstones.width; x++) {
+        deadstones[x] = {};
+        for (let y = 0; y < deadstones.height; y++) {
+            let a = flipX ? deadstones.width - 1 - x : x;
+            let b = flipY ? deadstones.height - 1 - y : y;
+            if (transpose) [a, b] = [b, a];
+            deadstones[x][y] = deadStonesParser[textDeadStones[b][a]];
+        }
+    }
+
+    return deadstones;
+}
+
+// Territory scoring using lightvector/goscorer
+function calculateTerritoryScore(board, deadstones_raw) {
+    // Convert our internal board representation to goscorer format
+    let stones;
     
-    // Count stones on the board
-    for (let x = 0; x < board.width; x++) {
+    if (typeof board === 'string') {
+        // Board is a string representation (from boards.js)
+        stones = convertBoardStringToStones(board);
+    } else {
+        // Board is our internal 2D array format - convert it
+        stones = [];
         for (let y = 0; y < board.height; y++) {
-            const stone = board[x][y];
-            if (stone === -1) {
-                blackCaptures++;
-            } else if (stone === 1) {
-                whiteCaptures++;
+            stones[y] = [];
+            for (let x = 0; x < board.width; x++) {
+                if (board[x][y] === 1) {
+                    stones[y][x] = window.BLACK;
+                } else if (board[x][y] === -1) {
+                    stones[y][x] = window.WHITE;
+                } else {
+                    stones[y][x] = window.EMPTY;
+                }
+            }
+        }
+    }
+
+    if (typeof board === 'string') {
+        deadstones = convertDeadStoneStringToObject(deadstones_raw);
+    } else {
+        // Board is our internal 2D array format - do nothing
+    }
+    
+    const ysize = stones.length;
+    const xsize = stones[0].length;
+    
+    // Create markedDead array using deadstones.js data
+    const markedDead = Array.from({length: ysize}, () => Array.from({length: xsize}, () => false));
+    
+    // If we have a board number and dead stones data, use it
+    if (typeof deadstones !== 'undefined' && deadstones) {
+        
+        for (let y = 0; y < ysize; y++) {
+            const col = deadstones[y];
+            for (let x = 0; x < xsize; x++) {
+                // A 1 in deadstones.js represents dead stones (both black and white)
+                if (col[x] === 1) {
+                    markedDead[x][y] = true;
+                }
             }
         }
     }
     
-    // Simple territory counting using flood fill
-    let visited = Array(board.width).fill(null).map(() => Array(board.height).fill(false));
+    // Use goscorer's territory scoring
+    const finalScore = window.finalTerritoryScore(stones, markedDead, 0, 0, 0);
     
-    for (let x = 0; x < board.width; x++) {
-        for (let y = 0; y < board.height; y++) {
-            if (board[x][y] === 0 && !visited[x][y]) {
-                // Empty point - determine territory
-                let territory = [];
-                let surroundingColors = new Set();
-                
-                // Flood fill to find connected empty territory
-                function floodFill(px, py) {
-                    if (px < 0 || px >= board.width || py < 0 || py >= board.height) return;
-                    if (visited[px][py]) return;
-                    
-                    if (board[px][py] === 0) {
-                        visited[px][py] = true;
-                        territory.push([px, py]);
-                        floodFill(px + 1, py);
-                        floodFill(px - 1, py);
-                        floodFill(px, py + 1);
-                        floodFill(px, py - 1);
-                    } else {
-                        // Found a stone - note its color
-                        surroundingColors.add(board[px][py]);
-                    }
-                }
-                
-                floodFill(x, y);
-                
-                // Determine territory ownership
-                if (surroundingColors.size === 1) {
-                    const owner = Array.from(surroundingColors)[0];
-                    if (owner === -1) {
-                        blackTerritory += territory.length;
-                    } else if (owner === 1) {
-                        whiteTerritory += territory.length;
-                    }
-                }
-                // If surrounded by both colors or no stones, it's neutral (no points)
-            }
-        }
-    }
-    
-    const blackScore = blackTerritory + blackCaptures;
-    const whiteScore = whiteTerritory + whiteCaptures;
-    const difference = blackScore - whiteScore;
+    let blackTerritory = finalScore.black;
+    let whiteTerritory = finalScore.white;
+    const difference = blackTerritory - whiteTerritory;
     
     return {
-        blackScore,
-        whiteScore,
-        difference, // Positive if black is winning, negative if white is winning
+        blackTerritory,
+        whiteTerritory,
+        difference, // Positive if black has more territory, negative if white
         winningColor: difference > 0 ? 'black' : difference < 0 ? 'white' : 'tie',
         scoreDifference: Math.abs(difference)
     };
@@ -2029,9 +2474,10 @@ function drawHardModeUI() {
     }
     
     // Single stone toggle button (left side, higher position to avoid clipping)
-    const stoneRadius = D * 0.4;
-    const stoneX = width * 0.25;
-    const stoneY = height - stoneRadius * 2.2; // Moved higher to avoid clipping
+    // Use board stone proportions: R is the board stone radius
+    const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
+    const stoneX = width * 0.2;
+    const stoneY = height - stoneRadius;
     
     // Calculate bounce scale for stone button
     const stoneScale = 1 + stoneButtonBounce * bounceStrength;
@@ -2041,46 +2487,52 @@ function drawHardModeUI() {
     translate(stoneX, stoneY);
     scale(stoneScale);
     
+    // Match board stone styling - use board's stroke weight and proportions
+    const buttonStrokeWeight = halfStrokeWeight * 2;
+    
     // In dev mode, show correct color with special stroke
-    let strokeColor, strokeWeight_val = 3;
+    let hasCorrectColorHighlight = false;
     if (IS_DEV_MODE && window.currentTerritoryScore) {
         const isCorrectColor = (selectedColorValue === 1 && window.currentTerritoryScore.winningColor === 'black') ||
                               (selectedColorValue === -1 && window.currentTerritoryScore.winningColor === 'white');
         if (isCorrectColor) {
-            strokeColor = '#00FF00'; // Green stroke for correct color
-            strokeWeight_val = 5;
-        } else {
-            strokeColor = selectedColorValue === 1 ? 'white' : '#333333';
+            hasCorrectColorHighlight = true;
         }
-    } else {
-        strokeColor = selectedColorValue === 1 ? 'white' : '#333333';
     }
     
     if (selectedColorValue === 1) {
-        // Black stone
-        fill('#333333');
-        stroke(strokeColor);
-        strokeWeight(strokeWeight_val);
-        ellipse(0, 0, stoneRadius * 2);
-        fill('black');
-        noStroke();
-        ellipse(0, 0, stoneRadius * 1.6);
+        // Black stone - match board stone appearance
+        fill(0); // Pure black like board stones
+        if (hasCorrectColorHighlight) {
+            stroke('#00FF00'); // Green highlight for correct answer
+            strokeWeight(buttonStrokeWeight * 2);
+        } else {
+            stroke(0);
+            strokeWeight(buttonStrokeWeight);
+        }
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
     } else {
-        // White stone
-        fill('white');
-        stroke(strokeColor);
-        strokeWeight(strokeWeight_val);
-        ellipse(0, 0, stoneRadius * 2);
+        // White stone - match board stone appearance  
+        fill(255); // Pure white like board stones
+        if (hasCorrectColorHighlight) {
+            stroke('#00FF00'); // Green highlight for correct answer
+            strokeWeight(buttonStrokeWeight * 2);
+        } else {
+            stroke(0);
+            strokeWeight(buttonStrokeWeight);
+        }
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
     }
     pop();
     
     // Score difference buttons (arranged in a horizontal row)
     if (scoreChoices.length === 4) {
-        const buttonRadius = D * 0.25;
-        const totalWidth = width * 0.45; // Total width for all buttons
-        const startX = width * 0.5; // Start from center-right
+        // Use similar proportions to board stones for consistency
+        const buttonRadius = R * 1.2; // Slightly smaller than the stone button
+        const totalWidth = width * 0.5; // Total width for all 4 buttons
         const buttonY = stoneY; // Same height as stone button
-        const spacing = totalWidth / 3; // Space between 4 buttons
+        const spacing = totalWidth / 3; // Space between centers of 4 buttons
+        const startX = width * 0.65 - totalWidth / 2; // Center the group of buttons
         
         for (let i = 0; i < 4; i++) {
             const buttonX = startX + (i * spacing);
@@ -2089,48 +2541,63 @@ function drawHardModeUI() {
             // Calculate bounce scale for this button
             const buttonScale = 1 + scoreButtonBounces[i] * bounceStrength;
             
-            // Determine button color based on selected color and whether it's selected
-            let buttonColor, textColor;
-            
             // Check if this is the correct score in dev mode
             const isCorrectScore = IS_DEV_MODE && window.currentTerritoryScore && 
                                  score === window.currentTerritoryScore.scoreDifference;
             
-            if (isCorrectScore) {
-                // Golden color for correct answer in dev mode
-                buttonColor = '#FFD700';
-                textColor = 'black';
-            } else if (selectedColorValue === 1) {
-                // Black theme
-                buttonColor = selectedDifference === score ? '#FFD700' : '#333333';
-                textColor = selectedDifference === score ? 'black' : 'white';
-            } else {
-                // White theme
-                buttonColor = selectedDifference === score ? '#FFD700' : 'white';
-                textColor = selectedDifference === score ? 'black' : '#333333';
-            }
+            // Check if this button is currently selected
+            const isSelected = selectedDifference === score;
             
-            // Draw button with bounce animation
+            // Use board stone styling approach
             push();
             translate(buttonX, buttonY);
             scale(buttonScale);
-            fill(buttonColor);
-            stroke(selectedDifference === score ? '#FFD700' : '#999999');
-            strokeWeight(2);
-            ellipse(0, 0, buttonRadius * 2);
             
-            // Draw number
-            fill(textColor);
-            textAlign(CENTER, CENTER);
-            textSize(buttonRadius * 0.9);
+            // Determine colors based on stone color and selection/correctness
+            let fillColor, strokeColor, strokeWeight_val, textColor;
             
-            // In dev mode, make the correct score button bold
-            if (IS_DEV_MODE && window.currentTerritoryScore) {
-                const isCorrectScore = score === window.currentTerritoryScore.scoreDifference;
-                if (isCorrectScore) {
-                    textStyle(BOLD);
+            if (isCorrectScore) {
+                // Golden highlight for correct answer in dev mode
+                fillColor = '#FFD700';
+                strokeColor = '#FF8C00'; // Darker gold for border
+                strokeWeight_val = buttonStrokeWeight * 1.5;
+                textColor = '#000000';
+            } else if (isSelected) {
+                // Selected state - golden highlight
+                fillColor = '#FFD700';
+                strokeColor = '#FF8C00';
+                strokeWeight_val = buttonStrokeWeight * 1.5;
+                textColor = '#000000';
+            } else {
+                // Match the current stone color theme
+                if (selectedColorValue === 1) {
+                    // Black stone theme - use consistent black
+                    fillColor = 0; // Pure black like board stones
+                    strokeColor = 0;
+                    textColor = 255; // White text
+                } else {
+                    // White stone theme - light buttons
+                    fillColor = '#F0F0F0'; // Light gray, not pure white for subtle depth
+                    strokeColor = '#000000';
+                    textColor = '#000000';
                 }
+                strokeWeight_val = buttonStrokeWeight;
             }
+            
+            // Draw button circle with board stone styling
+            fill(fillColor);
+            stroke(strokeColor);
+            strokeWeight(strokeWeight_val);
+            circle(0, 0, buttonRadius - strokeWeight_val/2);
+            
+            // Draw number with proper styling
+            fill(textColor);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(buttonRadius * 0.6); // Proportional to button size
+            
+            // Make all numbers bold
+            textStyle(BOLD);
             
             text(score.toString(), 0, 0);
             textStyle(NORMAL); // Reset style
@@ -2153,14 +2620,17 @@ function loadMultiplayerBoard(boardIndex) {
     }
     
     const boardNumber = gameState.boardSequence[boardIndex];
-    const textBoard = boards[boardNumber].split('\n').map(row => row.split(' '));
+    // Parse board string representation (x=black, o=white, .=empty)
+    const currentBoards = getCurrentBoards();
+    const boardLines = currentBoards[boardNumber].split('\n').map(row => row.trim()).filter(row => row !== '');
+    const textBoard = boardLines.map(row => row.split(''));
     
     board = {width: textBoard[0].length, height: textBoard.length};
 
-    let flipX = random() < 0.5;
-    let flipY = random() < 0.5;
-    let transpose = (board.width == board.height) && (random() < 0.5);
-    let invert = random() < 0.5;
+    let flipX = Math.random() < 0.5;
+    let flipY = Math.random() < 0.5;
+    let transpose = (board.width == board.height) && (Math.random() < 0.5);
+    let invert = Math.random() < 0.5;
     correct = invert ? "white" : "black";
     
     // Show correct answer in dev mode console
@@ -2174,37 +2644,127 @@ function loadMultiplayerBoard(boardIndex) {
             let a = flipX ? board.width - 1 - x : x;
             let b = flipY ? board.height - 1 - y : y;
             if (transpose) [a, b] = [b, a];
-            board[x][y] = {'O':1,'X':-1,'.':0}[textBoard[b][a]] * (-1)**invert;
+            board[x][y] = {'o':1,'x':-1,'.':0}[textBoard[b][a]] * (-1)**invert;
         }
     }
+    
+    // Do the same procedure for the deadstones
+    const currentDeadStones = getCurrentDeadStones();
+    deadstones = convertDeadStoneStringToObject(currentDeadStones[boardNumber], flipX, flipY, transpose);
     
     // Calculate territory score for hard mode
     let territoryScore = null;
     if (gameState.settings && gameState.settings.hardMode) {
-        territoryScore = calculateTerritoryScore(board);
+        // Use the processed board that matches what the player sees, and pass the board number for dead stones
+        territoryScore = calculateTerritoryScore(board, deadstones);
+        
+        // Apply color inversion to the scoring result to match the displayed board
+        if (invert) {
+            const originalWinner = territoryScore.winningColor;
+            territoryScore.winningColor = originalWinner === 'black' ? 'white' : 
+                                        originalWinner === 'white' ? 'black' : 'tie';
+            territoryScore.difference = -territoryScore.difference;
+        }
         
         // Show detailed scoring in dev mode
         if (IS_DEV_MODE) {
-            console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackScore}, White: ${territoryScore.whiteScore}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
+            console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackTerritory}, White: ${territoryScore.whiteTerritory}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
         }
         
         // Store the territory info for answer validation
         window.currentTerritoryScore = territoryScore;
         
-        // Generate score choice buttons (correct answer ±1 for 4 total)
+        // Generate score choice buttons with varied wrong choices (no duplicates)
         const correctDifference = territoryScore.scoreDifference;
-        scoreChoices = [];
+        const uniqueChoices = new Set();
         
-        // Generate 4 choices around the correct answer
-        for (let i = -1; i <= 2; i++) {
-            const choice = Math.max(0, correctDifference + i); // Don't allow negative scores
-            scoreChoices.push(choice);
+        // Add the correct answer first
+        uniqueChoices.add(correctDifference);
+        
+        // Generate wrong choices within max difference of 3
+        const maxDifference = 3;
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        // Random distribution strategy
+        const distributionType = Math.random();
+        let forcedDirection = null;
+        
+        if (distributionType < 0.33) {
+            forcedDirection = 'smaller'; // Only generate smaller numbers
+        } else if (distributionType < 0.66) {
+            forcedDirection = 'bigger'; // Only generate bigger numbers  
+        }
+        // Otherwise forcedDirection stays null for even distribution
+        
+        while (uniqueChoices.size < 4 && attempts < maxAttempts) {
+            attempts++;
+            
+            // Generate random offset within allowed range
+            const offset = Math.floor(Math.random() * maxDifference) + 1; // 1, 2, or 3
+            
+            let choice;
+            let useNegativeOffset;
+            
+            if (forcedDirection === 'smaller') {
+                useNegativeOffset = true;
+            } else if (forcedDirection === 'bigger') {
+                useNegativeOffset = false;
+            } else {
+                useNegativeOffset = Math.random() < 0.5; // Even distribution
+            }
+            
+            if (useNegativeOffset) {
+                choice = Math.max(1, correctDifference - offset); // Prevent zero as wrong answer
+            } else {
+                choice = correctDifference + offset;
+            }
+            
+            // Don't add zero as a wrong answer (only allow if it's the correct answer)
+            if (choice === 0 && correctDifference !== 0) {
+                continue;
+            }
+            
+            uniqueChoices.add(choice);
         }
         
-        // Shuffle choices so correct answer isn't always in the same position
-        for (let i = scoreChoices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [scoreChoices[i], scoreChoices[j]] = [scoreChoices[j], scoreChoices[i]];
+        // Convert Set to array and sort in increasing order
+        scoreChoices = Array.from(uniqueChoices).sort((a, b) => a - b);
+        
+        // Ensure we have exactly 4 choices (fallback protection)
+        if (scoreChoices.length < 4) {
+            console.warn(`Only generated ${scoreChoices.length} unique score choices, adding fallbacks`);
+            while (scoreChoices.length < 4) {
+                // Add fallback choices that are still close to the correct answer
+                const currentChoices = [...scoreChoices];
+                let fallbackChoice = null;
+                
+                // Try to add choices within max difference range
+                for (let offset = 1; offset <= maxDifference; offset++) {
+                    // Try positive offset first
+                    const posChoice = correctDifference + offset;
+                    if (!currentChoices.includes(posChoice)) {
+                        fallbackChoice = posChoice;
+                        break;
+                    }
+                    
+                    // Try negative offset (ensuring minimum of 1)
+                    const negChoice = Math.max(1, correctDifference - offset);
+                    if (!currentChoices.includes(negChoice) && !(negChoice === 0 && correctDifference !== 0)) {
+                        fallbackChoice = negChoice;
+                        break;
+                    }
+                }
+                
+                // If still no fallback found, extend beyond max difference but keep reasonable
+                if (fallbackChoice === null) {
+                    const maxChoice = Math.max(...currentChoices);
+                    fallbackChoice = maxChoice + 1;
+                }
+                
+                scoreChoices.push(fallbackChoice);
+            }
+            scoreChoices.sort((a, b) => a - b);
         }
         
         // Reset hard mode selections and animations
@@ -2247,7 +2807,7 @@ function updateLeaderboard() {
     const winnersCount = sortedPlayers.filter(p => p.score === highestScore).length;
     
     leaderboardContent.innerHTML = sortedPlayers.map((player, index) => {
-        const statusEmoji = player.finished ? '<span class="emoji">✅</span>' : '<span class="emoji">🎮</span>';
+        const statusEmoji = player.finished ? '<span class="emoji">✅</span>' : '<span class="emoji" title="Playing">🎮</span>';
         
         // Add trophy for single winner, medal for tied winners
         let winnerEmoji = '';
@@ -2259,7 +2819,13 @@ function updateLeaderboard() {
             }
         }
         
-        return `${index + 1}. ${winnerEmoji}${player.name}: ${player.score} ${statusEmoji}`;
+        // Add dev mode indicator with tooltip
+        let devModeEmoji = '';
+        if (player.isDevMode) {
+            devModeEmoji = ' <span title="Playing in development mode">🔧</span>';
+        }
+        
+        return `${index + 1}. ${winnerEmoji}${player.name}: ${player.score} ${statusEmoji}${devModeEmoji}`;
     }).join('<br>');
     
     // Update host controls visibility
@@ -2645,7 +3211,7 @@ function draw() {
         fill(255, 255, 255, 200);
         noStroke();
         // Position above the timer graphic countdown
-        text(`Returning to lobby in ${Math.ceil(lobbyCountdown)} seconds...`, width/2, D + 12);
+        text(`Returning to lobby in ${Math.ceil(lobbyCountdown)}`, width/2, D + 12);
     }
 }
 
@@ -2834,17 +3400,51 @@ function handleClick() {
 }
 
 function keyPressed() {
+    // Cancel lobby return countdown if user presses any key
+    if (lobbyCountdownActive) {
+        console.log('⏰ User pressed key - canceling lobby return countdown');
+        lobbyCountdownActive = false;
+        lobbyCountdown = 0;
+        lobbyCountdownCancelled = true;
+        return;
+    }
+    
     if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode || failed) return;
     
     if (keyCode === LEFT_ARROW) submitMultiplayer('black');
     if (keyCode === RIGHT_ARROW) submitMultiplayer('white');
 }
 
+function mousePressed() {
+    // Cancel lobby return countdown if user clicks anywhere
+    if (lobbyCountdownActive) {
+        console.log('⏰ User clicked - canceling lobby return countdown');
+        lobbyCountdownActive = false;
+        lobbyCountdown = 0;
+        lobbyCountdownCancelled = true;
+        return false; // Only prevent default when canceling countdown
+    }
+    
+    // Don't prevent default behavior for normal interactions
+    // Return undefined to allow normal behavior
+}
+
 function mouseReleased() {
-    return false;
+    // Allow normal mouse release behavior
+    // Return undefined to allow default behavior
 }
 
 function touchEnded() {
+    // Cancel lobby return countdown if user touches anywhere
+    if (lobbyCountdownActive) {
+        console.log('⏰ User touched screen - canceling lobby return countdown');
+        lobbyCountdownActive = false;
+        lobbyCountdown = 0;
+        lobbyCountdownCancelled = true;
+    }
+    
     mouseX = -1;
     mouseY = -1;
 }
+
+// Functions are now automatically global in regular script mode

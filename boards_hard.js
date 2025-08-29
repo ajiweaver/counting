@@ -1,8 +1,8 @@
 
-boards=`
+boardsHard=`
 
-....xo...
-....xoo..
+...xoo...
+...xxoo..
 ..x.xxo..
 ...oxo...
 ..xxoo...
@@ -19,10 +19,10 @@ boards=`
 ...xooo..
 ..x.xxooo
 ....x.xxo
-.......xo
+......xoo
 
-.........
 .......xx
+.......xo
 x.xx..xxo
 ox..x.xoo
 ooxx.xo..
@@ -33,25 +33,25 @@ ooxx.xo..
 
 .o...oox.
 o....oxx.
-xoooooox.
-xxoxoxx..
-.xxxxox..
+ooooooox.
+oxoxoxx..
+xxxxxox..
 ..xxooxxx
 .xoxoxxoo
 .xoooooo.
 .xxo.....
 
 .xoo.....
-x.xoo....
-..xox.ooo
-..xxoooxo
-xxxooxoxo
-oxoxoxxxx
+x.xoo..oo
+..xox.oox
+..xxoooxx
+xxxooxox.
+oxoxoxxx.
 oooxx....
 xo.ox.x..
 x.oox....
 
-....xo...
+...xoo...
 ...xxoo.o
 ..x.xxo.o
 xx.xoxoox
@@ -64,20 +64,20 @@ oooxooxx.
 ....oxxo.
 .o...oxxx
 ..ooooox.
-oooxxoxxx
-xox..xoxo
-xxx.xxooo
-....xo...
+.ooxxoxxx
+oox..xoxo
+oxx.xxooo
+xx..xo...
 ..x.xo.o.
 ...xoo...
 
 .........
 .......x.
 ..x.xx..x
-....xoxxo
-xxxxxoooo
-xoooo.o.o
-oo...oxxo
+xx..xoxxo
+xoxxxoooo
+ooooo.o.o
+.....oxxo
 ....o.x.x
 .......o.
 
@@ -85,14 +85,14 @@ oo...oxxo
 oo...oxx.
 oxoo.oox.
 oxox..ox.
-xxxoooxxx
-..xxxxxox
+oxxoooxxx
+x.xxxxxox
 ....oxooo
 .x.xxo...
 ..xooo.o.
 
-..xoo....
-..xxo....
+...xxo...
+..xxoo...
 ..xoo.o..
 ...xox...
 .x.xooo..
@@ -102,27 +102,27 @@ x.o.xo.o.
 .oxxxxo..
 
 .oxx.....
-.ooxx....
+.ooxxx...
 ..oxo.xxx
 .xooxxxox
 oooxxooox
 xoxoxo.oo
-xxxoo.o..
+xxxoo.ox.
 ox.xo....
 o.xxo....
 
-...xxo...
+..xoo....
 ..xxo....
-..xoooo..
-.xooox...
-.xxxxoo..
-.....xo..
+..xoo....
+.xoxox...
+.x.xooo..
+....xxo..
 ..xx.xo..
 ....xo.o.
 ...xoo...
 
-.........
-......ooo
+......oxx
+.....ooox
 ..o.ooxxx
 ...ooxox.
 ..oxox...
@@ -132,34 +132,34 @@ oox.x....
 xxx......
 
 ....xoox.
-.x.x.xooo
-x.xxxxxo.
-oxxooxooo
-oxo..oxox
-ooo.ooxxx
-....ox...
-..o.ox.x.
+.....xooo
+..xxxxxo.
+.xxooxooo
+xxo..oxox
+xoo.ooxxx
+o...ox...
+.o..ox.x.
 ...oxx...
 
 .oxx...x.
-xoox....x
-xoxxxxxxo
-o.ooxoxoo
+.oox....x
+.oxxxxxxo
+.xooxoxoo
 ..oxoooo.
 oooxxoo..
 oxooxoxo.
-xxxxxxxo.
-.....xoo.
+oxxxxxxo.
+.x.x.xoo.
 
 .oxxx....
 ..oox.x..
 .o..ox...
 ...oox...
 ...ox....
-..oxx..x.
-.o.oxxx..
-...ooxoxx
-....oooox
+..oxx....
+.o.oxx...
+...oox.x.
+....oox..
 
 .oxxx....
 .oxoxx...
@@ -169,7 +169,7 @@ xxxxxxxo.
 .xxoxxo..
 ...oox.x.
 ..o.oxx..
-....oox..
+....ooox.
 
 ...xooo.x
 ...xxo.ox
@@ -178,42 +178,42 @@ xx.xoxoxo
 oxxxooxxx
 oxoooxxo.
 ooo.xox..
-....ooxx.
-.....oox.
+....oox.x
+....oxx..
 
 ..oox....
-.ooxx..xx
-.oxx.xxox
-.ox..oxox
-oooxxxooo
-oxooooo..
-xxxox....
+.ooxx....
+.oxx.xxxx
+oox..oxox
+xooxxxooo
+xxooooo..
+.xxox....
 ...xoo.o.
 .x.xxxo..
 
-....oox..
+...oxx...
 ....oxx..
-..o.oox..
+...ooox..
 ...xox...
 ..ooxx.x.
 ..ox.....
-..ox.x...
-.o.ox.x..
-...oox...
+..ox.....
+..oxx....
+..oox....
 
 ......ooo
 ....o.oxx
 .....oxx.
 ..o.oox..
 ...oxox..
-.oxoxxo..
+.oxoxx...
 ooox..x..
 oxx.xx...
 xx.......
 
 ....oox..
 .o...ox.x
-..ooox.xo
+..ooox.x.
 oo.xoxx..
 xoooxxoxx
 xxxxoxoox
@@ -221,8 +221,8 @@ xxxxoxoox
 oxxooxoo.
 .oxxxxxo.
 
-....xxox.
-.x...xo.o
+....xoox.
+.x..xxo.o
 x.xxxo.ox
 ox.oxoo..
 oxxxooxoo
@@ -231,23 +231,23 @@ ooooxoxxo
 xooxxoxx.
 .xooooox.
 
-oo....ooo
-xo.oxooxx
-xxooooxx.
-.xoxoxx..
+......ooo
+oo.oxooxx
+oxooooxx.
+xxoxoxx..
 ..xxxoxx.
 .xxoxox..
 ..xooooxx
-.xoo...oo
-.xxo.....
+.xoo..ooo
+.xxo..x..
 
 xx....xxo
 ox.x.xxoo
 ooxxxxoo.
-.oxoxoo..
+.oxoxoo.o
 ..oooxoo.
-.ooxoxo..
-.xoxxxxoo
+.ooxoxooo
+.xoxxxxox
 .oxx...xx
 .oox.....
 
@@ -257,34 +257,34 @@ ooxxxxoo.
 o.o.oooxx
 xo.oxxxx.
 xoxox....
-xooxxoo..
+xooxxo...
 xxxooxx..
 ..o.x....
 
 .........
-......x.x
-...x.xxxo
-x.x.xoxoo
-ox.xoooo.
+.........
+...x.xxxx
+x.x.xoxox
+ox.xooooo
 oxoxo....
 oxxooxx..
 oooxxoo..
 ..x.o....
 
 ...oxxxx.
-..o.ooox.
+....ooox.
 ...o.oxx.
 ....xoox.
 ..oooxxo.
-.ooxooxo.
-..oxooxx.
+..oxooxox
+.ooxooxx.
 ooxxxx...
 xxx......
 
 ...oxxxx.
-..o.ooox.
+....ooox.
 ...o.oxx.
-...oxooxo
+....xooxo
 ....oxxo.
 ..ooooxo.
 .ooxoxxx.
@@ -293,53 +293,53 @@ xxx......
 
 ...xoooo.
 ..x.xxxo.
-...x.xoo.
-...xoxxox
+.....xoo.
+....oxxox
 .x.xxoox.
 ..xoxxox.
 .xxoxooo.
-xxoooo...
-ooo......
+.xoooo...
+.xxo.....
 
 .........
 ..ooxxo..
 .ooxooo..
 ooxxxo.o.
 ox...xo..
-x.x.x.xo.
-.xox..xoo
-......xxo
-.......xx
-
+x.x.x.xoo
+.xo...xox
+......xxx
 .........
-.ooxxo...
+
+...o.....
+.oox.o...
 .oxoooo..
-ooxxxo.o.
-ox...xo..
+ooxxxo...
+ox...xoo.
 x.x.x.xo.
 .xox..xoo
-......xxo
+..o...xxo
 .......xx
 
 .........
 .xxo.....
 .xoxxxx..
 xxooox.x.
-oox..ox..
-..o.o.ox.
-.oxo..oxx
-......oox
-.......oo
+oo...ox..
+..o.o.oxx
+.ox...oxo
+......ooo
+.........
 
 ..oxx....
-..ooxx...
-..oxox...
+..ooxxx..
+..oxoxo..
 ....oox..
 ..o.oxx..
 .....ox..
-..oooox..
-.oxxoxx..
-.ooxxx...
+.oxooox..
+..oxoxx..
+..oxxx...
 
 ...ox....
 ..ooxx...
@@ -348,35 +348,35 @@ oox..ox..
 ..o.oxx..
 .....ox..
 ..oooox..
-.oxoxxx..
-.oxxx....
+...oxxx..
+..oxx....
 
 ..xoo....
 ..xxoo...
 ..xoxo...
 ....xxo..
 ..x.xoo..
-.....xo..
-..xxxxo..
+..x..xo..
+.xoxxxo..
 .xoxooo..
 .xooox...
 
 .........
 .....x...
-..x.xoxx.
-.x.xxooxx
-x.xoxooox
-oxxoo...o
+..x.x.xx.
+.x.xxoxxx
+x.xoxxoox
+oxxooo..o
 ooo..o.o.
 .........
 .........
 
 .........
 .xxo.o...
-.xo.oxoo.
-.o.ooxxoo
-o.oxoxxxo
-oooxx...x
+.xo.o.oo.
+.o.oooooo
+o.oxoxoxo
+oooxxxxxx
 xxx..x.x.
 .........
 .........
@@ -385,31 +385,31 @@ xxx..x.x.
 ......x.x
 .x.x...xo
 x.x.xxxoo
-ox.xoooo.
-ooxxxo...
-.ooxoxxo.
-...oo.o..
+oxxxoooo.
+ooxo.oxo.
+.ooooxxo.
+....oxo..
 .........
 
 ...ooox..
 ...oxx...
 .o.ox.x..
 .xooxx.x.
-oooxox...
-oxxxooxxx
-x.xoo.oox
-x.xxo.o.o
+oooxox..x
+oxxxooxxo
+x.xoo.ooo
+x.xxo....
 ..xoo....
 
-...xxxo..
-...xoo...
+...xxo...
+.x.xo.o..
 .x.xo.o..
 .oxxooxo.
 xxxoxo...
-xoooxxooo
-o.oxx.xxo
+ooooxxooo
+..oxx.xxo
 o.oox.x.x
-...ox....
+..oxx....
 
 ....ox...
 .o.oox.x.
@@ -417,9 +417,9 @@ o.oox.x.x
 oooxxoxxo
 oxooxoxoo
 xxoxxoo..
-.xxxoo.o.
-...xxoo..
-....xxxo.
+.xxxoo.ox
+...xxoo.o
+...xoo.o.
 
 ...xoo...
 .x.xxo.o.
@@ -429,46 +429,46 @@ xoxxoxoxx
 ooxooxx..
 .oooxx.x.
 ..xooxx..
-....ooox.
+.ooxxx.x.
 
 ..oox....
-.oox.x...
-o.ox.x...
+.oox.x.o.
+o.ox.x.x.
 xooxxoxx.
-xxxoooox.
-x.xo..oxx
-.xxo.o.ox
-xxoo..o.o
+xxxooooxx
+x.xo..oxo
+.xxo.o.oo
+xxoo..o..
 xoo......
 
 .xxxo....
-x.xo.oxo.
+x.xo.o.o.
 x.xo.ox..
 oxxooxoo.
-ooooxxxo.
-o.ox..xoo
-.oox.x.xo
-ooxx..x.x
+oooxxxxoo
+o.oox.xox
+.ooxxooxx
+ooxx.xx..
 oxx......
 
-.xo.oxxx.
+....oxxx.
 .ooooox.x
 ooxoxoxxo
 oxxxxxooo
-oox.xoo..
-ox..xxo..
-x.x..xo..
+x.x.xoo..
+....xxoo.
+.....xox.
 .x.xxxxo.
 ..xooooo.
 
-.ox.xooo.
+.x.xoooo.
 .xxxxxo.o
 xxoxoxoox
 xoooooxxx
 xxo.oxx..
-xo..oox..
-o.o..ox..
-...oooox.
+xoo.oox..
+o....ox..
+.o..ooox.
 ...oxxxx.
 
 .....oox.
@@ -478,33 +478,33 @@ xoxoooox.
 xoxxxoxxx
 xxxooxxox
 ...xooooo
-.x.xxo...
+.x.xxox..
 ...xoo.o.
 
 .....ox..
-oo..ooxx.
-xoo.oxx.x
-xoxoooox.
-xoxxxoxxx
-xxxooxxox
-..xoooooo
-.x.xxo...
+.o..ooxx.
+.oo.oxx.x
+.oxoooox.
+ooxxxoxxx
+oxxooxxox
+x.xoooooo
+.x.xxox..
 ...xoo.o.
 
 ....xoo..
-xx.xxxoo.
-oxx.xoo.o
-oxoxxxxo.
-oxoooxooo
-oooxxooxo
-..oxxxxxx
-.o.oox...
+.x.xxxoo.
+.xx.xoo.o
+.xoxxxxo.
+xxoooxooo
+xooxxooxo
+o.oxxxxxx
+.o.ooxo..
 ...oxx.x.
 
 ....xxo..
 ...xxo.o.
 .x.xoooo.
-.oxxxoxoo
+..xxxoxoo
 xxxooxxxo
 oxo..oxxx
 oo.oooox.
@@ -515,44 +515,44 @@ oo.oooox.
 ...ooxxx.
 .o.oxxox.
 .xoooxoxx
-oooxxooox
-xox..xooo
-xx.xxxxo.
-..x..xooo
+.ooxxooox
+oox..xooo
+ox.x.xxo.
+x.x.xxooo
 ....xoo..
 
 .........
 .........
 o.o..o...
-xo.oo.o.o
-xxooxooox
-.xxxxxoxx
+xo...oooo
+xxooooxox
+.xxxoxxxx
+...xxox..
+.......x.
+.........
+
+.........
+.......oo
+o.o..o.ox
+xooxo.oxx
+xxooxoox.
+.xxxxxox.
 .....oxx.
 .....x...
 .........
 
 .........
 .........
-o.o..o...
-xooxo.ooo
-xxooxooxo
-.xxxxxoxx
-.....oxx.
-.....x...
-.........
-
-.........
-.........
-x.x..x...
-ox.xx.xxx
+x.x..x.xx
+ox.xx.xxo
 ooxxoxxoo
 .oooooxo.
 .....xoo.
 .....o...
 .........
 
-....xoo..
-ox.xxxo..
+.xo.xoo..
+.x.xxxo..
 xxxxxo.o.
 xooxooo..
 o.oooxxo.
@@ -561,11 +561,11 @@ o.oooxxo.
 .oox..x.x
 .oxxx....
 
-....xoo..
-ox.xxxo..
-xxxxxo.o.
-xooxooo..
-o.oxoxxo.
+..o.xoo..
+xx.xxxo..
+oxxxxo.o.
+oooxooo..
+..oxoxxo.
 .o.ooxooo
 ..ooxxxxx
 .oox..x..
@@ -579,35 +579,35 @@ xooxxooo.
 xooxxoxoo
 o..oxoxxo
 .o.oxxx.x
-...oox.x.
+...oooxx.
 
 ......ox.
 .oxo.oox.
-oooxoox..
+oooxoox.x
 oxoxxxx..
-oxxooxxx.
-oxxooxoxx
+oxxooxxxx
+oxxooxoxo
 x..xoxooo
 .x.xooox.
 ...xxo.o.
 
 ...xoo...
 .x.xxo.o.
-...xooo..
-xxxxoxooo
-xoxoxxxox
-xoooooxxx
-o.xooox..
-.oo.oxx.x
+...xooo.o
+xxxxoxoox
+xoxoxxxxx
+xooooox..
+o.xoooxo.
+.oo.oxxx.
 ...oxx...
 
 .........
-oo.......
-xo.ooo...
-xooxoxoo.
-xxoxxxo..
-.xx...xo.
-......xoo
+.ox......
+.oxooo...
+oooxoxoo.
+oxoxxxo..
+xxxo..xo.
+...x..xoo
 .....x.xo
 .......xx
 
@@ -616,8 +616,8 @@ xx.......
 ox.xxx...
 oxxoxoxx.
 ooxooox..
-.oo...ox.
-......oxx
+.oox..ox.
+...o..oxx
 .....o.oo
 .........
 
@@ -628,17 +628,17 @@ ooxooox..
 .xxo..oxx
 .xo.o..ox
 xxo...o.o
-xoo....o.
+xoo......
 oo.......
 
 .........
 ....oo...
-...oxxooo
-..oox.xxo
-.oox..xoo
+...ooxooo
+.o.oxxxxo
+..ox..xoo
 .ox.x..xo
 oox...x.x
-oxx....x.
+oxx......
 xx.......
 
 xoooxxo..
@@ -647,18 +647,18 @@ xoo.oox.x
 xxoooxxxo
 .xxxoooxo
 ..xxxo.oo
-.xooo.o..
-.xxo.o...
+.xoooo...
+.xxo.....
 ..xxo....
 
 oxxxoo.x.
-ooxxxooox
+ooxxxooo.
 oxx.xxo.o
 ooxxxoooo
 .oooxxxox
 ..ooox.xx
-.oxxx.x..
-.oox.x...
+.oxxxx...
+.oox.....
 ..oox....
 
 ...oox...
@@ -669,29 +669,29 @@ ooxxxoooo
 ..ooxxxx.
 .o.ooox..
 ..oxxx.x.
-.oxx.....
+..oox....
 
 ..xoo....
 ...xo....
 ..xxoooo.
 ..x.xoxxo
 ...xxxxo.
-.xxxoooo.
-...xxxo..
-.xxooo.o.
-.xoo.....
+..xxoooo.
+.x.xxxo..
+..xooo.o.
+..xxo....
 
-oo.......
-xoo......
-xxo......
-xooo.....
-xxoxoooo.
-.xxxxxxoo
-.......xo
-......x.x
+.........
+.........
+oo..o....
+xooox....
+xxoxooooo
+.xxxxxxox
+.......xx
+......x..
 .........
 
-ox.......
+oox......
 oxx......
 oox..x...
 oxxx.....
@@ -702,8 +702,8 @@ ooxoxxxx.
 .........
 
 ...xxo...
-...xoo...
-....xo...
+...xooxo.
+....xoxo.
 .x.xxo.o.
 x...oxo.o
 oxxxxxoox
@@ -715,14 +715,14 @@ ooooooxxx
 ...xoo.o.
 ....xo...
 .x.xxo.o.
-x...oxo.o
-oxxxxxoox
-ooooooxxx
-.....ox.x
+....oxo.o
+xxxxxxoox
+xoooooxxx
+oo...ox.x
 .....oox.
 
-...ooox..
-...oxx.x.
+..oxx....
+..ooxx...
 ....ox...
 .o.oox.xx
 o...xoxxo
@@ -731,7 +731,7 @@ xxxxxxooo
 .....xo.o
 .....xxo.
 
-.oxx.....
+..oox....
 ..oxxx.x.
 .o.ooxxo.
 ....ooxo.
@@ -741,20 +741,20 @@ xxxxxxooo
 ..o.oxx..
 ...oxx...
 
-.xoo.....
-..xooo.o.
-.x.xxoox.
+oooo.....
+xoxooo.oo
+xxxxxoox.
 ....xxox.
 ....xoxx.
-....xooo.
-....xoxo.
+....xo.o.
+....xo.o.
 ..x.xo...
 ...xoo...
 
-.........
-.....xxxx
-...xxoxox
-.x.xooooo
+.......xx
+.....xxxo
+...xxoxoo
+.x.xoooo.
 ..xo.....
 ..xo.....
 .xxo..o..
@@ -764,37 +764,37 @@ ooo......
 .........
 .....oooo
 ...ooxoxo
-.o.oxxxxo
-..ox...xx
+.o.oxxxxx
 ..ox.....
-.oox..x..
-oox.x....
+..ox.....
+ooox..x..
+xox.x....
 xxx......
 
 .........
 .........
-oo..o.ooo
-xo....oxo
-xoooooxxx
-xxoxoxx..
-.xxxx..x.
+....o.ooo
+......oxo
+ooooooxxx
+oxoxoxx..
+xxxxx..x.
 .........
 .........
 
 .........
-x.x......
-ox..x.xxx
-ox....xox
-oxxxxxooo
+x.x....xx
+ox..x.xxo
+ox....xoo
+oxxxxxoo.
 ooxoxoo..
 .oooo..o.
 .........
 .........
 
 .........
-o.o......
-xo....ooo
-xo....oxo
+..o......
+......ooo
+oo....oxo
 xoooooxxo
 xxoxoxx.x
 .xxxx..x.
@@ -803,52 +803,52 @@ xxoxoxx.x
 
 .........
 .........
-..oo.o...
-oooxo.o.o
-oxxxxooox
-xxoxooxxx
+o.oo.o...
+xooxo.o.o
+xxxxxooox
+..oxooxxx
 ...xxx...
 ......x..
 .........
 
 ..oxxx...
 ..ooox...
-....ox...
-....ox...
+....ox.o.
+....ox.x.
 ..o.oox..
 ...oxx...
 ...ox.x..
-...oxx...
-...oox...
+.o.oxx...
+..oxx....
 
-..xoo....
-..xxoo...
+.xooo....
+.xxxoo...
 ....xo...
 ...xxo...
 ..x.xxo..
 ...xoo...
 ...xo.o..
 ...xoo...
-...xxo...
+...xxxo..
 
 ..oxxx.x.
-...ooxx..
-.ooooxoxx
+...ooxxxx
+.ooooxoxo
 o.oxxxoxo
 xooxoxooo
 xoxxooo..
-xxx.xxo..
-....xooo.
+xxx.xxoo.
+....xoo..
 ....xxo..
 
 ..xoo..o.
-.x.xooo..
-.xxxxoxoo
+.x.xooooo
+.xxxxoxox
 x.xoooxox
 oxxoxoxxx
 oxooxxx..
-ooo.oox..
-....oxxx.
+ooo.ooxx.
+..xooxx..
 ....oox..
 
 ....oox..
@@ -857,18 +857,18 @@ oo..ox...
 xoooxxxx.
 xxxxoox..
 ..xoo.oxx
-..xo.o.ox
-x.xxo.o.o
-..xoo....
+.xxo.ooox
+..xxo.oxx
+..xoo.oox
 
 ....xxo..
-..x.xo.o.
-xx.xxo...
-oxxxoooo.
+x.x.xo.o.
+ox.xxo..o
+oxxxoooox
 oooooxo..
 ..oxxxxoo
-..ox.x.xo
-o.oox.x.x
+.oox.x.xo
+..oox.x.x
 ..oxx....
 
 .........
@@ -876,54 +876,54 @@ o.oox.x.x
 oo.o...o.
 xoxooo...
 xooxoxooo
-xxxxxxxxx
-....xooo.
+xxxxxxxxo
+....xooxx
 ...x.xo..
 ....x....
 
 .........
 .........
 xx.x..xx.
-oxoxxx..x
-oxxoxoxxo
-ooooooooo
-....oxxx.
+oxoxxx...
+oxxoxoxxx
+oooooooox
+....oxxoo
 ...o.ox..
 ....o....
 
-...xxo...
-..x.xo.o.
+...xoo...
+..xxxo.o.
 .xxxoo...
 ..xo..ooo
 xxxoooxxo
 oxoxxxx.x
 ooooox.x.
-....oox..
-.o..oxx..
+..o.oox..
+....oxx..
 
-...ooox..
-..o.ox.x.
+.x.ooox..
+.oo.ox.x.
 ..ooxx...
 ..ox..xxx
 oooxxxoox
 xoxoooo.o
-xxxxxo.o.
-....xxo..
-.x..xoo..
+xxxxxo.oo
+..x.xxo.x
+....xoo..
 
 .........
 ....oo...
 ..o.oxoo.
-...oxxxoo
-ooooxxoox
-xoxox.xox
-xxxx.x.xx
-xoooxx.x.
+...oxxxo.
+ooooxxoo.
+xoxox.xoo
+xxxx.x.xo
+xoooxx.xx
 ..o.o....
 
-.........
-....xx...
-..x.xoxxx
+.......xx
+....xx.xo
+..x.xoxxo
 ...xoooxo
 xxxxooxxo
 oxoxo.oxo
@@ -931,18 +931,18 @@ oooo.o.oo
 oxxxoo.o.
 .x.xx....
 
-oooxx.ox.
-xxooxxx..
+..xxx.ox.
+.xooxxx..
 xoo.oxoxx
 xxoo.ooxo
 x.xo...oo
 .x.xo..o.
 .xxxo....
-...xxoo..
-...xoo...
+...xxooo.
+....xxxo.
 
-oxxoo.xo.
-ooxxooo..
+..ooo.xo.
+.oxxooo..
 oxx.xoxoo
 ooxx.xxox
 o.ox...xx
@@ -957,8 +957,8 @@ x.xoxox.x
 o.xoxo.ox
 .xxxxoooo
 xxoxxxxo.
-xoooxooo.
-o.ooxxxo.
+xoooxoooo
+o.ooxxxxx
 .o.ox.xo.
 
 .oox.xoo.
@@ -967,19 +967,19 @@ o.ox.xo.o
 x.oxox.xo
 .ooooxxxx
 ooxoooox.
-oxxxoxxx.
-x.xxooox.
+oxxxoxxxx
+x.xxooooo
 .xxoo.ox.
 
 ...oox...
 .oxox.x..
-..xox....
-oooooxx..
+.oxox....
+o.oooxx..
 xooox.xx.
-xoxxxxoxx
-xxxooxoox
-.xo.oo.oo
-.xoo.....
+xxxxxxoxx
+.xxooxoox
+xxo.oo.oo
+oooo.....
 
 ...xxo...
 .xoxo.o..
@@ -988,17 +988,17 @@ xxxxxoo..
 oxoxo.oo.
 oxooooxoo
 oooxxoxxo
-xox.xx.xx
-.oxx.....
+xoxxxx.xx
+.oox.....
 
 ..xoo....
 .x.xo.o..
 ...xo....
 xxxxxoo..
-oxoxo.ooo
-oxooooxox
-oooxxoxxx
-.ox.xx.x.
+oxoxo.oo.
+oxooooxoo
+oooxxoxxo
+.ox.xx.xx
 .oxx.....
 
 `.trim().split('\n\n')

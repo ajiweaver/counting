@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Board Editor - Count Battle</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Include p5.js for board rendering -->
+    <script src="p5.min.js"></script>
+    <!-- Load board data -->
+    <script src="boards.js"></script>
+    <script src="deadstones.js"></script>
+    <script src="boards_hard.js"></script>
+    <script src="deadstones_hard.js"></script>
+    <script type="module">
+        import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './goscorer.js';
+        // Make goscorer functions available globally
+        window.EMPTY = EMPTY;
+        window.BLACK = BLACK; 
+        window.WHITE = WHITE;
+        window.territoryScoring = territoryScoring;
+        window.finalTerritoryScore = finalTerritoryScore;
+    </script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .board-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .tools {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .export-section {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .status {
+            text-align: center;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        button.danger {
+            background: #f44336;
+        }
+        
+        button.danger:hover {
+            background: #d32f2f;
+        }
+        
+        button.secondary {
+            background: #666;
+        }
+        
+        button.secondary:hover {
+            background: #555;
+        }
+        
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #666;
+            border-radius: 3px;
+            background: #333;
+            color: white;
+            text-align: center;
+        }
+        
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .stone-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .stone-black {
+            background: #000;
+            border: 1px solid #666;
+        }
+        
+        .stone-white {
+            background: #fff;
+            border: 1px solid #666;
+        }
+        
+        .stone-empty {
+            background: none;
+            border: 1px solid #666;
+        }
+        
+        .stone-dead {
+            background: repeating-linear-gradient(
+                45deg,
+                #ff6b6b,
+                #ff6b6b 2px,
+                transparent 2px,
+                transparent 4px
+            );
+            border: 1px solid #ff6b6b;
+        }
+        
+        .modified {
+            color: #ff6b6b !important;
+            font-weight: bold;
+        }
+        
+        .localhost-warning {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 50px auto;
+            max-width: 600px;
+        }
+        
+        .help {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+        
+        .help h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="localhost-check">
+        <div class="localhost-warning">
+            <h2>⚠️ Board Editor - Development Mode Only</h2>
+            <p>This editor is only available when running on localhost for security reasons.</p>
+            <p>Redirecting to main game...</p>
+        </div>
+    </div>
+
+    <div id="editor-interface" style="display: none;">
+        <div class="header">
+            <h1>Board Editor - Count Battle</h1>
+            <p>Edit Go board positions visually</p>
+        </div>
+
+        <div class="controls">
+            <span>Board</span>
+            <input type="number" id="current-board" value="0" min="0"> 
+            <span id="board-total">of 0</span>
+            <button id="prev-board">&larr; Prev</button>
+            <button id="next-board">Next &rarr;</button>
+            <button id="jump-to" class="secondary">Jump To</button>
+            
+            <div style="margin-left: 20px;">
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="hard-mode-toggle">
+                    <span>Hard Mode</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div id="board-canvas"></div>
+        </div>
+        
+        <div class="score-display" id="score-display">
+            <div style="background: #333; padding: 10px; border-radius: 5px; margin: 10px 0; text-align: center;">
+                <div style="font-weight: bold; margin-bottom: 5px;">Territory Score</div>
+                <div id="score-content" style="font-size: 14px;">
+                    <span style="color: #888;">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tools">
+            <div class="tool-group">
+                <span>Current Tool:</span>
+                <button id="tool-black" class="active">
+                    <span class="stone-preview stone-black"></span>Black
+                </button>
+                <button id="tool-white">
+                    <span class="stone-preview stone-white"></span>White
+                </button>
+                <button id="tool-empty">
+                    <span class="stone-preview stone-empty"></span>Empty
+                </button>
+                <button id="tool-dead">
+                    <span class="stone-preview stone-dead"></span>Mark Dead
+                </button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="clear-board" class="danger">Clear Board</button>
+                <button id="undo" class="secondary">Undo</button>
+                <button id="redo" class="secondary">Redo</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="reset-board" class="danger">Reset This Board</button>
+                <button id="reset-all" class="danger">Reset All Changes</button>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <button id="export-boards">Export boards.js</button>
+            <button id="export-deadstones" class="secondary">Export deadstones.js</button>
+            <button id="export-both">Export Both Files</button>
+            <button id="copy-clipboard" class="secondary">Copy to Clipboard</button>
+        </div>
+
+        <div class="status" id="status">
+            Ready - No changes made
+        </div>
+
+        <div class="help">
+            <h3>Keyboard Shortcuts:</h3>
+            <p>
+                <strong>Navigation:</strong> ← → (prev/next board), ↑ ↓ (jump 10 boards)<br>
+                <strong>Tools:</strong> 1/B (black), 2/W (white), 0/Space (empty), 3/D (mark dead)<br>
+                <strong>Actions:</strong> Ctrl+Z (undo), Ctrl+Y (redo), Ctrl+S (export)<br>
+                <strong>Click:</strong> Left click to place/change stone, Right click to remove
+            </p>
+        </div>
+    </div>
+
+    <script src="board-editor.js"></script>
+</body>
+</html>
