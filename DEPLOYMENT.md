@@ -1,4 +1,4 @@
-# Count Battle! Deployment Guide
+# Counting Battle! Deployment Guide
 
 This project uses GitHub Actions for CI/CD with manual deployment triggers.
 

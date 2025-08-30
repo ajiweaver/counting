@@ -471,6 +471,44 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Update room settings (only room creator can update)
+  socket.on('update-room-settings', (data, callback) => {
+    try {
+      const roomId = playerRooms.get(socket.id);
+      const room = rooms.get(roomId);
+      
+      if (!room) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+      
+      const player = room.players.get(socket.id);
+      if (!player?.isCreator) {
+        callback({ success: false, error: 'Only room creator can update settings' });
+        return;
+      }
+      
+      // Update room settings
+      if (data && data.settings) {
+        console.log(`Room ${roomId}: Updating settings:`, data.settings);
+        room.updateSettings(data.settings);
+        
+        // Notify all players in room of updated settings
+        io.to(roomId).emit('room-settings-updated', {
+          settings: room.settings,
+          gameState: room.getGameState()
+        });
+        
+        callback({ success: true, settings: room.settings });
+      } else {
+        callback({ success: false, error: 'No settings provided' });
+      }
+    } catch (error) {
+      console.error('Error updating room settings:', error);
+      callback({ success: false, error: error.message });
+    }
+  });
+
   // Start game (only room creator can start)
   socket.on('start-game', (data, callback) => {
     try {
@@ -694,7 +732,7 @@ io.on('connection', (socket) => {
 // REST API endpoints
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Count Battle! Multiplayer Server', 
+    message: 'Counting Battle! Multiplayer Server',
     status: 'running',
     version: '1.0.0',
     endpoints: ['/health', '/rooms/:roomId', '/leaderboard'],

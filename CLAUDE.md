@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Count Battle is a sophisticated multiplayer web-based Go territory counting practice game. Players join rooms and compete to correctly identify which side (black or white) is winning on random Go board positions, with an optional hard mode requiring exact territory score differences. The game features real-time multiplayer synchronization, customizable timers, multiple game modes, and comprehensive scoring systems using the lightvector/goscorer library.
+Counting Battle is a sophisticated multiplayer web-based Go territory counting practice game. Players join rooms and compete to correctly identify which side (black or white) is winning on random Go board positions, with an optional hard mode requiring exact territory score differences. The game features real-time multiplayer synchronization, customizable timers, multiple game modes, and comprehensive scoring systems using the lightvector/goscorer library.
 
 ## Architecture Overview
 

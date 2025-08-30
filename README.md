@@ -1,4 +1,4 @@
-# Count Battle! 🏆
+# Counting Battle! 🏆
 
 A real-time multiplayer Go territory counting game where players compete to correctly identify which side controls more territory in various Go positions.
 
@@ -6,12 +6,12 @@ A real-time multiplayer Go territory counting game where players compete to corr
 
 ## 🎮 Game Overview
 
-Count Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) but adds multiplayer functionality with rooms, real-time competition, and persistent scoring across games.
+Counting Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) but adds multiplayer functionality with rooms, real-time competition, and persistent scoring across games.
 
 ### How to Play
-1. **Create or join a room** with friends using a 6-character room code
-2. **Set game parameters** (time per board: 1-600s, number of boards: 1-50)
-3. **Choose difficulty**: Normal mode (Black/White winner) or Hard mode (exact territory counting)
+1. **Set game parameters** (time per board: 1-600s, number of boards: 1-50)
+3. **Choose difficulty**: In normal mode you only have to choose which color wins, while hard mode 
+2. **Create a room** and invite friends with 6-character room code (you can get a link by clicking on the 🔗 button)
 4. **Compete in real-time** to correctly identify territory control
 5. **Track your progress** with persistent scoring and room history
 
@@ -46,7 +46,7 @@ Count Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) bu
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ajiweaver/counting
    cd counting
    ```
 
@@ -55,20 +55,25 @@ Count Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) bu
    npm run install-server
    ```
 
-3. **Start the server**
+3. Serve the files
    ```bash
-   npm run dev
+    # cd to repository's root
+    python3 -m http.server 8000
+    ```
+
+4. **Start the server**
+   ```bash
+   npm start
    ```
 
-4. **Open the game**
-   - Open `index.html` in your browser
-   - Or serve the files with a local server
+5. **Open the game**
+   At `localhost:8000`
 
 ### Environment Configuration
 
 The game auto-detects the environment:
-- **Local**: Uses `http://localhost:3000` for the server
-- **Production**: Uses `https://counting-production.up.railway.app`
+- **Local**: Uses `http://localhost:3000` for the server, `http://localhost:8000` for the client
+- **Production**: The client is deployed at `https://count.ajiweaver.com`
 
 ## 🎯 Game Mechanics
 
@@ -76,8 +81,9 @@ The game auto-detects the environment:
 - Each Go position shows equal stones for Black and White
 - No komi, no prisoners, no sekis
 - Area scoring and territory scoring give identical results
-- **Normal Mode**: Score = number of correct Black/White winner identifications
-- **Hard Mode**: Score = number of correct exact territory difference selections
+- **Normal Mode**: Just decide who won, black or white
+- **Hard Mode**: Choose the winning color by clicking on the first stone on the bottom of the screen
+and then choose by how much.
 
 ### Game Flow
 1. **Lobby Phase**: Players join and wait for game start
@@ -131,7 +137,7 @@ When running on localhost, additional features become available:
 // Mock data testing
 showMockData()          // Enable mock data for testing
 hideMockData()          // Disable mock data
-setTestRoomId("ABC123") // Test with specific room ID
+setRealBoardId(1)       // Test with board id
 
 // Data querying
 queryLeaderboard()      // View all leaderboard data

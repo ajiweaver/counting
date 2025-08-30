@@ -746,6 +746,12 @@ function initSocket() {
         startMultiplayerGame();
     });
     
+    socket.on('room-settings-updated', async (data) => {
+        console.log('🔄 Room settings updated from server:', data.settings);
+        updateGameState(data.gameState);
+        await updateUI();
+    });
+    
     socket.on('player-answered', (data) => {
         console.log(`${data.playerName} answered: ${data.answer} (${data.isCorrect ? 'Correct' : 'Wrong'})`);
         // Could show this in UI
@@ -858,6 +864,16 @@ function showMainMenu() {
     failed = false;
     started = false;
     gameState.phase = 'menu';
+    
+    // Re-enable hard mode checkbox for personal preference in main menu
+    const hardModeCheckbox = document.getElementById('hard-mode');
+    if (hardModeCheckbox) {
+        hardModeCheckbox.disabled = false;
+        // Restore personal hard mode setting from localStorage
+        const personalHardMode = loadFromStorage(STORAGE_KEYS.HARD_MODE, false);
+        hardModeCheckbox.checked = personalHardMode;
+        console.log('✓ Restored personal hard mode setting:', personalHardMode);
+    }
     
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
@@ -1798,6 +1814,14 @@ async function showRoomLobby() {
     gameState.phase = 'lobby';
     await updateUI();
     
+    // Auto-sync main menu settings to room if user is creator
+    if (gameState.isCreator) {
+        setTimeout(() => {
+            console.log('🔄 Auto-syncing main menu settings to room for creator');
+            syncMainMenuSettingsToRoom();
+        }, 500); // Allow UI to update first
+    }
+    
     // Ensure leaderboard history loads after DOM updates
     setTimeout(() => {
         console.log('🔄 Loading history in showRoomLobby - roomId:', gameState.roomId);
@@ -1805,22 +1829,52 @@ async function showRoomLobby() {
     }, 300); // Increased delay
 }
 
+function syncMainMenuSettingsToRoom() {
+    if (!gameState.isCreator) {
+        console.log('❌ Only room creator can update settings');
+        return;
+    }
+    
+    // Get values from main menu inputs
+    const timePerBoard = parseInt(document.getElementById('time-per-board').value) || 60;
+    const totalBoards = parseInt(document.getElementById('total-boards').value) || 10;
+    const hardMode = document.getElementById('hard-mode').checked;
+    
+    const settings = {
+        timePerBoard: timePerBoard,
+        totalBoards: totalBoards,
+        unlimited: false,
+        unlimitedTime: false,
+        progressiveDifficulty: true,
+        hardMode: hardMode
+    };
+    
+    console.log('🔄 Syncing main menu settings to room:', settings);
+    
+    socket.emit('update-room-settings', { settings: settings }, (response) => {
+        if (response.success) {
+            console.log('✅ Room settings updated successfully:', response.settings);
+        } else {
+            console.error('❌ Failed to update room settings:', response.error);
+            alert('Failed to update room settings: ' + response.error);
+        }
+    });
+}
+
 function startGame() {
     if (!gameState.isCreator) return;
     
-    // Use current settings from UI
+    // Use current room settings (hard mode is already set when room was created)
     const timePerBoard = unlimitedTimeMode ? -1 : currentTimePerBoard;
-    const hardModeCheckbox = document.getElementById('hard-mode');
-    const hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+    const hardMode = gameState.settings ? gameState.settings.hardMode : false;
     const settings = {
         timePerBoard: timePerBoard,
         totalBoards: currentTotalBoards,
         unlimited: false,
-        hardMode: hardMode // Include hard mode setting
+        hardMode: hardMode // Use room's hard mode setting
     };
     
-    console.log('🎯 Starting game with hard mode checkbox:', hardModeCheckbox ? 'found' : 'not found');
-    console.log('🎯 Starting game with hard mode value:', hardMode);
+    console.log('🎯 Starting game with room hard mode setting:', hardMode);
     console.log('🎯 Full settings object:', settings);
     
     socket.emit('start-game', { settings: settings }, (response) => {
@@ -2116,33 +2170,25 @@ function updateGameState(serverGameState) {
     }
     
     if (serverGameState.settings) {
-        // Preserve local hard mode setting if user has set it
-        const localHardMode = gameState.settings ? gameState.settings.hardMode : undefined;
         const hardModeCheckbox = document.getElementById('hard-mode');
-        const currentUIHardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
         
         console.log('🔄 Updating settings from server...');
-        console.log('- Current local hardMode:', localHardMode);
-        console.log('- Current UI hardMode:', currentUIHardMode);
         console.log('- Server hardMode:', serverGameState.settings.hardMode);
         
-        // Update settings from server
+        // Update settings from server (always use server settings for room parameters)
         gameState.settings = serverGameState.settings;
         
-        // Preserve user's local hard mode preference if they've set it
-        // Only use server's hardMode if we don't have a local preference or if it's a new room creation
-        if (localHardMode !== undefined && gameState.phase !== 'menu') {
-            // We're in a room and user had a local preference, keep it
-            gameState.settings.hardMode = currentUIHardMode;
-            console.log('✓ Preserved local hard mode setting:', currentUIHardMode);
-        } else if (serverGameState.settings.hardMode !== undefined) {
-            // New room or no local preference, use server setting
+        // Always use server's hard mode setting - this is a room parameter, not user preference
+        if (serverGameState.settings.hardMode !== undefined) {
             gameState.settings.hardMode = serverGameState.settings.hardMode;
             if (hardModeCheckbox) {
                 hardModeCheckbox.checked = serverGameState.settings.hardMode;
+                // Disable checkbox for non-creators since this is a room setting
+                hardModeCheckbox.disabled = !gameState.isCreator;
                 console.log('✓ Updated UI from server hard mode:', serverGameState.settings.hardMode);
+                console.log('✓ Hard mode checkbox', gameState.isCreator ? 'enabled (creator)' : 'disabled (non-creator)');
             }
-            // Also update localStorage to keep it in sync
+            // Update localStorage to keep it in sync
             saveToStorage(STORAGE_KEYS.HARD_MODE, serverGameState.settings.hardMode);
             console.log('✓ Synced hard mode to localStorage:', serverGameState.settings.hardMode);
         }
@@ -2179,6 +2225,46 @@ async function updateUI() {
         if (gameState.roomId) {
             document.getElementById('room-id').textContent = gameState.roomId;
         }
+        
+        // Update room settings display
+        const roomSettingsEl = document.getElementById('room-settings-content');
+        if (roomSettingsEl) {
+            if (gameState.settings) {
+                const settings = gameState.settings;
+                const timeDisplay = settings.timePerBoard === -1 ? '∞' : `${settings.timePerBoard}s`;
+                const boardsDisplay = settings.totalBoards === -1 ? '∞' : settings.totalBoards;
+                const modeDisplay = settings.hardMode ? 'Hard Mode' : 'Normal Mode';
+                const modeColor = settings.hardMode ? '#FF6B6B' : '#4CAF50';
+                
+                roomSettingsEl.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+                        <div style="padding: 8px; background: #555; border-radius: 4px;">
+                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 16px;">${timeDisplay}</div>
+                        </div>
+                        <div style="padding: 8px; background: #555; border-radius: 4px;">
+                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 16px;">${boardsDisplay}</div>
+                        </div>
+                        <div style="padding: 8px; background: #555; border-radius: 4px;">
+                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
+                            <div style="color: ${modeColor}; font-weight: bold; font-size: 14px;">${modeDisplay}</div>
+                        </div>
+                    </div>
+                `;
+                console.log('✓ Room settings displayed:', { timeDisplay, boardsDisplay, modeDisplay });
+            } else {
+                roomSettingsEl.innerHTML = `
+                    <div style="text-align: center; color: #888; font-style: italic;">
+                        Loading room settings...
+                    </div>
+                `;
+                console.log('⏳ Waiting for room settings...');
+            }
+        } else {
+            console.log('❌ Room settings element not found');
+        }
+        
         
         // Update player list
         const playerListEl = document.getElementById('player-list');
@@ -2504,7 +2590,7 @@ function drawHardModeUI() {
     // Single stone toggle button (left side, higher position to avoid clipping)
     // Use board stone proportions: R is the board stone radius
     const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
-    const stoneX = width * 0.2;
+    const stoneX = width * 0.15;
     const stoneY = height - stoneRadius;
     
     // Calculate bounce scale for stone button
@@ -2560,7 +2646,7 @@ function drawHardModeUI() {
         const totalWidth = width * 0.5; // Total width for all 4 buttons
         const buttonY = stoneY; // Same height as stone button
         const spacing = totalWidth / 3; // Space between centers of 4 buttons
-        const startX = width * 0.65 - totalWidth / 2; // Center the group of buttons
+        const startX = width * 0.60 - totalWidth / 2; // Center the group of buttons
         
         for (let i = 0; i < 4; i++) {
             const buttonX = startX + (i * spacing);
