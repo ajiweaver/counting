@@ -63,7 +63,7 @@ class GameRoom {
     this.startTime = null;
     this.settings = {
       timePerBoard: settings.timePerBoard !== undefined ? settings.timePerBoard : 15,
-      totalBoards: settings.totalBoards !== undefined ? settings.totalBoards : -1, // Default unlimited
+      totalBoards: settings.totalBoards !== undefined ? settings.totalBoards : 10, // Default 10 boards
       unlimited: settings.unlimited !== undefined ? settings.unlimited : true, // Default unlimited
       unlimitedTime: settings.unlimitedTime !== undefined ? settings.unlimitedTime : false, // Default timed
       progressiveDifficulty: settings.progressiveDifficulty || true,

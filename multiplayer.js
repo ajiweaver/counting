@@ -65,9 +65,20 @@ function enterSummaryMode() {
     console.log('🎯 Entering summary mode with', currentGameBoardResults.length, 'board results for game instance:', currentGameInstanceId);
     console.log('📋 Current game board results:', currentGameBoardResults.map(r => ({boardId: r.boardId, gameInstanceId: r.gameInstanceId, isCorrect: r.isCorrect})));
     
+    // Check if we're already in summary mode and reviewing a board
+    const wasAlreadyReviewingBoard = (gameState.phase === 'summary' && reviewingBoardIndex !== -1);
+    
     gameState.phase = 'summary';
     viewingSummary = true;
-    reviewingBoardIndex = -1; // Show grid view
+    console.log('✅ Set viewingSummary to true');
+    
+    // Only reset to grid view if we weren't already reviewing a specific board
+    if (!wasAlreadyReviewingBoard) {
+        reviewingBoardIndex = -1; // Show grid view
+        console.log('📋 Set to grid view (reviewingBoardIndex = -1)');
+    } else {
+        console.log('🔍 Preserving board review state (reviewingBoardIndex =', reviewingBoardIndex, ')');
+    }
     timer = -1;
     summaryLogged = false; // Reset logging flag when entering summary mode
     cachedSummaryData = null; // Clear cached summary data
@@ -82,7 +93,10 @@ function enterSummaryMode() {
     document.body.style.paddingTop = '20px';
     
     // Show appropriate back button
-    updateSummaryButtons();
+    // Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+        updateSummaryButtons();
+    }, 10);
     
     // Hide leaderboard when entering summary mode
     hideLeaderboard();
@@ -152,10 +166,11 @@ function drawSummaryScreen() {
     
     clear();
     
-    // Always use current game summary styling (dark overlay background)
+    // Always use current game summary styling (dark overlay background with rounded corners)
     push();
     fill(0, 0, 0, 200); // Dark overlay with transparency
-    rect(0, 0, width, height);
+    const cornerRadius = 20; // Rounded corner radius
+    rect(0, 0, width, height, cornerRadius);
     pop();
     
     // Handle case where no board data is available
@@ -202,7 +217,7 @@ function drawSummaryScreen() {
         const row = Math.floor(i / boardsPerRow);
         const col = i % boardsPerRow;
         const x = gridStartX + col * (miniSize + gap);
-        const y = gridStartY + row * (miniSize + 80) + row * gap;
+        const y = gridStartY + row * (miniSize + 50) + row * gap;
         
         // Always use the current format mini board drawing
         drawMiniBoard(x, y, miniSize, i, boardResultsToShow[i]);
@@ -287,20 +302,10 @@ function drawMiniBoard(x, y, size, boardIndex, result) {
     // Board number
     text(`Board #${boardId}`, x + size/2, y + size + 15);
     
-    // Score information
-    textSize(10);
-    if (result.mode === 'hard') {
-        const winner = result.winningColor === 'black' ? 'B' : 'W';
-        text(`B:${result.blackScore} W:${result.whiteScore}`, x + size/2, y + size + 30);
-    } else {
-        const formattedCorrect = formatAnswerWithEmojis(result.correctAnswer);
-        text(`Correct: ${formattedCorrect}`, x + size/2, y + size + 30);
-    }
-    
     // Correctness indicator
     const statusText = result.isCorrect ? '✓ Correct' : '✗ Wrong';
     fill(result.isCorrect ? color(76, 175, 80) : color(244, 67, 54));
-    text(statusText, x + size/2, y + size + 45);
+    text(statusText, x + size/2, y + size + 30);
     
     pop();
 }
@@ -370,17 +375,36 @@ function drawBoardReview() {
             const correctFormatted = result.winningColor === 'black' ? `B+${Math.abs(result.difference)}` : `W+${Math.abs(result.difference)}`;
             const formattedCorrect = formatAnswerWithEmojis(correctFormatted);
             const formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
-            text(`Correct: ${formattedCorrect} | Your answer: ${formattedPlayer}`, width/2, D + 40);
-            text(`Territory - Black: ${result.blackScore}, White: ${result.whiteScore}`, width/2, D + 65);
+            text(`Answer: ${formattedCorrect}`, width/2, D + 30);
+            text(`Your answer: ${formattedPlayer}`, width/2, D + 55);
         } else {
             const formattedCorrect = formatAnswerWithEmojis(result.correctAnswer);
             const formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
-            text(`Correct Answer: ${formattedCorrect} | Your Answer: ${formattedPlayer}`, width/2, D + 40);
+            text(`Answer: ${formattedCorrect}`, width/2, D + 30);
+            text(`Your Answer: ${formattedPlayer}`, width/2, D + 55);
         }
         pop();
         
         // Draw board using exact same logic as normal gameplay
         drawGoBoard(board, D, 2*D + 70, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+        
+        // Display territory information below the board for hard mode only
+        if (result.blackScore !== undefined && result.whiteScore !== undefined) {
+            push();
+            fill(255); // White text
+            textAlign(CENTER, CENTER);
+            textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
+            textStyle(BOLD); // Same style as hard mode buttons
+            textFont('Arial');
+            const territoryY = 2*D + 70 + 8*D + R + 20; // Below the board with proportional margin (lowered more)
+            
+            // Break into 3 lines with proportional spacing: "Territory", "⚫ X", "⚪ Y"
+            const lineSpacing = R * 0.8; // Proportional line spacing
+            text('Territory', width/2, territoryY);
+            text(`⚫ ${result.blackScore}`, width/2, territoryY + lineSpacing);
+            text(`⚪ ${result.whiteScore}`, width/2, territoryY + lineSpacing * 2);
+            pop();
+        }
         
         // Restore original board state
         board = savedBoard;
@@ -435,14 +459,14 @@ function updateSummaryButtons() {
         return;
     }
     
-    // Show back button in summary mode - simplified logic to ensure visibility
-    if (gameState.phase === 'summary' || viewingSummary) {
+    // Always show appropriate back button when in summary phase, regardless of other conditions
+    if (gameState.phase === 'summary') {
         if (reviewingBoardIndex !== -1) {
-            // Viewing individual board - show "Back to Summary"
+            // Viewing individual board - ALWAYS show "Back to Summary"
             backToSummaryButton.style.display = 'block';
             backToLobbyButton.style.display = 'none';
         } else {
-            // Viewing summary grid - show "Back to Lobby"
+            // Viewing summary grid - ALWAYS show "Back to Lobby"
             backToSummaryButton.style.display = 'none';
             backToLobbyButton.style.display = 'block';
         }
@@ -1607,22 +1631,34 @@ function initSocket() {
         updateGameState(data.gameState);
         timer = -1;
         
-        // Set win/loss background color for all players (always override previous colors)
-        failed = true; // Mark as finished state
-        const winResult = didCurrentPlayerWin();
-        console.log('🎯 Final win calculation:', winResult);
+        // Check if player is currently reviewing an individual board
+        const isReviewingBoard = (gameState.phase === 'summary' && reviewingBoardIndex !== -1);
         
-        if (winResult.isWinner) {
-            if (winResult.isTie) {
-                document.bgColor = 'goldenrod'; // Gold for tie
-                console.log('🏆 Game finished - You tied for first place! Setting background to goldenrod');
+        if (!isReviewingBoard) {
+            // Only set background colors and show leaderboard for players not reviewing individual boards
+            failed = true; // Mark as finished state
+            const winResult = didCurrentPlayerWin();
+            console.log('🎯 Final win calculation:', winResult);
+            
+            if (winResult.isWinner) {
+                if (winResult.isTie) {
+                    document.bgColor = 'goldenrod'; // Gold for tie
+                    console.log('🏆 Game finished - You tied for first place! Setting background to goldenrod');
+                } else {
+                    document.bgColor = 'darkgoldenrod'; // Dark gold for clear win
+                    console.log('🏆 Game finished - You won! Setting background to darkgoldenrod');
+                }
             } else {
-                document.bgColor = 'darkgoldenrod'; // Dark gold for clear win
-                console.log('🏆 Game finished - You won! Setting background to darkgoldenrod');
+                document.bgColor = 'crimson'; // Red for loss
+                console.log('💥 Game finished - You lost. Setting background to crimson');
             }
+            
+            // Auto-show leaderboard after a longer delay to let players see the final board
+            setTimeout(() => {
+                showLeaderboard();
+            }, 1500);
         } else {
-            document.bgColor = 'crimson'; // Red for loss
-            console.log('💥 Game finished - You lost. Setting background to crimson');
+            console.log('🔍 Player is reviewing individual board - not changing background or showing leaderboard');
         }
         
         // Ensure all players are in summary mode (those who individually finished are already there)
@@ -1632,11 +1668,6 @@ function initSocket() {
         } else {
             console.log('🎯 Player already in summary mode - keeping current state');
         }
-        
-        // Auto-show leaderboard after a longer delay to let players see the final board
-        setTimeout(() => {
-            showLeaderboard();
-        }, 1500);
         
         updateLeaderboard();
     });
@@ -2558,6 +2589,9 @@ function createNewRoom(playerName, timePerBoard, creatorUUID) {
             saveToStorage(STORAGE_KEYS.ROOM_ID, response.roomId);
             console.log('Saved room ID to localStorage:', response.roomId);
             
+            // Update browser URL to match room join link
+            updateBrowserURL(response.roomId);
+            
             joinCreatedRoom();
         } else {
             alert('Failed to create room: ' + response.error);
@@ -2600,6 +2634,9 @@ function handleJoinRoomSuccess(response) {
     // Save room ID to localStorage
     saveToStorage(STORAGE_KEYS.ROOM_ID, response.gameState.roomId);
     console.log('Saved room ID to localStorage:', response.gameState.roomId);
+    
+    // Update browser URL to match room join link
+    updateBrowserURL(response.gameState.roomId);
     
     showRoomLobby();
 }
@@ -2679,7 +2716,9 @@ function updateRoomTimeFromInput() {
     }
     
     const newTime = parseInt(timeInput.value);
-    if (isNaN(newTime) || newTime < 5 || newTime > 600) {
+    console.log('⏰ Timer input changed to:', newTime, 'from', gameState.settings.timePerBoard);
+    
+    if (isNaN(newTime) || newTime < 1 || newTime > 600) {
         console.log('⚠️ Invalid time value, reverting to previous');
         timeInput.value = gameState.settings.timePerBoard;
         return;
@@ -2703,6 +2742,8 @@ function updateRoomBoardsFromInput() {
     }
     
     const newBoards = parseInt(boardsInput.value);
+    console.log('🎯 Boards input changed to:', newBoards, 'from', gameState.settings.totalBoards);
+    
     if (isNaN(newBoards) || newBoards < 1 || newBoards > 50) {
         console.log('⚠️ Invalid boards value, reverting to previous');
         boardsInput.value = gameState.settings.totalBoards;
@@ -2774,11 +2815,11 @@ function updateRoomSettingsDisplay() {
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER [s]</div>
-                        <input type="number" id="room-time-input" min="5" max="600" value="${settings.timePerBoard}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                        <input type="number" id="room-time-input" min="5" max="600" step="10" value="${settings.timePerBoard}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <input type="number" id="room-boards-input" min="1" max="50" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                        <input type="number" id="room-boards-input" min="0" max="50" step="5" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
@@ -2874,6 +2915,41 @@ function copyRoomLinkWithAnimation(element) {
     setTimeout(() => {
         element.classList.remove('animate-click');
     }, 120);
+}
+
+// Update browser URL to match room join link format
+function updateBrowserURL(roomId) {
+    if (!roomId) {
+        console.error('No room ID provided to update URL');
+        return;
+    }
+    
+    try {
+        // Create the room URL with the same format as the shareable link
+        const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+        
+        // Update the browser URL without reloading the page
+        window.history.pushState({roomId: roomId}, '', roomURL);
+        
+        console.log('Updated browser URL to:', roomURL);
+    } catch (error) {
+        console.error('Failed to update browser URL:', error);
+    }
+}
+
+// Reset browser URL to base URL (remove room parameter)
+function resetBrowserURL() {
+    try {
+        // Reset to base URL without room parameter
+        const baseURL = `${window.location.origin}${window.location.pathname}`;
+        
+        // Update the browser URL without reloading the page
+        window.history.pushState({}, '', baseURL);
+        
+        console.log('Reset browser URL to base:', baseURL);
+    } catch (error) {
+        console.error('Failed to reset browser URL:', error);
+    }
 }
 
 function fallbackCopyToClipboard(text) {
@@ -3036,6 +3112,9 @@ function returnToLobby() {
 }
 
 async function returnToLobbyUI() {
+    // Reset browser URL to base URL (remove room parameter)
+    resetBrowserURL();
+    
     // Clear the canvas and reset background
     if (typeof clear === 'function') {
         clear();
@@ -3448,9 +3527,7 @@ function startMultiplayerGame() {
     document.getElementById('leaderboard-toggle').style.display = 'none';
     
     
-    // Hide host controls initially (they'll show when all players finish)
-    const hostControls = document.getElementById('host-controls');
-    hostControls.classList.add('hidden');
+    // Host controls have been removed from leaderboard
     
     // Reset game variables
     score = 0;
@@ -4130,30 +4207,7 @@ function updateLeaderboard() {
         return `${index + 1}. ${winnerEmoji}${player.name}: ${player.score} ${statusEmoji}${devModeEmoji}`;
     }).join('<br>');
     
-    // Update host and non-host controls visibility
-    const hostControls = document.getElementById('host-controls');
-    const nonHostControls = document.getElementById('non-host-controls');
-    
-    console.log('Controls visibility check:', {
-        isCreator: gameState.isCreator,
-        allPlayersFinished: gameState.allPlayersFinished,
-        players: gameState.players.map(p => ({name: p.name, finished: p.finished}))
-    });
-    
-    if (gameState.allPlayersFinished) {
-        if (gameState.isCreator) {
-            console.log('Showing host controls');
-            hostControls.classList.remove('hidden');
-            nonHostControls.classList.add('hidden');
-        } else {
-            console.log('Showing non-host controls');
-            hostControls.classList.add('hidden');
-            nonHostControls.classList.remove('hidden');
-        }
-    } else {
-        hostControls.classList.add('hidden');
-        nonHostControls.classList.add('hidden');
-    }
+    // Host control buttons have been removed from leaderboard
 }
 
 function submitMultiplayer(guess) {
@@ -4397,30 +4451,41 @@ document.addEventListener('DOMContentLoaded', function() {
 function windowResized() {
     R = floor(min(window.innerWidth/10, window.innerHeight/12)/2)-1;
     D = 2 * R;
-    width = 10 * D;
     
-    // Calculate height based on game state
+    // Calculate dimensions based on game state
     if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
-        // In summary grid mode - calculate height needed for all boards
+        // In summary grid mode - calculate required height for all boards to enable scrolling
+        width = Math.min(window.innerWidth * 0.95, 1000); // Max 95% of viewport width, cap at 1000px
+        
+        // Calculate actual height needed for all boards
         const boardResults = currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
         if (boardResults.length > 0) {
             const boardsPerRow = Math.min(4, Math.ceil(Math.sqrt(boardResults.length)));
             const rows = Math.ceil(boardResults.length / boardsPerRow);
             const miniSize = 120;
-            const gap = 10;
+            const gap = 20;
             
             // Calculate required height: title area + grid + margins
             const titleHeight = 120; // Space for title and text
-            const gridHeight = rows * (miniSize + 80 + gap); // Each row includes mini board + text + gap
+            const gridHeight = rows * (miniSize + 80) + (rows - 1) * gap; // Each row + gaps
             const bottomMargin = 100; // Space for back button and bottom margin
             
-            height = Math.max(window.innerHeight, titleHeight + gridHeight + bottomMargin);
+            const calculatedHeight = titleHeight + gridHeight + bottomMargin;
+            const minHeight = Math.max(window.innerHeight * 0.6, 400); // Minimum height
+            
+            height = Math.max(calculatedHeight, minHeight);
         } else {
-            height = 12 * D; // Default height
+            height = Math.max(window.innerHeight * 0.6, 400); // Default minimum height
         }
     } else {
-        // Default height for gameplay and individual board review
+        // Default dimensions for gameplay and individual board review
+        width = 10 * D;
         height = 12 * D;
+        
+        // Add extra height for territory information in detailed summary view
+        if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex !== -1) {
+            height += 3 * R; // Add proportional space for territory information (scales with window size)
+        }
     }
     
     halfStrokeWeight = ceil(D/70);
@@ -4453,7 +4518,7 @@ function windowResized() {
 function draw() {
     // Handle different game phases
     if (gameState.phase === 'summary') {
-        // Ensure back buttons are visible in summary mode
+        // Always ensure back buttons are visible in summary mode
         updateSummaryButtons();
         
         if (reviewingBoardIndex >= 0) {
