@@ -6,14 +6,23 @@ A real-time multiplayer Go territory counting game where players compete to corr
 
 ## 🎮 Game Overview
 
-Counting Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) but adds multiplayer functionality with rooms, real-time competition, and persistent scoring across games.
+Counting Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/) but adds multiplayer functionality with rooms, a real-time leaderboard,
+room history, and a hard mode where you can train exact counting.
 
 ### How to Play
-1. **Set game parameters** (time per board: 1-600s, number of boards: 1-50)
-3. **Choose difficulty**: In normal mode you only have to choose which color wins, while hard mode 
-2. **Create a room** and invite friends with 6-character room code (you can get a link by clicking on the 🔗 button)
-4. **Compete in real-time** to correctly identify territory control
-5. **Track your progress** with persistent scoring and room history
+1. **Create a room**
+1. **Set game options** inside the room, only the host can change these settings.
+2. **Choose difficulty**: In normal mode you only have to choose which color wins, while hard mode 
+3. **Invite friends** with the 6-character room code, you can get a direct link by clicking on the 🔗 button.
+4. **Play!** 
+
+*Notes:*
+- If your timer runs out, you lose.
+- If you answer correctly all boards before anybody else, you win.
+- 1 correct answer is 1 point
+- Every time you make a mistake, you will be forced to wait for 1 second.
+- If you resign, the game will continue while there's at least 1 more player playing.
+- If you open the "Leaderboard" dialog while playing, you can see everyone's scores changing in real time.
 
 ## 🚀 Features
 
@@ -31,7 +40,7 @@ Counting Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/)
 ## 🛠️ Technical Stack
 
 - **Frontend**: Vanilla JavaScript, p5.js for game rendering
-- **Territory Scoring**: lightvector/goscorer library for accurate Go scoring
+- **Territory Scoring**: lightvector/goscorer library for accurate scoring
 - **Backend**: Node.js, Express, Socket.IO
 - **Deployment**: Railway (server), Netlify (client)
 - **Real-time Communication**: WebSocket connections via Socket.IO
@@ -68,6 +77,7 @@ Counting Battle! is based on [Anton Tobi's Count!](https://count.antontobi.com/)
 
 5. **Open the game**
    At `localhost:8000`
+
 
 ### Environment Configuration
 
@@ -172,7 +182,6 @@ MIT License - see [LICENSE.md](LICENSE.md) for details.
 ## 🙏 Acknowledgments
 
 - Original concept by [Anton Tobi](https://count.antontobi.com/)
-- Go board positions manually curated for balanced gameplay
 - Built with love for the Go/Weiqi/Baduk community
 
 ---

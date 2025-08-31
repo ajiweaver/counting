@@ -89,6 +89,15 @@ class GameRoom {
     if (newSettings.unlimited !== undefined) {
       this.settings.unlimited = newSettings.unlimited;
     }
+    if (newSettings.unlimitedTime !== undefined) {
+      this.settings.unlimitedTime = newSettings.unlimitedTime;
+    }
+    if (newSettings.progressiveDifficulty !== undefined) {
+      this.settings.progressiveDifficulty = newSettings.progressiveDifficulty;
+    }
+    if (newSettings.hardMode !== undefined) {
+      this.settings.hardMode = newSettings.hardMode;
+    }
     
     console.log(`Room ${this.roomId}: Settings updated:`, this.settings);
   }
@@ -99,6 +108,17 @@ class GameRoom {
     }
     
     const actualName = playerName || `Player ${this.players.size + 1}`;
+    
+    // Check if player with same UUID already exists and remove them (handles reconnection)
+    if (playerUUID) {
+      for (let [existingId, existingPlayer] of this.players.entries()) {
+        if (existingPlayer.uuid === playerUUID) {
+          console.log(`Room ${this.roomId}: Removing duplicate player ${existingPlayer.name} (${existingId}) before adding ${actualName} (${playerId})`);
+          this.players.delete(existingId);
+          break;
+        }
+      }
+    }
     
     // First player with UUID becomes the creator
     if (this.players.size === 0 && !this.creatorUUID && playerUUID) {
@@ -447,17 +467,25 @@ io.on('connection', (socket) => {
   socket.on('join-room', (data, callback) => {
     try {
       const { roomId, playerName, playerUUID, isDevMode } = data;
+      console.log(`🔵 JOIN-ROOM request: ${socket.id} trying to join ${roomId} as "${playerName}" (UUID: ${playerUUID})`);
+      
       const room = rooms.get(roomId);
       
       if (!room) {
+        console.log(`❌ Room ${roomId} not found for player ${socket.id}`);
         callback({ success: false, error: 'Room not found' });
         return;
       }
+      
+      console.log(`📋 Room ${roomId} current players before add: ${Array.from(room.players.values()).map(p => `${p.name}(${p.id})`).join(', ')}`);
       
       const player = room.addPlayer(socket.id, playerName, playerUUID, isDevMode);
       playerRooms.set(socket.id, roomId);
       
       socket.join(roomId);
+      
+      console.log(`✅ Player ${playerName} (${socket.id}) successfully joined room ${roomId}`);
+      console.log(`📋 Room ${roomId} players after add: ${Array.from(room.players.values()).map(p => `${p.name}(${p.id})`).join(', ')}`);
       
       // Notify all players in room
       io.to(roomId).emit('player-joined', {
@@ -467,6 +495,7 @@ io.on('connection', (socket) => {
       
       callback({ success: true, player, gameState: room.getGameState() });
     } catch (error) {
+      console.error(`❌ Error in join-room for ${socket.id}:`, error);
       callback({ success: false, error: error.message });
     }
   });

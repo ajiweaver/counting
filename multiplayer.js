@@ -370,9 +370,8 @@ if (IS_DEV_MODE) {
             gameState.settings = {};
         }
         
-        // Check current hard mode setting from UI or use default
-        const hardModeCheckbox = document.getElementById('hard-mode');
-        gameState.settings.hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+        // Use default hard mode setting for test
+        gameState.settings.hardMode = false;
         
         console.log(`🎮 Testing in ${gameState.settings.hardMode ? 'HARD' : 'NORMAL'} mode`);
         
@@ -452,9 +451,8 @@ if (IS_DEV_MODE) {
             gameState.settings = {};
         }
         
-        // Check current hard mode setting from UI or use default
-        const hardModeCheckbox = document.getElementById('hard-mode');
-        gameState.settings.hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
+        // Use default hard mode setting for test
+        gameState.settings.hardMode = false;
         
         console.log(`🎮 Testing in ${gameState.settings.hardMode ? 'HARD' : 'NORMAL'} mode`);
         
@@ -722,12 +720,21 @@ function initSocket() {
     // Game events
     socket.on('player-joined', async (data) => {
         updateGameState(data.gameState);
-        await updateUI();
+        
+        const joinedPlayer = data.player;
+        const isCurrentPlayer = joinedPlayer && joinedPlayer.id === gameState.playerId;
+        
+        // Only update UI for other players joining, not when current player joins
+        // (current player's UI is updated via join-room response callback)
+        if (!isCurrentPlayer) {
+            console.log(`🔄 Another player joined: ${joinedPlayer?.name}, updating player list`);
+            await updatePlayerListAndStatus();
+        } else {
+            console.log(`🔄 Current player joined event received, skipping UI update to prevent duplicates`);
+        }
         
         // Only reload leaderboard history when the current user joins (not when others join)
-        const joinedPlayer = data.player;
-        if (gameState.phase === 'lobby' && gameState.roomId && 
-            joinedPlayer && joinedPlayer.id === gameState.playerId) {
+        if (isCurrentPlayer && gameState.phase === 'lobby' && gameState.roomId) {
             // Don't load if showRoomLobby will be called soon (which loads it anyway)
             setTimeout(() => {
                 console.log('🔄 Loading history after current user joined (if not loaded recently) - roomId:', gameState.roomId);
@@ -738,7 +745,9 @@ function initSocket() {
     
     socket.on('player-left', async (data) => {
         updateGameState(data.gameState);
-        await updateUI();
+        
+        // Use targeted update instead of full UI redraw
+        await updatePlayerListAndStatus();
     });
     
     socket.on('game-started', (data) => {
@@ -749,7 +758,18 @@ function initSocket() {
     socket.on('room-settings-updated', async (data) => {
         console.log('🔄 Room settings updated from server:', data.settings);
         updateGameState(data.gameState);
-        await updateUI();
+        
+        // Sync local game variables with room settings
+        if (data.gameState.settings) {
+            currentTimePerBoard = data.gameState.settings.timePerBoard;
+            currentTotalBoards = data.gameState.settings.totalBoards;
+            console.log('🔄 Synced local variables with room settings:', {
+                currentTimePerBoard,
+                currentTotalBoards
+            });
+        }
+        
+        updateRoomSettingsDisplay();
     });
     
     socket.on('player-answered', (data) => {
@@ -864,16 +884,6 @@ function showMainMenu() {
     failed = false;
     started = false;
     gameState.phase = 'menu';
-    
-    // Re-enable hard mode checkbox for personal preference in main menu
-    const hardModeCheckbox = document.getElementById('hard-mode');
-    if (hardModeCheckbox) {
-        hardModeCheckbox.disabled = false;
-        // Restore personal hard mode setting from localStorage
-        const personalHardMode = loadFromStorage(STORAGE_KEYS.HARD_MODE, false);
-        hardModeCheckbox.checked = personalHardMode;
-        console.log('✓ Restored personal hard mode setting:', personalHardMode);
-    }
     
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('join-room-panel').classList.add('hidden');
@@ -1231,25 +1241,14 @@ window.testAllTerritoryScores = function(maxBoards = 99) {
 
 // Debug function to check hard mode state consistency
 function debugHardModeState() {
-    const checkbox = document.getElementById('hard-mode');
-    const checkboxValue = checkbox ? checkbox.checked : 'NOT FOUND';
-    const localStorageValue = loadFromStorage(STORAGE_KEYS.HARD_MODE, false);
     const gameStateValue = gameState.settings ? gameState.settings.hardMode : 'NOT SET';
     
     console.log('=== HARD MODE STATE DEBUG ===');
-    console.log('Checkbox value:', checkboxValue);
-    console.log('localStorage value:', localStorageValue);
     console.log('gameState.settings.hardMode:', gameStateValue);
-    console.log('All in sync?', 
-        checkboxValue === localStorageValue && 
-        localStorageValue === gameStateValue);
     console.log('===============================');
     
     return {
-        checkbox: checkboxValue,
-        localStorage: localStorageValue,
-        gameState: gameStateValue,
-        inSync: checkboxValue === localStorageValue && localStorageValue === gameStateValue
+        gameState: gameStateValue
     };
 }
 
@@ -1576,6 +1575,16 @@ function tryReconnectToRoom(roomId) {
                     // Update game state first
                     updateGameState(joinResponse.gameState);
                     
+                    // Sync local game variables with room settings on auto-rejoin
+                    if (joinResponse.gameState.settings) {
+                        currentTimePerBoard = joinResponse.gameState.settings.timePerBoard;
+                        currentTotalBoards = joinResponse.gameState.settings.totalBoards;
+                        console.log('🔄 Synced local variables with room settings on auto-rejoin:', {
+                            currentTimePerBoard,
+                            currentTotalBoards
+                        });
+                    }
+                    
                     // IMPORTANT: Set isCreator flag from server response (after updateGameState)
                     gameState.isCreator = joinResponse.player.isCreator;
                     console.log('Final gameState - isCreator:', gameState.isCreator, 'phase:', gameState.phase);
@@ -1645,7 +1654,7 @@ function createRoom() {
         return;
     }
     
-    const timePerBoard = unlimitedTimeMode ? -1 : currentTimePerBoard;
+    const timePerBoard = 60; // Default 60 seconds per board
     
     gameState.playerName = playerName;
     
@@ -1677,6 +1686,16 @@ function createRoom() {
                     // Update game state first
                     updateGameState(joinResponse.gameState);
                     
+                    // Sync local game variables with room settings on creator auto-rejoin
+                    if (joinResponse.gameState.settings) {
+                        currentTimePerBoard = joinResponse.gameState.settings.timePerBoard;
+                        currentTotalBoards = joinResponse.gameState.settings.totalBoards;
+                        console.log('🔄 Synced local variables with room settings on creator auto-rejoin:', {
+                            currentTimePerBoard,
+                            currentTotalBoards
+                        });
+                    }
+                    
                     // Set isCreator flag from server response
                     gameState.isCreator = joinResponse.player.isCreator;
                     
@@ -1697,22 +1716,18 @@ function createRoom() {
 }
 
 function createNewRoom(playerName, timePerBoard, creatorUUID) {
-    // Get hard mode setting from UI
-    const hardModeCheckbox = document.getElementById('hard-mode');
-    const hardMode = hardModeCheckbox ? hardModeCheckbox.checked : false;
-    console.log('🎯 Creating room with hard mode checkbox:', hardModeCheckbox ? 'found' : 'not found');
-    console.log('🎯 Creating room with hard mode value:', hardMode);
+    console.log('🎯 Creating room with default settings');
     
-    // Use settings with configurable time and boards
+    // Use default settings - can be adjusted in room lobby
     socket.emit('create-room', {
         playerUUID: creatorUUID, // Include UUID for host persistence
         settings: {
-            timePerBoard: timePerBoard, // Configurable time per board or -1 for unlimited
-            totalBoards: currentTotalBoards, // Configurable number of boards
+            timePerBoard: timePerBoard, // Default 60 seconds per board
+            totalBoards: 10, // Default 10 boards
             unlimited: false, // Use limited boards mode
-            unlimitedTime: unlimitedTimeMode, // Unlimited time mode
+            unlimitedTime: false, // Use timed mode
             progressiveDifficulty: true,
-            hardMode: hardMode // Exact score counting mode
+            hardMode: false // Default normal mode
         }
     }, (response) => {
         if (response.success) {
@@ -1751,6 +1766,16 @@ function handleJoinRoomSuccess(response) {
     gameState.isCreator = response.player.isCreator;
     gameState.roomId = response.gameState.roomId;
     updateGameState(response.gameState);
+    
+    // Sync local game variables with room settings on join
+    if (response.gameState.settings) {
+        currentTimePerBoard = response.gameState.settings.timePerBoard;
+        currentTotalBoards = response.gameState.settings.totalBoards;
+        console.log('🔄 Synced local variables with room settings on join:', {
+            currentTimePerBoard,
+            currentTotalBoards
+        });
+    }
     
     // Save room ID to localStorage
     saveToStorage(STORAGE_KEYS.ROOM_ID, response.gameState.roomId);
@@ -1814,14 +1839,6 @@ async function showRoomLobby() {
     gameState.phase = 'lobby';
     await updateUI();
     
-    // Auto-sync main menu settings to room if user is creator
-    if (gameState.isCreator) {
-        setTimeout(() => {
-            console.log('🔄 Auto-syncing main menu settings to room for creator');
-            syncMainMenuSettingsToRoom();
-        }, 500); // Allow UI to update first
-    }
-    
     // Ensure leaderboard history loads after DOM updates
     setTimeout(() => {
         console.log('🔄 Loading history in showRoomLobby - roomId:', gameState.roomId);
@@ -1829,27 +1846,82 @@ async function showRoomLobby() {
     }, 300); // Increased delay
 }
 
-function syncMainMenuSettingsToRoom() {
+function updateRoomTimeFromInput() {
     if (!gameState.isCreator) {
         console.log('❌ Only room creator can update settings');
         return;
     }
     
-    // Get values from main menu inputs
-    const timePerBoard = parseInt(document.getElementById('time-per-board').value) || 60;
-    const totalBoards = parseInt(document.getElementById('total-boards').value) || 10;
-    const hardMode = document.getElementById('hard-mode').checked;
+    const timeInput = document.getElementById('room-time-input');
+    if (!timeInput) {
+        console.log('❌ Time input not found');
+        return;
+    }
     
+    const newTime = parseInt(timeInput.value);
+    if (isNaN(newTime) || newTime < 5 || newTime > 600) {
+        console.log('⚠️ Invalid time value, reverting to previous');
+        timeInput.value = gameState.settings.timePerBoard;
+        return;
+    }
+    
+    if (newTime !== gameState.settings.timePerBoard) {
+        updateRoomSettings({ timePerBoard: newTime });
+    }
+}
+
+function updateRoomBoardsFromInput() {
+    if (!gameState.isCreator) {
+        console.log('❌ Only room creator can update settings');
+        return;
+    }
+    
+    const boardsInput = document.getElementById('room-boards-input');
+    if (!boardsInput) {
+        console.log('❌ Boards input not found');
+        return;
+    }
+    
+    const newBoards = parseInt(boardsInput.value);
+    if (isNaN(newBoards) || newBoards < 1 || newBoards > 50) {
+        console.log('⚠️ Invalid boards value, reverting to previous');
+        boardsInput.value = gameState.settings.totalBoards;
+        return;
+    }
+    
+    if (newBoards !== gameState.settings.totalBoards) {
+        updateRoomSettings({ totalBoards: newBoards });
+    }
+}
+
+function toggleRoomHardMode() {
+    if (!gameState.isCreator) {
+        console.log('❌ Only room creator can update settings');
+        return;
+    }
+    
+    if (!gameState.settings) {
+        console.log('❌ No room settings available');
+        return;
+    }
+    
+    const newHardMode = !gameState.settings.hardMode;
+    updateRoomSettings({ hardMode: newHardMode });
+}
+
+function updateRoomSettings(partialSettings) {
+    const currentSettings = gameState.settings;
     const settings = {
-        timePerBoard: timePerBoard,
-        totalBoards: totalBoards,
-        unlimited: false,
-        unlimitedTime: false,
-        progressiveDifficulty: true,
-        hardMode: hardMode
+        timePerBoard: currentSettings.timePerBoard,
+        totalBoards: currentSettings.totalBoards,
+        unlimited: currentSettings.unlimited || false,
+        unlimitedTime: currentSettings.unlimitedTime || false,
+        progressiveDifficulty: currentSettings.progressiveDifficulty || true,
+        hardMode: currentSettings.hardMode || false,
+        ...partialSettings
     };
     
-    console.log('🔄 Syncing main menu settings to room:', settings);
+    console.log('🔄 Updating room settings:', partialSettings);
     
     socket.emit('update-room-settings', { settings: settings }, (response) => {
         if (response.success) {
@@ -1859,6 +1931,69 @@ function syncMainMenuSettingsToRoom() {
             alert('Failed to update room settings: ' + response.error);
         }
     });
+}
+
+function updateRoomSettingsDisplay() {
+    const roomSettingsEl = document.getElementById('room-settings-content');
+    if (!roomSettingsEl) {
+        console.log('❌ Room settings element not found');
+        return;
+    }
+    
+    if (gameState.settings) {
+        const settings = gameState.settings;
+        const timeDisplay = settings.timePerBoard === -1 ? '∞' : `${settings.timePerBoard}s`;
+        const boardsDisplay = settings.totalBoards === -1 ? '∞' : settings.totalBoards;
+        const modeDisplay = settings.hardMode ? 'Hard' : 'Normal';
+        const modeColor = settings.hardMode ? '#FF6B6B' : '#4CAF50';
+        const isCreator = gameState.isCreator && gameState.phase === 'lobby';
+        
+        if (isCreator) {
+            // Interactive controls for room creator
+            roomSettingsEl.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIME PER BOARD</div>
+                        <input type="number" id="room-time-input" min="5" max="600" value="${settings.timePerBoard}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 4px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                    </div>
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">NUMBER OF BOARDS</div>
+                        <input type="number" id="room-boards-input" min="1" max="50" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 4px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                    </div>
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
+                        <div onclick="toggleRoomHardMode()" style="color: ${modeColor}; font-weight: bold; font-size: 14px; cursor: pointer; padding: 5px; border-radius: 3px; background: rgba(255,255,255,0.1);" title="Click to toggle">${modeDisplay}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Read-only display for non-creators
+            roomSettingsEl.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIME PER BOARD</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 16px;">${timeDisplay}</div>
+                    </div>
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">NUMBER OF BOARDS</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 16px;">${boardsDisplay}</div>
+                    </div>
+                    <div style="padding: 8px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
+                        <div style="color: ${modeColor}; font-weight: bold; font-size: 14px;">${modeDisplay}</div>
+                    </div>
+                </div>
+            `;
+        }
+        console.log('✓ Room settings display updated:', { timeDisplay, boardsDisplay, modeDisplay, isCreator });
+    } else {
+        roomSettingsEl.innerHTML = `
+            <div style="text-align: center; color: #888; font-style: italic;">
+                Loading room settings...
+            </div>
+        `;
+        console.log('⏳ Waiting for room settings...');
+    }
 }
 
 function startGame() {
@@ -2069,6 +2204,7 @@ async function returnToLobbyUI() {
     document.getElementById('leaderboard').style.display = 'none';
     document.getElementById('leaderboard-toggle').style.display = 'none';
     document.getElementById('resign-button').style.display = 'none';
+    hideBoardNumberIndicator();
     
     // Reset leaderboard visibility flag
     leaderboardVisible = false;
@@ -2209,6 +2345,94 @@ function updateGameState(serverGameState) {
     }
 }
 
+// Targeted update for just player list and room status (avoids full lobby redraw)
+async function updatePlayerListAndStatus() {
+    try {
+        // Update room status
+        const statusEl = document.getElementById('room-status');
+        if (gameState.phase === 'lobby') {
+            statusEl.textContent = `Waiting for players... (${gameState.players.length} joined)`;
+        } else if (gameState.phase === 'playing') {
+            statusEl.textContent = `Playing - Board ${gameState.currentBoard + 1}/${gameState.boardSequence.length}`;
+        }
+
+        // Update player list
+        const playerListEl = document.getElementById('player-list');
+        playerListEl.innerHTML = '';
+        
+        // Get total scores for lobby display
+        const totalScores = await getTotalScoresForRoom();
+        const showingTotalScores = !gameState.phase || gameState.phase === 'lobby';
+        
+        // Sort players by appropriate score (current game score or total score)
+        const sortedPlayers = [...gameState.players].sort((a, b) => {
+            const aScore = showingTotalScores ? (totalScores[a.name] || 0) : a.score;
+            const bScore = showingTotalScores ? (totalScores[b.name] || 0) : b.score;
+            
+            // Primary sort: by score (highest first)
+            if (aScore !== bScore) {
+                return bScore - aScore;
+            }
+            // Secondary sort: host first for same scores
+            if (a.isCreator && !b.isCreator) return -1;
+            if (!a.isCreator && b.isCreator) return 1;
+            return 0; // Keep original order for same type and score
+        });
+        
+        sortedPlayers.forEach((player, index) => {
+            const playerEl = document.createElement('div');
+            playerEl.className = 'player' + (player.isCreator ? ' creator' : '');
+            
+            // Add ranking indicator for top players
+            let rankIcon = '';
+            const displayScore = showingTotalScores ? (totalScores[player.name] || 0) : player.score;
+            
+            if (gameState.phase === 'playing' || gameState.phase === 'finished' || gameState.allPlayersFinished || showingTotalScores) {
+                if (index === 0 && displayScore > 0) {
+                    rankIcon = '<span title="1st place">👑</span> '; // Crown for leader
+                } else if (index === 1 && displayScore > 0) {
+                    rankIcon = '<span title="2nd place">🥈</span> '; // Silver medal for 2nd
+                } else if (index === 2 && displayScore > 0) {
+                    rankIcon = '<span title="3rd place">🥉</span> '; // Bronze medal for 3rd
+                }
+            }
+            
+            // Build player text with markers
+            let playerText = player.name;
+            const isCurrentPlayer = player.id === gameState.playerId;
+            
+            if (isCurrentPlayer) {
+                playerText = `<strong>${playerText}</strong>`;
+            }
+            
+            if (player.isCreator) {
+                playerText += ' <span title="Room Creator">👑</span>';
+            }
+            
+            if (player.isDevMode) {
+                playerText += ' <span title="Development Mode">🔧</span>';
+            }
+            
+            // Show score in appropriate context
+            const scoreText = showingTotalScores ? `(${displayScore} total)` : `(${displayScore})`;
+            
+            playerEl.innerHTML = `${rankIcon}${playerText} ${scoreText}`;
+            playerListEl.appendChild(playerEl);
+        });
+
+        // Show/hide start button
+        const startBtn = document.getElementById('start-button');
+        if (gameState.isCreator && gameState.phase === 'lobby') {
+            startBtn.classList.remove('hidden');
+        } else {
+            startBtn.classList.add('hidden');
+        }
+        
+    } catch (error) {
+        console.error('Error in updatePlayerListAndStatus:', error);
+    }
+}
+
 // Prevent concurrent updateUI calls that could cause duplication
 let updateUIInProgress = false;
 
@@ -2227,43 +2451,7 @@ async function updateUI() {
         }
         
         // Update room settings display
-        const roomSettingsEl = document.getElementById('room-settings-content');
-        if (roomSettingsEl) {
-            if (gameState.settings) {
-                const settings = gameState.settings;
-                const timeDisplay = settings.timePerBoard === -1 ? '∞' : `${settings.timePerBoard}s`;
-                const boardsDisplay = settings.totalBoards === -1 ? '∞' : settings.totalBoards;
-                const modeDisplay = settings.hardMode ? 'Hard Mode' : 'Normal Mode';
-                const modeColor = settings.hardMode ? '#FF6B6B' : '#4CAF50';
-                
-                roomSettingsEl.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
-                        <div style="padding: 8px; background: #555; border-radius: 4px;">
-                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER</div>
-                            <div style="color: #fff; font-weight: bold; font-size: 16px;">${timeDisplay}</div>
-                        </div>
-                        <div style="padding: 8px; background: #555; border-radius: 4px;">
-                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                            <div style="color: #fff; font-weight: bold; font-size: 16px;">${boardsDisplay}</div>
-                        </div>
-                        <div style="padding: 8px; background: #555; border-radius: 4px;">
-                            <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
-                            <div style="color: ${modeColor}; font-weight: bold; font-size: 14px;">${modeDisplay}</div>
-                        </div>
-                    </div>
-                `;
-                console.log('✓ Room settings displayed:', { timeDisplay, boardsDisplay, modeDisplay });
-            } else {
-                roomSettingsEl.innerHTML = `
-                    <div style="text-align: center; color: #888; font-style: italic;">
-                        Loading room settings...
-                    </div>
-                `;
-                console.log('⏳ Waiting for room settings...');
-            }
-        } else {
-            console.log('❌ Room settings element not found');
-        }
+        updateRoomSettingsDisplay();
         
         
         // Update player list
@@ -2373,11 +2561,38 @@ async function updateUI() {
     }
 }
 
+// Board number indicator functions
+function showBoardNumberIndicator() {
+    const indicator = document.getElementById('board-number-indicator');
+    if (indicator) {
+        indicator.style.display = 'block';
+    }
+}
+
+function hideBoardNumberIndicator() {
+    const indicator = document.getElementById('board-number-indicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+}
+
+function updateBoardNumberIndicator() {
+    const valueElement = document.getElementById('board-number-value');
+    if (valueElement && gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+        // Show the actual board ID from the sequence
+        const actualBoardId = gameState.boardSequence[gameState.currentBoard];
+        valueElement.textContent = actualBoardId;
+    }
+}
+
 function startMultiplayerGame() {
     gameState.phase = 'playing';
     
     // Hide UI overlay
     document.getElementById('ui-overlay').style.display = 'none';
+    
+    // Show board number indicator for bug reporting
+    showBoardNumberIndicator();
     
     // Show leaderboard and toggle button
     leaderboardVisible = true;
@@ -2399,6 +2614,9 @@ function startMultiplayerGame() {
     
     // Load first board
     loadMultiplayerBoard(0);
+    
+    // Update board number indicator
+    updateBoardNumberIndicator();
     
     // Start timer with the base value from game settings
     if (gameState.settings && gameState.settings.unlimitedTime) {
@@ -2734,6 +2952,9 @@ function loadMultiplayerBoard(boardIndex) {
     }
     
     const boardNumber = gameState.boardSequence[boardIndex];
+    
+    // Update board number indicator
+    updateBoardNumberIndicator();
     // Parse board string representation (x=black, o=white, .=empty)
     const currentBoards = getCurrentBoards();
     const boardLines = currentBoards[boardNumber].split('\n').map(row => row.trim()).filter(row => row !== '');
