@@ -82,7 +82,14 @@ function enterSummaryMode() {
     timer = -1;
     summaryLogged = false; // Reset logging flag when entering summary mode
     cachedSummaryData = null; // Clear cached summary data
-    summaryDrawn = false; // Reset summary drawn flag when entering summary mode
+    
+    // Only reset summary drawn flag if we weren't already reviewing a specific board
+    if (!wasAlreadyReviewingBoard) {
+        summaryDrawn = false; // Reset summary drawn flag when entering summary mode
+        console.log('📋 Reset summaryDrawn flag for grid view');
+    } else {
+        console.log('🔍 Preserving summaryDrawn state (player was reviewing board)');
+    }
     
     // Set golden background for summary phase
     document.bgColor = 'goldenrod';
@@ -1627,14 +1634,15 @@ function initSocket() {
     socket.on('game-finished', (data) => {
         console.log('🏁 Game finished event received:', data);
         
+        // Check if player is currently in summary mode BEFORE updating game state
+        const wasInSummaryMode = (gameState.phase === 'summary');
+        console.log('🔍 Player was in summary mode before update:', wasInSummaryMode);
+        
         // Update game state with final results
         updateGameState(data.gameState);
         timer = -1;
         
-        // Check if player is currently reviewing an individual board
-        const isReviewingBoard = (gameState.phase === 'summary' && reviewingBoardIndex !== -1);
-        
-        if (!isReviewingBoard) {
+        if (!wasInSummaryMode) {
             // Only set background colors and show leaderboard for players not reviewing individual boards
             failed = true; // Mark as finished state
             const winResult = didCurrentPlayerWin();
@@ -1658,15 +1666,15 @@ function initSocket() {
                 showLeaderboard();
             }, 1500);
         } else {
-            console.log('🔍 Player is reviewing individual board - not changing background or showing leaderboard');
+            console.log('🔍 Player was in summary mode - not changing background or showing leaderboard');
         }
         
-        // Ensure all players are in summary mode (those who individually finished are already there)
-        if (gameState.phase !== 'summary') {
+        // Only enter summary mode for players not already there
+        if (!wasInSummaryMode) {
             enterSummaryMode();
             console.log('🎯 Player transitioned to summary mode (was not already in summary)');
         } else {
-            console.log('🎯 Player already in summary mode - keeping current state');
+            console.log('🎯 Player already in summary mode - preserving current view state');
         }
         
         updateLeaderboard();
@@ -1976,7 +1984,6 @@ function showJoinRoom() {
 let uiInitialized = false;
 let currentTimePerBoard = defaultTimePerBoard;
 let currentTotalBoards = 20; // Default number of boards
-let unlimitedTimeMode = false;
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -1985,7 +1992,6 @@ const STORAGE_KEYS = {
     PLAYER_UUID: 'countbattle_player_uuid', // Unique identifier for host persistence
     TIME_PER_BOARD: 'countbattle_time_per_board',
     TOTAL_BOARDS: 'countbattle_total_boards',
-    UNLIMITED_TIME: 'countbattle_unlimited_time',
     HARD_MODE: 'countbattle_hard_mode'
 };
 
@@ -2188,14 +2194,11 @@ function initializeUI() {
     const timeSlider = document.getElementById('time-per-board');
     const totalBoardsInput = document.getElementById('total-boards');
     const timeDisplay = document.getElementById('time-display');
-    const unlimitedCheckbox = document.getElementById('unlimited-time');
-    const timeControls = document.getElementById('time-controls');
     const playerNameInput = document.getElementById('player-name');
     
     // Load saved settings from localStorage
     const savedTime = loadFromStorage(STORAGE_KEYS.TIME_PER_BOARD, defaultTimePerBoard);
     const savedTotalBoards = loadFromStorage(STORAGE_KEYS.TOTAL_BOARDS, defaultTotalBoards);
-    const savedUnlimited = loadFromStorage(STORAGE_KEYS.UNLIMITED_TIME, false);
     const savedPlayerName = loadFromStorage(STORAGE_KEYS.PLAYER_NAME, '');
     const savedRoomId = loadFromStorage(STORAGE_KEYS.ROOM_ID, null);
     
@@ -2203,12 +2206,10 @@ function initializeUI() {
     console.log('- timeSlider:', !!timeSlider, timeSlider ? `value=${timeSlider.value}` : 'null');
     console.log('- totalBoardsInput:', !!totalBoardsInput, totalBoardsInput ? `value=${totalBoardsInput.value}` : 'null');
     console.log('- timeDisplay:', !!timeDisplay);
-    console.log('- unlimitedCheckbox:', !!unlimitedCheckbox);
     console.log('- playerNameInput:', !!playerNameInput);
     console.log('localStorage values:');
     console.log('- savedTime:', savedTime);
     console.log('- savedTotalBoards:', savedTotalBoards);
-    console.log('- savedUnlimited:', savedUnlimited);
     console.log('- savedPlayerName:', savedPlayerName);
     console.log('- savedRoomId:', savedRoomId);
     
@@ -2216,19 +2217,6 @@ function initializeUI() {
     if (playerNameInput && savedPlayerName) {
         playerNameInput.value = savedPlayerName;
         console.log('Restored player name:', savedPlayerName);
-    }
-    
-    // Initialize unlimited mode checkbox
-    if (unlimitedCheckbox) {
-        unlimitedTimeMode = savedUnlimited;
-        unlimitedCheckbox.checked = unlimitedTimeMode;
-        
-        unlimitedCheckbox.addEventListener('change', function(e) {
-            unlimitedTimeMode = e.target.checked;
-            saveToStorage(STORAGE_KEYS.UNLIMITED_TIME, unlimitedTimeMode);
-            updateTimeControlsVisibility();
-            console.log('Unlimited mode:', unlimitedTimeMode);
-        });
     }
     
     if (timeSlider) {
@@ -2381,9 +2369,6 @@ function initializeUI() {
         console.log('✓ Total boards input initialization complete');
     }
     
-    // Update visibility based on unlimited mode
-    updateTimeControlsVisibility();
-    
     // Try to reconnect to saved room if exists
     if (savedRoomId) {
         console.log('Found saved room ID:', savedRoomId);
@@ -2461,12 +2446,6 @@ function tryReconnectToRoom(roomId) {
     });
 }
 
-function updateTimeControlsVisibility() {
-    const timeControls = document.getElementById('time-controls');
-    if (timeControls) {
-        timeControls.style.display = unlimitedTimeMode ? 'none' : 'block';
-    }
-}
 
 function handleTimeChange(value) {
     console.log('=== handleTimeChange START ===');
@@ -2575,8 +2554,6 @@ function createNewRoom(playerName, timePerBoard, creatorUUID) {
         settings: {
             timePerBoard: timePerBoard, // Default 60 seconds per board
             totalBoards: 10, // Default 10 boards
-            unlimited: false, // Use limited boards mode
-            unlimitedTime: false, // Use timed mode
             progressiveDifficulty: true,
             hardMode: false // Default normal mode
         }
@@ -2775,8 +2752,6 @@ function updateRoomSettings(partialSettings) {
     const settings = {
         timePerBoard: currentSettings.timePerBoard,
         totalBoards: currentSettings.totalBoards,
-        unlimited: currentSettings.unlimited || false,
-        unlimitedTime: currentSettings.unlimitedTime || false,
         progressiveDifficulty: currentSettings.progressiveDifficulty || true,
         hardMode: currentSettings.hardMode || false,
         ...partialSettings
@@ -2861,12 +2836,11 @@ function startGame() {
     if (!gameState.isCreator) return;
     
     // Use current room settings (hard mode is already set when room was created)
-    const timePerBoard = unlimitedTimeMode ? -1 : currentTimePerBoard;
+    const timePerBoard = currentTimePerBoard;
     const hardMode = gameState.settings ? gameState.settings.hardMode : false;
     const settings = {
         timePerBoard: timePerBoard,
         totalBoards: currentTotalBoards,
-        unlimited: false,
         hardMode: hardMode // Use room's hard mode setting
     };
     
@@ -3075,15 +3049,6 @@ function restartGame() {
     });
 }
 
-function returnToLobbyHost() {
-    if (!gameState.isCreator) return;
-    
-    socket.emit('return-to-lobby', (response) => {
-        if (!response.success) {
-            alert('Failed to return to lobby: ' + response.error);
-        }
-    });
-}
 
 function returnToLobby() {
     // If we're viewing historical data, just clear it and return to lobby UI
@@ -3097,13 +3062,7 @@ function returnToLobby() {
         return;
     }
     
-    if (gameState.isCreator) {
-        // Hosts use the host-specific function
-        returnToLobbyHost();
-        return;
-    }
-    
-    // Non-hosts can only return to lobby, they can't force everyone back
+    // Any player can return all players to lobby
     socket.emit('return-to-lobby', (response) => {
         if (!response.success) {
             alert('Failed to return to lobby: ' + response.error);
@@ -3216,8 +3175,16 @@ function updateGameState(serverGameState) {
     }
     
     if (serverGameState.gameState) {
-        gameState.phase = serverGameState.gameState === 'waiting' ? 'lobby' : 
-                          serverGameState.gameState === 'playing' ? 'playing' : 'finished';
+        const newPhase = serverGameState.gameState === 'waiting' ? 'lobby' : 
+                        serverGameState.gameState === 'playing' ? 'playing' : 'finished';
+        
+        // Preserve summary phase for players already viewing summaries
+        if (gameState.phase === 'summary' && newPhase === 'finished') {
+            console.log('🔒 Preserving summary phase (player is viewing summary, game finished)');
+            // Keep current phase as 'summary'
+        } else {
+            gameState.phase = newPhase;
+        }
     }
     
     if (serverGameState.players) {
@@ -3257,10 +3224,7 @@ function updateGameState(serverGameState) {
         }
         
         // Update maxTime based on server settings
-        if (serverGameState.settings.unlimitedTime) {
-            maxTime = Infinity; // No timer
-            console.log('Unlimited time mode enabled');
-        } else if (serverGameState.settings.timePerBoard && serverGameState.settings.timePerBoard > 0) {
+        if (serverGameState.settings.timePerBoard && serverGameState.settings.timePerBoard > 0) {
             maxTime = serverGameState.settings.timePerBoard * 1000; // Convert to milliseconds
             console.log('Updated maxTime from server settings:', maxTime);
         }
@@ -3549,10 +3513,7 @@ function startMultiplayerGame() {
     updateBoardNumberIndicator();
     
     // Start timer with the base value from game settings
-    if (gameState.settings && gameState.settings.unlimitedTime) {
-        timer = Infinity;
-        console.log('Starting game with unlimited time');
-    } else if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
+    if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
         timer = gameState.settings.timePerBoard * 1000;
         console.log('Starting game with timer from settings:', timer);
     } else {
@@ -4161,10 +4122,7 @@ function loadMultiplayerBoard(boardIndex) {
     }
     
     // Always use the base time from settings (don't accumulate progressive difficulty)
-    if (gameState.settings && gameState.settings.unlimitedTime) {
-        timer = Infinity; // No timer
-        console.log('Setting timer to unlimited (infinity)');
-    } else if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
+    if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
         timer = gameState.settings.timePerBoard * 1000;
         console.log('Setting timer to base time from settings:', timer);
     } else {
@@ -4283,11 +4241,11 @@ function submitMultiplayer(guess) {
                 //maxTime -= 1000; // Progressive difficulty
                 gameState.currentBoard++;
                 
-                // In unlimited mode, never finish by reaching end of boards
+                // Check if there are more boards to play
                 if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
                     loadMultiplayerBoard(gameState.currentBoard);
-                } else if (!gameState.settings?.unlimited) {
-                    // Game finished - player completed all boards (only in limited mode)
+                } else {
+                    // Game finished - player completed all boards
                     console.log('🎯 Player completed all boards! Current failed state:', failed, 'Current bgColor:', document.bgColor);
                     
                     // Set blue color when completing all boards individually (same as timeout)
@@ -4312,9 +4270,6 @@ function submitMultiplayer(guess) {
                         }, 500);
                     }
                     
-                } else {
-                    // In unlimited mode, continue with more boards (this shouldn't happen with 1000 board pool)
-                    console.log('Unlimited mode: ran out of boards unexpectedly');
                 }
             } else {
                 // Wrong answer - only apply penalty if game is still active and there's more than 1 second left
@@ -4340,7 +4295,7 @@ function submitMultiplayer(guess) {
                         // Continue with next board - return to green background
                         document.bgColor = 'seagreen';
                         loadMultiplayerBoard(gameState.currentBoard);
-                    } else if (!gameState.settings?.unlimited) {
+                    } else {
                         // Game finished - player completed all boards (with some mistakes)
                         console.log('🎯 Player completed all boards with mistakes! Final score:', score);
                         
@@ -4366,9 +4321,6 @@ function submitMultiplayer(guess) {
                             }, 500);
                         }
                         
-                    } else {
-                        // In unlimited mode, continue with more boards
-                        console.log('Unlimited mode: ran out of boards unexpectedly');
                     }
                 }, 1000); // 1 second penalty delay
                 } else {
@@ -4566,20 +4518,11 @@ function draw() {
         displayBoardNumber = score;
     }
     
-    if (gameState.settings?.unlimited) {
-        boardText = `${displayBoardNumber}`;
-    } else {
-        boardText = `${displayBoardNumber}/${gameState.settings?.totalBoards || gameState.boardSequence.length}`;
-    }
+    boardText = `${displayBoardNumber}/${gameState.settings?.totalBoards || gameState.boardSequence.length}`;
     
-    // Add remaining time in seconds (or show ∞ for unlimited)
-    let displayText;
-    if (timer === Infinity) {
-        displayText = `${boardText} - ∞`;
-    } else {
-        const remainingSeconds = Math.max(0, Math.ceil(timer / 1000));
-        displayText = `${boardText} - ${remainingSeconds}s`;
-    }
+    // Add remaining time in seconds
+    const remainingSeconds = Math.max(0, Math.ceil(timer / 1000));
+    const displayText = `${boardText} - ${remainingSeconds}s`;
     
     text(displayText, width/2, R);
     pop();
@@ -4803,8 +4746,6 @@ function submitMultiplayerHardMode(guess, isCorrect) {
                             showLeaderboard();
                         }, 1000);
                     }
-                } else {
-                    console.log('Unlimited mode: ran out of boards unexpectedly');
                 }
             } else {
                 // Wrong answer - apply penalty if game is still active and there's more than 1 second left
@@ -4850,8 +4791,6 @@ function submitMultiplayerHardMode(guess, isCorrect) {
                                     showLeaderboard();
                                 }, 1000);
                             }
-                        } else {
-                            console.log('Unlimited mode: ran out of boards unexpectedly');
                         }
                     }, 1000);
                 } else {
@@ -4895,6 +4834,12 @@ function handleClick() {
 }
 
 function keyPressed() {
+    // Handle Escape key for resignation during gameplay
+    if (keyCode === ESCAPE && gameState.phase === 'playing' && !failed) {
+        resignGame();
+        return;
+    }
+    
     // No longer needed - removed automatic lobby countdown
     
     if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode || failed) return;

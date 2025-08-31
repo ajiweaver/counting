@@ -36,14 +36,6 @@ function generateRoomId() {
 
 // Generate random board sequence for a game
 function generateBoardSequence(totalBoards = 10) {
-  if (totalBoards === -1) {
-    // For unlimited mode, generate a large pool of boards (1000)
-    const sequence = [];
-    for (let i = 0; i < 1000; i++) {
-      sequence.push(Math.floor(Math.random() * 100)); // 100 boards available
-    }
-    return sequence;
-  }
   
   const sequence = [];
   for (let i = 0; i < totalBoards; i++) {
@@ -64,8 +56,6 @@ class GameRoom {
     this.settings = {
       timePerBoard: settings.timePerBoard !== undefined ? settings.timePerBoard : 15,
       totalBoards: settings.totalBoards !== undefined ? settings.totalBoards : 10, // Default 10 boards
-      unlimited: settings.unlimited !== undefined ? settings.unlimited : true, // Default unlimited
-      unlimitedTime: settings.unlimitedTime !== undefined ? settings.unlimitedTime : false, // Default timed
       progressiveDifficulty: settings.progressiveDifficulty || true,
       hardMode: settings.hardMode || false // Exact score counting mode
     };
@@ -86,12 +76,6 @@ class GameRoom {
     }
     if (newSettings.totalBoards !== undefined) {
       this.settings.totalBoards = newSettings.totalBoards;
-    }
-    if (newSettings.unlimited !== undefined) {
-      this.settings.unlimited = newSettings.unlimited;
-    }
-    if (newSettings.unlimitedTime !== undefined) {
-      this.settings.unlimitedTime = newSettings.unlimitedTime;
     }
     if (newSettings.progressiveDifficulty !== undefined) {
       this.settings.progressiveDifficulty = newSettings.progressiveDifficulty;
@@ -295,7 +279,7 @@ class GameRoom {
     }
     
     // Only mark player as finished when they've completed all boards (regardless of right/wrong answers)
-    if (!this.settings.unlimited && currentBoardIndex >= this.settings.totalBoards - 1) {
+    if (currentBoardIndex >= this.settings.totalBoards - 1) {
       player.finished = true;
       
       // Check if we should end the game early
@@ -434,8 +418,6 @@ class GameRoom {
         })).sort((a, b) => b.score - a.score), // Sort by score descending
         settings: {
           timePerBoard: this.settings.timePerBoard,
-          unlimited: this.settings.unlimited,
-          unlimitedTime: this.settings.unlimitedTime,
           totalBoards: this.settings.totalBoards,
           hardMode: this.settings.hardMode
         },
@@ -695,7 +677,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Return to lobby (only room creator can do this)
+  // Return to lobby (any player can do this)
   socket.on('return-to-lobby', (callback) => {
     try {
       const roomId = playerRooms.get(socket.id);
@@ -707,8 +689,8 @@ io.on('connection', (socket) => {
       }
       
       const player = room.players.get(socket.id);
-      if (!player?.isCreator) {
-        callback({ success: false, error: 'Only room creator can return to lobby' });
+      if (!player) {
+        callback({ success: false, error: 'Player not found in room' });
         return;
       }
       
