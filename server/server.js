@@ -72,6 +72,7 @@ class GameRoom {
     this.createdAt = Date.now();
     this.creatorUUID = null; // Track creator by UUID for persistent host identity
     this.creatorReconnectTimeout = null; // Timeout for creator reconnection
+    this.playerResponses = new Map(); // Track individual player responses: playerId -> [{boardIndex, boardId, answer, isCorrect, timestamp}]
   }
 
   updateSettings(newSettings) {
@@ -237,13 +238,33 @@ class GameRoom {
     }
   }
 
-  submitAnswer(playerId, answer, isCorrect, currentBoardIndex) {
+  submitAnswer(playerId, answer, isCorrect, currentBoardIndex, transforms = null) {
     const player = this.players.get(playerId);
     if (!player || this.gameState !== 'playing') {
       return false;
     }
     
     player.currentAnswer = answer;
+    
+    // Track player response for game summary (except for special actions)
+    if (answer !== 'resign' && answer !== 'timeout') {
+      if (!this.playerResponses.has(playerId)) {
+        this.playerResponses.set(playerId, []);
+      }
+      
+      const boardId = this.boardSequence[currentBoardIndex] || currentBoardIndex;
+      this.playerResponses.get(playerId).push({
+        boardIndex: currentBoardIndex,
+        boardId: boardId,
+        answer: answer,
+        isCorrect: isCorrect,
+        timestamp: Date.now(),
+        playerName: player.name, // Store player name for easier identification later
+        transforms: transforms // Store board transformations for summary display
+      });
+      
+      console.log(`📝 Tracked response for player ${player.name}: Board ${currentBoardIndex}, Answer: ${answer}, Correct: ${isCorrect}`);
+    }
     
     // Handle resignation - only finish this player, not all players
     if (answer === 'resign') {
@@ -401,6 +422,7 @@ class GameRoom {
     
     if (this.gameState === 'playing' && this.areAllPlayersFinished()) {
       const gameResult = {
+        id: `${this.roomId}-${Date.now()}`, // Unique game ID for historical viewing
         roomId: this.roomId,
         completedAt: new Date().toISOString(),
         duration: this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0,
@@ -413,8 +435,12 @@ class GameRoom {
         settings: {
           timePerBoard: this.settings.timePerBoard,
           unlimited: this.settings.unlimited,
-          unlimitedTime: this.settings.unlimitedTime
-        }
+          unlimitedTime: this.settings.unlimitedTime,
+          totalBoards: this.settings.totalBoards,
+          hardMode: this.settings.hardMode
+        },
+        boardSequence: this.boardSequence.slice(), // Store copy of board sequence for historical viewing
+        playerResponses: Object.fromEntries(this.playerResponses) // Store individual player responses: {playerId: [{boardIndex, boardId, answer, isCorrect, timestamp}]}
       };
       
       completedGames.unshift(gameResult); // Add to beginning of array
@@ -582,7 +608,7 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const result = room.submitAnswer(socket.id, data.answer, data.isCorrect, data.currentBoardIndex);
+      const result = room.submitAnswer(socket.id, data.answer, data.isCorrect, data.currentBoardIndex, data.transforms);
       if (result) {
         const player = room.players.get(socket.id);
         
@@ -785,6 +811,25 @@ app.get('/leaderboard', (req, res) => {
     games: completedGames.slice(0, 20), // Return last 20 games
     totalGames: completedGames.length
   });
+});
+
+// Get specific game data for historical viewing
+app.get('/game/:gameId', (req, res) => {
+  const gameId = req.params.gameId;
+  console.log(`Game data API called for game: ${gameId}`);
+  
+  const game = completedGames.find(g => g.id === gameId);
+  if (game) {
+    res.json({ 
+      success: true, 
+      game: game
+    });
+  } else {
+    res.status(404).json({ 
+      success: false, 
+      error: 'Game not found' 
+    });
+  }
 });
 
 app.get('/health', (req, res) => {
