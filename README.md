@@ -103,7 +103,7 @@ and then choose by how much.
 
 ### Controls
 - **Mouse/Touch**: Click Black/White buttons
-- **Keyboard**: Left/Right arrows (Black/White), Enter (restart)
+- **Keyboard**: Left/Right arrows (Black/White), Escape (resign)
 
 ## 🏗️ Project Structure
 
@@ -162,7 +162,7 @@ setTestBoardId(0)       // Load specific board for testing
 ## 📊 Room Management
 
 - **Persistent Rooms**: Rooms stay active until all players leave
-- **Host Privileges**: Room creators can restart games and return to lobby
+- **Host Privileges**: Room creators can start games and return to lobby
 - **Auto-reconnection**: Hosts automatically reconnect to their existing rooms
 - **Room History**: Track all completed games with detailed results
 

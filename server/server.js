@@ -88,6 +88,18 @@ class GameRoom {
   }
 
   addPlayer(playerId, playerName, playerUUID = null, isDevMode = false) {
+    // If game is in playing state and all players are finished, mark as finished first
+    if (this.gameState === 'playing' && this.areAllPlayersFinished()) {
+      this.gameState = 'finished';
+      console.log(`Room ${this.roomId}: Marked game as finished since all players are done (for new player join)`);
+    }
+    
+    // If game is finished, reset to waiting to allow new players
+    if (this.gameState === 'finished') {
+      this.returnToLobby();
+      console.log(`Room ${this.roomId}: Reset finished game to waiting state for new player`);
+    }
+    
     if (this.gameState !== 'waiting') {
       throw new Error('Game already in progress');
     }
@@ -175,24 +187,6 @@ class GameRoom {
   startGame() {
     if (this.gameState !== 'waiting') {
       throw new Error('Game already started');
-    }
-    
-    this.gameState = 'playing';
-    this.boardSequence = generateBoardSequence(this.settings.totalBoards);
-    this.currentBoard = 0;
-    this.startTime = Date.now();
-    
-    // Reset all players
-    for (let player of this.players.values()) {
-      player.score = 0;
-      player.currentAnswer = null;
-      player.finished = false;
-    }
-  }
-
-  restartGame() {
-    if (this.gameState === 'waiting') {
-      throw new Error('Game not started yet');
     }
     
     this.gameState = 'playing';
@@ -563,6 +557,22 @@ io.on('connection', (socket) => {
         return;
       }
       
+      console.log(`Room ${roomId}: Current game state: ${room.gameState}`);
+      
+      // If game is in playing state, check if it should be marked as finished first
+      if (room.gameState === 'playing' && room.areAllPlayersFinished()) {
+        room.gameState = 'finished';
+        console.log(`Room ${roomId}: Marked game as finished since all players are done`);
+      }
+      
+      // If game is finished or playing, reset to waiting state first
+      if (room.gameState === 'finished' || room.gameState === 'playing') {
+        room.returnToLobby();
+        console.log(`Room ${roomId}: Reset ${room.gameState} game to waiting state for new game`);
+      }
+      
+      console.log(`Room ${roomId}: Game state after reset: ${room.gameState}`);
+      
       // Update room settings if provided
       if (data && data.settings) {
         room.updateSettings(data.settings);
@@ -649,35 +659,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Restart game (only room creator can restart)
-  socket.on('restart-game', (callback) => {
-    try {
-      const roomId = playerRooms.get(socket.id);
-      const room = rooms.get(roomId);
-      
-      if (!room) {
-        callback({ success: false, error: 'Room not found' });
-        return;
-      }
-      
-      const player = room.players.get(socket.id);
-      if (!player?.isCreator) {
-        callback({ success: false, error: 'Only room creator can restart game' });
-        return;
-      }
-      
-      room.restartGame();
-      
-      // Notify all players
-      io.to(roomId).emit('game-restarted', room.getGameState());
-      
-      callback({ success: true });
-    } catch (error) {
-      callback({ success: false, error: error.message });
-    }
-  });
-
-  // Return to lobby (any player can do this)
+  // Return entire room to lobby (room-wide action - currently unused by client)
   socket.on('return-to-lobby', (callback) => {
     try {
       const roomId = playerRooms.get(socket.id);

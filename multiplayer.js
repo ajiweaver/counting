@@ -29,6 +29,14 @@ let gameState = {
     startTime: null
 };
 
+// User-controlled phase state that takes priority over server state
+let userOverridePhase = null; // When set, this phase takes priority over server gameState
+
+// Helper function to get the effective phase (considering user override)
+function getEffectivePhase() {
+    return userOverridePhase || gameState.phase;
+}
+
 // Player board results tracking
 let playerBoardResults = []; // Accumulated results across all games
 let currentGameBoardResults = []; // Results for the current game only
@@ -42,7 +50,6 @@ let viewingHistoricalGame = null; // Historical game data being viewed
 let currentHistoricalBoardResults = []; // Board results for current historical game being viewed
 let summaryLogged = false; // Flag to prevent repeated logging in summary screen
 let cachedSummaryData = null; // Cache expensive summary calculations
-let summaryDrawn = false; // Flag to track if summary screen has been drawn
 // Board transformation variables (for consistent display in summary)
 let currentBoardTransforms = { flipX: false, flipY: false, transpose: false, invert: false };
 // Removed historicalSummaryScrollY - no longer needed with current format
@@ -55,7 +62,6 @@ function resetBoardResults() {
     reviewingBoardIndex = -1;
     summaryLogged = false; // Reset logging flag for new game
     cachedSummaryData = null; // Clear cached summary data
-    summaryDrawn = false; // Reset summary drawn flag
     viewingHistoricalGame = null;
     console.log('🔄 Board results reset for new game. Game Instance ID:', currentGameInstanceId);
 }
@@ -65,12 +71,21 @@ function enterSummaryMode() {
     console.log('🎯 Entering summary mode with', currentGameBoardResults.length, 'board results for game instance:', currentGameInstanceId);
     console.log('📋 Current game board results:', currentGameBoardResults.map(r => ({boardId: r.boardId, gameInstanceId: r.gameInstanceId, isCorrect: r.isCorrect})));
     
-    // Check if we're already in summary mode and reviewing a board
-    const wasAlreadyReviewingBoard = (gameState.phase === 'summary' && reviewingBoardIndex !== -1);
+    // Early exit if already in summary mode to preserve all state
+    if (getEffectivePhase() === 'summary') {
+        console.log('🔒 Already in summary mode - skipping all state changes to preserve current view');
+        console.log('🔍 Current view state: reviewingBoardIndex =', reviewingBoardIndex, ', viewingSummary =', viewingSummary);
+        console.log('🔍 Phase state: gameState.phase =', gameState.phase, ', userOverridePhase =', userOverridePhase);
+        return;
+    }
+    
+    // Check if we're already in summary mode and reviewing a board (legacy check, shouldn't reach here)
+    const wasAlreadyReviewingBoard = false; // Always false since we exit early if in summary mode
     
     gameState.phase = 'summary';
+    userOverridePhase = 'summary'; // Lock user into summary phase
     viewingSummary = true;
-    console.log('✅ Set viewingSummary to true');
+    console.log('✅ Set viewingSummary to true and locked user override to summary phase');
     
     // Only reset to grid view if we weren't already reviewing a specific board
     if (!wasAlreadyReviewingBoard) {
@@ -82,14 +97,6 @@ function enterSummaryMode() {
     timer = -1;
     summaryLogged = false; // Reset logging flag when entering summary mode
     cachedSummaryData = null; // Clear cached summary data
-    
-    // Only reset summary drawn flag if we weren't already reviewing a specific board
-    if (!wasAlreadyReviewingBoard) {
-        summaryDrawn = false; // Reset summary drawn flag when entering summary mode
-        console.log('📋 Reset summaryDrawn flag for grid view');
-    } else {
-        console.log('🔍 Preserving summaryDrawn state (player was reviewing board)');
-    }
     
     // Set golden background for summary phase
     document.bgColor = 'goldenrod';
@@ -366,35 +373,42 @@ function drawBoardReview() {
         
         // Main title in black
         textAlign(CENTER, CENTER);
-        textSize(24);
+        textSize(R * 0.9); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
         textFont('Arial');
         textStyle(BOLD);
-        fill(0);
-        text(`Board #${boardId}`, width/2, D);
+        fill(255);
+        text(`Board #${boardId}`, width/2, D+20);
         
         // Show answer details - larger, bold, and positioned between title and board
-        textSize(20);
+        textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
+        textAlign(RIGHT, CENTER);
+        const lineSpacing = R; // Proportional line spacing
         textStyle(BOLD);
         fill(255);
         
+        let formattedCorrect = "";
+        let formattedPlayer = "";
         if (result.mode === 'hard') {
             // Format correct answer in B+X or W+X format
             const correctFormatted = result.winningColor === 'black' ? `B+${Math.abs(result.difference)}` : `W+${Math.abs(result.difference)}`;
-            const formattedCorrect = formatAnswerWithEmojis(correctFormatted);
-            const formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
-            text(`Answer: ${formattedCorrect}`, width/2, D + 30);
-            text(`Your answer: ${formattedPlayer}`, width/2, D + 55);
+            formattedCorrect = formatAnswerWithEmojis(correctFormatted);
+            formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
         } else {
-            const formattedCorrect = formatAnswerWithEmojis(result.correctAnswer);
-            const formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
-            text(`Answer: ${formattedCorrect}`, width/2, D + 30);
-            text(`Your Answer: ${formattedPlayer}`, width/2, D + 55);
+            formattedCorrect = formatAnswerWithEmojis(result.correctAnswer);
+            formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
         }
+        const answerX = 0.35 * width;
+        const answerY = D + 55;
+        text(`     Answer: ${formattedCorrect}`, answerX, answerY);
+        text(`Your answer: ${formattedPlayer}`, answerX, answerY + lineSpacing);
         pop();
-        
+
         // Draw board using exact same logic as normal gameplay
-        drawGoBoard(board, D, 2*D + 70, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
-        
+        const boardX = D;
+        const boardY = 2*D + 70;
+        const cellSpacing = D;
+        drawGoBoard(board, boardX, boardY, cellSpacing, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+
         // Display territory information below the board for hard mode only
         if (result.blackScore !== undefined && result.whiteScore !== undefined) {
             push();
@@ -403,15 +417,18 @@ function drawBoardReview() {
             textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
             textStyle(BOLD); // Same style as hard mode buttons
             textFont('Arial');
-            const territoryY = 2*D + 70 + 8*D + R + 20; // Below the board with proportional margin (lowered more)
+            const territoryX = 0.5 * width;
+            const territoryY = 2*D + 90 + cellSpacing*8.5;
             
             // Break into 3 lines with proportional spacing: "Territory", "⚫ X", "⚪ Y"
-            const lineSpacing = R * 0.8; // Proportional line spacing
-            text('Territory', width/2, territoryY);
-            text(`⚫ ${result.blackScore}`, width/2, territoryY + lineSpacing);
-            text(`⚪ ${result.whiteScore}`, width/2, territoryY + lineSpacing * 2);
+            text('Territory', territoryX, territoryY);
+            text(`⚫ ${result.blackScore}   ⚪ ${result.whiteScore}`, territoryX, territoryY + lineSpacing);
+            text(``, territoryX, territoryY + lineSpacing * 2);
+            //text(`⚫ ${result.blackScore}`, territoryX, territoryY + lineSpacing);
+            //text(`⚪ ${result.whiteScore}`, territoryX, territoryY + lineSpacing * 2);
             pop();
         }
+        
         
         // Restore original board state
         board = savedBoard;
@@ -434,7 +451,6 @@ function viewBoardFromSummary(boardIndex) {
 
 function backToSummary() {
     reviewingBoardIndex = -1;
-    summaryDrawn = false; // Reset flag to redraw summary screen
     // Resize canvas back to extended size for summary grid
     windowResized();
     // Restore scrollable layout for summary grid
@@ -704,7 +720,6 @@ async function viewHistoricalGameSummary(gameId) {
         reviewingBoardIndex = -1; // Start with grid view
         summaryLogged = false; // Reset logging flag
         cachedSummaryData = null; // Clear cached data for historical view
-        summaryDrawn = false; // Reset summary drawn flag for historical view
         
         // Show UI elements needed for canvas interaction
         document.getElementById('leaderboard').style.display = 'none';
@@ -1620,12 +1635,8 @@ function initSocket() {
         updateLeaderboard();
     });
 
-    socket.on('game-restarted', (data) => {
-        updateGameState(data);
-        startMultiplayerGame();
-    });
-
     socket.on('returned-to-lobby', async (data) => {
+        // This handles room-wide lobby returns (when server forces all players back)
         updateGameState(data);
         await returnToLobbyUI();
     });
@@ -3039,17 +3050,6 @@ function leaveRoom() {
     location.reload(); // Simple way to reset everything
 }
 
-function restartGame() {
-    if (!gameState.isCreator) return;
-    
-    socket.emit('restart-game', (response) => {
-        if (!response.success) {
-            alert('Failed to restart game: ' + response.error);
-        }
-    });
-}
-
-
 function returnToLobby() {
     // If we're viewing historical data, just clear it and return to lobby UI
     if (viewingHistoricalGame) {
@@ -3062,15 +3062,58 @@ function returnToLobby() {
         return;
     }
     
-    // Any player can return all players to lobby
-    socket.emit('return-to-lobby', (response) => {
-        if (!response.success) {
-            alert('Failed to return to lobby: ' + response.error);
-        }
-    });
+    // Individual player returns to room lobby (stays in room, just changes view)
+    console.log('🔙 Individual player returning to room lobby (no server action)');
+    returnToRoomLobby();
+}
+
+function returnToRoomLobby() {
+    // Clear user override phase and summary state
+    userOverridePhase = null;
+    gameState.phase = 'lobby';
+    viewingSummary = false;
+    reviewingBoardIndex = -1;
+    console.log('🔓 Cleared user override phase for room lobby return');
+    
+    // Clear the canvas and reset background
+    if (typeof clear === 'function') {
+        clear();
+    }
+    
+    // Reset document background color and layout to default
+    document.bgColor = '';
+    document.body.style.backgroundColor = '';
+    document.body.style.alignItems = 'center';
+    document.body.style.paddingTop = '';
+    
+    // Reset game state variables that might affect drawing
+    failed = false;
+    started = false;
+    
+    // Reset canvas size to normal game proportions
+    windowResized();
+    
+    // Hide game-related UI elements
+    document.getElementById('leaderboard').style.display = 'none';
+    document.getElementById('leaderboard-toggle').style.display = 'none';
+    document.getElementById('resign-button').style.display = 'none';
+    
+    // Hide summary back buttons
+    document.getElementById('back-to-summary-button').style.display = 'none';
+    document.getElementById('back-to-lobby-button').style.display = 'none';
+    
+    // Show the room UI overlay (lobby)
+    document.getElementById('ui-overlay').style.display = 'flex';
+    showRoomLobby();
+    
+    console.log('✅ Individual player returned to room lobby');
 }
 
 async function returnToLobbyUI() {
+    // Clear user override phase when returning to lobby
+    userOverridePhase = null;
+    console.log('🔓 Cleared user override phase for lobby return');
+    
     // Reset browser URL to base URL (remove room parameter)
     resetBrowserURL();
     
@@ -3178,12 +3221,16 @@ function updateGameState(serverGameState) {
         const newPhase = serverGameState.gameState === 'waiting' ? 'lobby' : 
                         serverGameState.gameState === 'playing' ? 'playing' : 'finished';
         
-        // Preserve summary phase for players already viewing summaries
-        if (gameState.phase === 'summary' && newPhase === 'finished') {
-            console.log('🔒 Preserving summary phase (player is viewing summary, game finished)');
-            // Keep current phase as 'summary'
+        // Preserve summary phase for players already viewing summaries (user-dependent phase)
+        if (userOverridePhase === 'summary') {
+            console.log('🔒 User override active: preserving summary phase (server wants:', newPhase, ', keeping: summary)');
+            gameState.phase = 'summary'; // Ensure phase matches user override
+        } else if (gameState.phase === 'summary') {
+            console.log('🔒 Already in summary phase: preserving user summary phase (server wants:', newPhase, ', keeping: summary)');
+            userOverridePhase = 'summary'; // Set user override to prevent future server changes
         } else {
             gameState.phase = newPhase;
+            console.log('📝 Updated phase to:', newPhase);
         }
     }
     
@@ -3477,7 +3524,10 @@ function updateBoardNumberIndicator() {
 }
 
 function startMultiplayerGame() {
+    // Clear user override when starting new game
+    userOverridePhase = null;
     gameState.phase = 'playing';
+    console.log('🔓 Cleared user override phase for new game start');
     
     // Hide UI overlay
     document.getElementById('ui-overlay').style.display = 'none';
@@ -4454,7 +4504,6 @@ function windowResized() {
     
     // Reset summary drawn flag so it redraws after resize
     if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
-        summaryDrawn = false;
         cachedSummaryData = null; // Clear cached data so it recalculates positions
     }
     
@@ -4477,11 +4526,7 @@ function draw() {
             // Draw individual board review
             drawBoardReview();
         } else {
-            // Draw summary grid only once
-            if (!summaryDrawn) {
-                drawSummaryScreen();
-                summaryDrawn = true;
-            }
+            drawSummaryScreen();
         }
         return;
     }
@@ -4837,6 +4882,24 @@ function keyPressed() {
     // Handle Escape key for resignation during gameplay
     if (keyCode === ESCAPE && gameState.phase === 'playing' && !failed) {
         resignGame();
+        return;
+    }
+    
+    // Handle Escape key for back navigation in summary mode
+    if (keyCode === ESCAPE && gameState.phase === 'summary') {
+        if (reviewingBoardIndex !== -1) {
+            // Reviewing individual board - go back to summary grid
+            backToSummary();
+        } else {
+            // In summary grid view - go back to lobby
+            backToLobbyFromSummary();
+        }
+        return;
+    }
+    
+    // Handle Escape key to leave room when in lobby
+    if (keyCode === ESCAPE && gameState.phase === 'lobby') {
+        leaveRoom();
         return;
     }
     

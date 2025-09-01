@@ -36,7 +36,7 @@ Counting Battle is a sophisticated multiplayer web-based Go territory counting p
 ### Multiplayer System
 - Real-time room-based multiplayer via Socket.IO
 - Room creation with 6-character codes
-- Host controls (start game, restart, return to lobby)
+- Host controls (start game, return to lobby)
 - Live leaderboard with player rankings
 - Room history showing completed games
 - Automatic lobby return after game completion
