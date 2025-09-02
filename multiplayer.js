@@ -393,9 +393,10 @@ function drawBoardReview() {
         
         // Show answer details - larger, bold, and positioned between title and board
         textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
-        textAlign(RIGHT, CENTER);
+        textAlign(CENTER, CENTER);
         textStyle(BOLD);
         fill(255);
+
         
         let formattedCorrect = "";
         let formattedPlayer = "";
@@ -408,15 +409,15 @@ function drawBoardReview() {
             formattedCorrect = formatAnswerWithEmojis(result.correctAnswer);
             formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
         }
-        const answerX = 0.35 * width;
-        const answerY = titleY + 0.5 * R;
-        text(`Answer: ${formattedCorrect}`, answerX, answerY);
-        text(`Your answer: ${formattedPlayer}`, answerX, answerY + R);
+        const answerX = 0.5 * width;
+        const answerY = titleY + 0.25 * R;
+        text(`Correct answer: ${formattedCorrect}`, answerX, answerY + R);
+        text(`   Your answer: ${formattedPlayer}`, answerX, answerY + 2*R);
         pop();
 
         // Draw board using exact same logic as normal gameplay
         const boardX = D;
-        const boardY = answerY + 2.5*R;
+        const boardY = answerY + 4*R;
         const cellSpacing = D;
         drawGoBoard(board, boardX, boardY, cellSpacing, R - halfStrokeWeight, 2*halfStrokeWeight, false);
 
@@ -425,8 +426,8 @@ function drawBoardReview() {
             push();
             fill(255); // White text
             textAlign(CENTER, CENTER);
-            textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
-            textStyle(BOLD); // Same style as hard mode buttons
+            textSize(R * 0.9);
+            textStyle(BOLD);
             textFont('Arial');
             const territoryX = 0.5 * width;
             const territoryY = boardY + cellSpacing*8.5 + R;
@@ -933,49 +934,49 @@ const SERVER_URL = window.location.hostname === 'localhost'
 // Dynamic dev mode that can be toggled locally
 let IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
 
-// Override console methods to only show output in dev mode
-//if (typeof window !== 'undefined') {
-    //const originalConsole = {
-        //log: console.log,
-        //error: console.error,
-        //warn: console.warn,
-        //info: console.info,
-        //debug: console.debug
-    //};
+// Override console methods to suppress output in production (NOT localhost)
+if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    const originalConsole = {
+        log: console.log,
+        error: console.error,
+        warn: console.warn,
+        info: console.info,
+        debug: console.debug
+    };
     
-    //console.log = function(...args) {
-        //if (IS_DEV_MODE) {
-            //return originalConsole.log(...args);
-        //}
-    //};
+    console.log = function(...args) {
+        if (IS_DEV_MODE) {
+            return originalConsole.log(...args);
+        }
+    };
     
-    //console.error = function(...args) {
-        //if (IS_DEV_MODE) {
-            //return originalConsole.error(...args);
-        //}
-    //};
+    console.error = function(...args) {
+        if (IS_DEV_MODE) {
+            return originalConsole.error(...args);
+        }
+    };
     
-    //console.warn = function(...args) {
-        //if (IS_DEV_MODE) {
-            //return originalConsole.warn(...args);
-        //}
-    //};
+    console.warn = function(...args) {
+        if (IS_DEV_MODE) {
+            return originalConsole.warn(...args);
+        }
+    };
     
-    //console.info = function(...args) {
-        //if (IS_DEV_MODE) {
-            //return originalConsole.info(...args);
-        //}
-    //};
+    console.info = function(...args) {
+        if (IS_DEV_MODE) {
+            return originalConsole.info(...args);
+        }
+    };
     
-    //console.debug = function(...args) {
-        //if (IS_DEV_MODE) {
-            //return originalConsole.debug(...args);
-        //}
-    //};
+    console.debug = function(...args) {
+        if (IS_DEV_MODE) {
+            return originalConsole.debug(...args);
+        }
+    };
     
-    //// Store original console for potential restoration
-    //window.originalConsole = originalConsole;
-//}
+    // Store original console for potential restoration
+    window.originalConsole = originalConsole;
+}
 
 // Mock data control - separate from dev mode
 let useMockData = false;
@@ -4543,10 +4544,10 @@ function windowResized() {
         width = 10 * D;
         height = 12 * D;
         
-        // Add extra height for territory information in detailed summary view
-        if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex !== -1) {
-            height += 3 * R; // Add proportional space for territory information (scales with window size)
-        }
+        //// Add extra height for territory information in detailed summary view
+        //if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex !== -1) {
+            //height += 3 * R; // Add proportional space for territory information (scales with window size)
+        //}
     }
     
     halfStrokeWeight = ceil(D/70);
