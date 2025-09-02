@@ -519,6 +519,22 @@ io.on('connection', (socket) => {
         return;
       }
       
+      console.log(`Room ${roomId}: Current game state for settings update: ${room.gameState}`);
+      
+      // If game is in playing state and all players are finished, mark as finished first
+      if (room.gameState === 'playing' && room.areAllPlayersFinished()) {
+        room.gameState = 'finished';
+        console.log(`Room ${roomId}: Marked game as finished since all players are done (for settings update)`);
+      }
+      
+      // If game is finished or playing, reset to waiting state first to allow settings update
+      if (room.gameState === 'finished' || room.gameState === 'playing') {
+        room.returnToLobby();
+        console.log(`Room ${roomId}: Reset ${room.gameState} game to waiting state for settings update`);
+      }
+      
+      console.log(`Room ${roomId}: Game state after reset: ${room.gameState}`);
+      
       // Update room settings
       if (data && data.settings) {
         console.log(`Room ${roomId}: Updating settings:`, data.settings);

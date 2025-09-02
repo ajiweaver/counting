@@ -260,18 +260,9 @@
                 </label>
             </div>
             <button onclick="createRoom()">Create Room</button>
-            <button onclick="showJoinRoom()">Join Room</button>
             <br>
             <button onclick="window.location.href='about.html'" style="background: #2196F3;">About</button>
             <button id="board-editor-link" onclick="window.location.href='board-editor.html'" style="background: #FF6B6B; display: none;">🎨 Board Editor</button>
-        </div>
-        
-        <div class="ui-panel hidden" id="join-room-panel">
-            <h2>Join Room</h2>
-            <input type="text" id="room-code" placeholder="Room Code" maxlength="6" style="text-transform: uppercase;">
-            <br>
-            <button onclick="joinRoom()">Join</button>
-            <button onclick="showMainMenu()">Back</button>
         </div>
         
         <div class="ui-panel hidden" id="room-panel">

@@ -13,7 +13,7 @@ room history, and a hard mode where you can train exact counting.
 1. **Create a room**
 1. **Set game options** inside the room, only the host can change these settings.
 2. **Choose difficulty**: In normal mode you only have to choose which color wins, while hard mode 
-3. **Invite friends** with the 6-character room code, you can get a direct link by clicking on the 🔗 button.
+3. **Invite friends** by sharing the room link - click the 🔗 button to copy the direct join link.
 4. **Play!** 
 
 *Notes:*

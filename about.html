@@ -60,37 +60,44 @@
             text-decoration: underline;
         }
         
-        .back-button-container {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #666;
-        }
-        
-        button {
-            margin: 10px;
-            padding: 12px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            background: #4CAF50;
+        /* Floating back button in top-left corner */
+        #floating-back-button {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
             color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            z-index: 1001;
+            transition: background 0.2s ease, transform 0.1s ease;
         }
         
-        button:hover {
-            background: #45a049;
+        #floating-back-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.05);
+        }
+        
+        #floating-back-button:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
+    <!-- Floating back button -->
+    <button id="floating-back-button" onclick="goBack()">← Back</button>
+    
     <div id="about-overlay">
         <div class="about-panel">
             <h1>Counting Battle!</h1>
 
             <p>
-            Counting Battle! is a multiplayer <a href="https://senseis.xmp.net/?Go">Go</a> territory counting game based on <a href="https://count.antontobi.com/">Anton Tobi's Count!</a>
+            This is a <a href="https://senseis.xmp.net/?Go">Go</a> territory counting game based on <a href="https://count.antontobi.com/">antonTobi's Count!</a>
             </p>
 
             <p> 
@@ -101,27 +108,22 @@
                 There's also a hard mode where you can practice exact territory counting instead of just choosing the right color.
             </p>
 
-            <h2>How to Play</h2>
-            
-            <p>
-            <strong>Goal:</strong> 
-            </p>
+            <h2>Game Setup:</h2>
 
             <p>
                 For each position, determine which side (Black or White) controls more territory. All positions assume no komi and no prisoners, with equal stones for both sides and no sekis.
             </p>
 
             <p>
-                <strong>Game Setup:</strong><br>
                 • Create a room<br>
                 • Set game parameters: time per board in seconds, and the number of boards per round.<br>
                 • Toggle Hard Mode for exact territory counting instead of just choosing the winning color.<br>
-                • Share the room code with friends to join.<br>
+                • Share the room link with friends - they can join directly by clicking the link.<br>
                 • Wait for all players to be ready, then start the game.
             </p>
 
+            <h2>During the Game:</h2>
             <p>
-                <strong>During the Game:</strong><br>
                 • All players will get the same positions, but the colors or orientation might be flipped.<br>
                 • <strong>Normal Mode:</strong> Click "Black" or "White" to indicate which side has more territory<br>
                 • <strong>Hard mode:</strong> select the color by clicking on the first button,
@@ -131,9 +133,9 @@
                 • If your time runs out, you cannot make any more points this round.
             </p>
 
+            <h2>Winning:</h2>
             <p>
-                <strong>Winning:</strong><br>
-                • Your score is the number of correct answers<br>
+                • Your score is increased by 1 for every correct answer.<br>
                 • The game ends when the first player completes all boards, when time runs out for all players, 
                     when all players resign. It will finish when no one is playing anymore.<br>
                 • There's a leaderboard dialog in the top-right corner of the board, you can hide it by clicking on it.<br>
@@ -142,32 +144,42 @@
                 • When the game is finished, you will automatically be sent to the game summary view, where you can review all boards.
             </p>
 
+            <h2>Room Features:</h2>
             <p>
-                <strong>Room Features:</strong><br>
                 • Set game settings<br>
                 • View real-time leaderboard during gameplay<br>
                 • See the room's history (past game results)<br>
                 • The lobby's player list will be sorted by total score, the player with the most right answers will be placed first.<br>
             </p>
 
+            <h2>Controls:</h2>
             <p>
-                <strong>Controls:</strong>
-                • Easy mode: Choose "black" or "white", depending on who won.<br>
+                • Easy mode: Choose the black or white stone on the bottom of the board. You can also use the left and right arrow keys on your keyboard.<br>
                 • Hard mode: Click the first stone on the bottom left corner to change the color, then select the right number from
-                the 4 stones on the right.
+                the 4 stones on the right. You can also change color by pressing the "C" key, the answers can be chosen by pressing numbers 1-4, which correspond
+                to the 4 remaning multiple choice buttons (first button from the left is 1, last button is 4).<br> 
+                • You can press the Escape key to go back to the previous page from anywhere in the game.
             </p>
 
+            <h2>Support & Contributing:</h2>
             <p>
-                <strong>Support & Contributing:</strong><br>
-                • Found a bug or have a feature request? Visit the <a href="https://github.com/ajiweaver/counting" target="_blank" style="color: #4CAF50;">GitHub repository</a><br>
-                • Report issues or contribute to the project on GitHub<br>
-                • View the complete source code and documentation<br>
+                Found a bug or have a feature request? Visit the <a href="https://github.com/ajiweaver/counting" target="_blank" style="color: #4CAF50;">GitHub repository</a><br>
             </p>
 
-            <div class="back-button-container">
-                <button onclick="window.location.href='./'">← Back to Game</button>
-            </div>
         </div>
     </div>
+    
+    <script>
+        function goBack() {
+            window.location.href = './';
+        }
+        
+        // Add Esc key support
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                goBack();
+            }
+        });
+    </script>
 </body>
 </html>

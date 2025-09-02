@@ -262,31 +262,12 @@ function drawMiniBoard(x, y, size, boardIndex, result) {
             boardString = applyBoardTransformations(boardString, result.transforms);
         }
         
-        // Parse board using same logic as loadMultiplayerBoard
-        const boardLines = boardString.split('\n').map(row => row.trim()).filter(row => row !== '');
-        const textBoard = boardLines.map(row => row.split(''));
-        const miniBoard = {width: textBoard[0].length, height: textBoard.length};
-        
-        // Create board array using same format as normal gameplay
-        const displayBoard = [];
-        for (let bx = 0; bx < miniBoard.width; bx++) {
-            displayBoard[bx] = [];
-            for (let by = 0; by < miniBoard.height; by++) {
-                const cell = textBoard[by][bx];
-                if (cell === 'x') displayBoard[bx][by] = -1; // Black
-                else if (cell === 'o') displayBoard[bx][by] = 1; // White
-                else displayBoard[bx][by] = 0; // Empty
-            }
-        }
-        
-        // Add width and height properties required by drawGoBoard
-        displayBoard.width = miniBoard.width;
-        displayBoard.height = miniBoard.height;
+        const displayBoard = getBoard(boardString);
         
         // Calculate mini cell size to fit board in available space
         const padding = 10;
         const availableSize = size - 2 * padding;
-        const miniD = Math.min(availableSize / miniBoard.width, availableSize / miniBoard.height);
+        const miniD = Math.min(availableSize / displayBoard.width, availableSize / displayBoard.height);
         
         // Use same ratio as normal gameplay: D = 2*R, stone = R - halfStrokeWeight
         // So miniD = 2*miniR, stone = miniR - miniHalfStroke
@@ -295,8 +276,8 @@ function drawMiniBoard(x, y, size, boardIndex, result) {
         const miniStoneSize = miniR - miniHalfStroke;
         
         // Center the board in the mini container
-        const boardPixelWidth = (miniBoard.width - 1) * miniD;
-        const boardPixelHeight = (miniBoard.height - 1) * miniD;
+        const boardPixelWidth = (displayBoard.width - 1) * miniD;
+        const boardPixelHeight = (displayBoard.height - 1) * miniD;
         const boardStartX = x + (size - boardPixelWidth) / 2;
         const boardStartY = y + (size - boardPixelHeight) / 2;
         
@@ -325,6 +306,7 @@ function drawMiniBoard(x, y, size, boardIndex, result) {
 }
 
 // Draw detailed board review mode using same logic as normal gameplay
+let lastLoggedDetailedBoard = null;
 function drawBoardReview() {
     // Use the filtered results stored during click handling, or fall back to current game filtering
     const boardResultsToUse = window.currentDisplayBoardResults || currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
@@ -340,23 +322,23 @@ function drawBoardReview() {
         let boardString = currentBoards[boardId];
         if (result.transforms) {
             boardString = applyBoardTransformations(boardString, result.transforms);
+            
+            // Log board transformations in detailed summary view (only once per board)
+            const boardKey = `${boardId}-${reviewingBoardIndex}`;
+            if (lastLoggedDetailedBoard !== boardKey) {
+                lastLoggedDetailedBoard = boardKey;
+                const t = result.transforms;
+                console.log(`🔄 DETAILED SUMMARY TRANSFORMATIONS (Board #${boardId}, Review ${reviewingBoardIndex + 1}):`);
+                console.log(`   flipX: ${t.flipX} (${t.flipX ? 'horizontally flipped' : 'not flipped horizontally'})`);
+                console.log(`   flipY: ${t.flipY} (${t.flipY ? 'vertically flipped' : 'not flipped vertically'})`);
+                console.log(`   transpose: ${t.transpose} (${t.transpose ? 'rotated 90°' : 'not rotated'})`);
+                console.log(`   invert: ${t.invert} (${t.invert ? 'colors inverted' : 'colors normal'})`);
+                testBoard(boardId, t.flipX, t.flipY, t.transpose, t.invert)
+            }
         }
         
         // Parse board using exact same logic as loadMultiplayerBoard
-        const boardLines = boardString.split('\n').map(row => row.trim()).filter(row => row !== '');
-        const textBoard = boardLines.map(row => row.split(''));
-        const tempBoard = {width: textBoard[0].length, height: textBoard.length};
-        
-        // Create board array using exact same format as normal gameplay
-        for (let x = 0; x < tempBoard.width; x++) {
-            tempBoard[x] = [];
-            for (let y = 0; y < tempBoard.height; y++) {
-                const cell = textBoard[y][x];
-                if (cell === 'x') tempBoard[x][y] = -1; // Black
-                else if (cell === 'o') tempBoard[x][y] = 1; // White
-                else tempBoard[x][y] = 0; // Empty
-            }
-        }
+        const tempBoard = getBoard(boardString)
         
         // Save current board state
         const savedBoard = board;
@@ -523,7 +505,7 @@ function drawGoBoard(boardData, startX, startY, cellSpacing, stoneRadius, stroke
     for (let x = 0; x < boardData.width; x++) {
         for (let y = 0; y < boardData.height; y++) {
             if (boardData[x] && boardData[x][y] !== 0) {
-                if (boardData[x][y] === -1) {
+                if (boardData[x][y] === window.BLACK) {
                     // Black stone - exactly match hard mode button style
                     fill(0); // Pure black like board stones
                     stroke(0); // Black stroke like hard mode buttons
@@ -611,18 +593,19 @@ async function viewHistoricalGameSummary(gameId) {
                                 
                                 if (response.transforms) {
                                     boardString = applyBoardTransformations(boardString, response.transforms);
-                                    deadStonesString = applyDeadStoneTransformations(deadStonesString, response.transforms);
+                                    deadStonesString = applyBoardTransformations(deadStonesString, response.transforms);
                                 }
                                 
                                 const territoryScore = calculateTerritoryScore(boardString, deadStonesString);
                                 blackScore = territoryScore.blackTerritory;
                                 whiteScore = territoryScore.whiteTerritory;
                                 difference = territoryScore.difference;
+                                magnitude = territoryScore.scoreMagnitude;
                                 winningColor = territoryScore.winningColor;
                                 
                                 if (result.game.settings?.hardMode) {
                                     // Hard mode: format as color+difference
-                                    correctAnswer = winningColor === 'black' ? `B+${Math.abs(difference)}` : `W+${Math.abs(difference)}`;
+                                    correctAnswer = winningColor === 'black' ? `B+${magnitude}` : `W+${magnitude}`;
                                 } else {
                                     // Normal mode: just the winning color
                                     correctAnswer = winningColor
@@ -677,7 +660,7 @@ async function viewHistoricalGameSummary(gameId) {
 
                     if (response.transforms) {
                         boardString = applyBoardTransformations(boardString, response.transforms);
-                        deadStonesString = applyDeadStoneTransformations(deadStonesString, response.transforms);
+                        deadStonesString = applyBoardTransformations(deadStonesString, response.transforms);
                     }
                     
                     if (boardString && deadStonesString) {
@@ -686,11 +669,12 @@ async function viewHistoricalGameSummary(gameId) {
                         blackScore = territoryScore.blackTerritory;
                         whiteScore = territoryScore.whiteTerritory;
                         difference = territoryScore.difference;
+                        magnitude = territoryScore.scoreMagnitude;
                         winningColor = territoryScore.winningColor;
                         
                         if (result.game.settings?.hardMode) {
                             // Hard mode: format as color+difference
-                            correctAnswer = winningColor === 'black' ? `B+${Math.abs(difference)}` : `W+${Math.abs(difference)}`;
+                            correctAnswer = winningColor === 'black' ? `B+${magnitude}` : `W+${magnitude}`;
                         } else {
                             // Normal mode: just the winning color
                             correctAnswer = winningColor
@@ -857,7 +841,7 @@ let score = 0;
 let timer = 0;
 let maxTime = 0; // Maximum time for current game
 let started = false;
-let correct;
+let correctColor;
 let failed = false;
 let defaultTimePerBoard = 60;
 let defaultTotalBoards = 10;
@@ -870,6 +854,12 @@ let lobbyCountdownCancelled = false; // Whether countdown was cancelled by user
 let selectedColorValue = 1; // 1 for black, -1 for white
 let selectedDifference = null; // number
 let scoreChoices = []; // array of 4 score difference choices
+
+// Normal mode stone button variables
+let normalModeBlackStone = null; // {x, y, radius} for click detection
+let normalModeWhiteStone = null; // {x, y, radius} for click detection
+let blackStoneBounce = 0; // bounce animation for black stone
+let whiteStoneBounce = 0; // bounce animation for white stone
 
 // Animation variables
 let stoneButtonBounce = 0; // bounce animation for stone button
@@ -1727,7 +1717,6 @@ function showMainMenu() {
     gameState.phase = 'menu';
     
     document.getElementById('main-menu').classList.remove('hidden');
-    document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.add('hidden');
 }
 
@@ -1980,16 +1969,6 @@ function formatDuration(seconds) {
     return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
 }
 
-function showJoinRoom() {
-    let playerName = document.getElementById('player-name').value.trim();
-    if (!playerName) {
-        playerName = getRandomName();
-        document.getElementById('player-name').value = playerName;
-    }
-    
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('join-room-panel').classList.remove('hidden');
-}
 
 // Initialize the UI
 let uiInitialized = false;
@@ -2629,45 +2608,9 @@ function handleJoinRoomSuccess(response) {
     showRoomLobby();
 }
 
-function joinRoom() {
-    let playerName = document.getElementById('player-name').value.trim();
-    const roomCode = document.getElementById('room-code').value.trim().toUpperCase();
-    
-    if (!playerName) {
-        playerName = getRandomName();
-        document.getElementById('player-name').value = playerName;
-    }
-    
-    if (!roomCode) {
-        alert('Please enter room code');
-        return;
-    }
-    
-    gameState.playerName = playerName;
-    gameState.roomId = roomCode;
-    
-    // Save player name to localStorage
-    saveToStorage(STORAGE_KEYS.PLAYER_NAME, playerName);
-    
-    socket.emit('join-room', {
-        roomId: roomCode,
-        playerName: playerName,
-        playerUUID: getPlayerUUID(), // Include UUID for host persistence
-        isDevMode: IS_DEV_MODE
-    }, (response) => {
-        if (response.success) {
-            handleJoinRoomSuccess(response);
-        } else {
-            alert('Failed to join room: ' + response.error);
-            // Clear room storage if join failed
-            clearRoomStorage();
-        }
-    });
-}
 
 async function showRoomLobby() {
     document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('join-room-panel').classList.add('hidden');
     document.getElementById('room-panel').classList.remove('hidden');
     
     // Hide leaderboard elements when entering lobby
@@ -3637,36 +3580,6 @@ function applyBoardTransformations(boardString, transforms) {
     return transformedBoard.map(row => row.join('')).join('\n');
 }
 
-function applyDeadStoneTransformations(deadStonesString, transforms) {
-    if (!transforms) {
-        return deadStonesString;
-    }
-    
-    const { flipX, flipY, transpose } = transforms;
-    // Note: invert doesn't affect dead stones since they're just markers
-    
-    const deadStonesLines = deadStonesString.split('\n').map(row => row.trim()).filter(row => row !== '');
-    let deadStonesBoard = deadStonesLines.map(row => row.split(''));
-    
-    // Create transformed dead stones board
-    let transformedDeadStones = Array.from({length: deadStonesBoard.length}, () => new Array(deadStonesBoard[0].length));
-    
-    const width = deadStonesBoard[0].length;
-    const height = deadStonesBoard.length;
-    
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            let a = flipX ? width - 1 - x : x;
-            let b = flipY ? height - 1 - y : y;
-            if (transpose) [a, b] = [b, a];
-            
-            transformedDeadStones[y][x] = deadStonesBoard[b][a];
-        }
-    }
-    
-    return transformedDeadStones.map(row => row.join('')).join('\n');
-}
-
 // Convert deadstones string representation to an object
 function convertDeadStoneStringToObject(boardString, flipX=false, flipY=false, transpose=false) {
 
@@ -3690,33 +3603,8 @@ function convertDeadStoneStringToObject(boardString, flipX=false, flipY=false, t
 // Territory scoring using lightvector/goscorer
 function calculateTerritoryScore(board, deadstones_raw) {
     // Convert our internal board representation to goscorer format
-    let stones;
-    
-    if (typeof board === 'string') {
-        // Board is a string representation (from boards.js)
-        stones = convertBoardStringToStones(board);
-    } else {
-        // Board is our internal 2D array format - convert it
-        stones = [];
-        for (let y = 0; y < board.height; y++) {
-            stones[y] = [];
-            for (let x = 0; x < board.width; x++) {
-                if (board[x][y] === -1) {
-                    stones[y][x] = window.BLACK;
-                } else if (board[x][y] === 1) {
-                    stones[y][x] = window.WHITE;
-                } else {
-                    stones[y][x] = window.EMPTY;
-                }
-            }
-        }
-    }
-
-    if (typeof board === 'string') {
-        deadstones = convertDeadStoneStringToObject(deadstones_raw);
-    } else {
-        // Board is our internal 2D array format - do nothing
-    }
+    stones = convertBoardStringToStones(board);
+    deadstones = convertDeadStoneStringToObject(deadstones_raw);
     
     const ysize = stones.length;
     const xsize = stones[0].length;
@@ -3750,7 +3638,7 @@ function calculateTerritoryScore(board, deadstones_raw) {
         whiteTerritory,
         difference, // Positive if black has more territory, negative if white
         winningColor: difference > 0 ? 'black' : difference < 0 ? 'white' : 'tie',
-        scoreDifference: Math.abs(difference)
+        scoreMagnitude: Math.abs(difference)
     };
 }
 
@@ -3804,6 +3692,139 @@ function drawNormalModeUI() {
     
     text(whiteText, wx, wy);
     textStyle(NORMAL);
+}
+
+function drawNormalModeStoneUI() {
+    // Update bounce animations
+    blackStoneBounce *= bounceDecay;
+    whiteStoneBounce *= bounceDecay;
+    
+    // Update error shake animation (same as hard mode)
+    if (errorShakeIntensity > 0) {
+        errorShakeTime++;
+        if (errorShakeTime >= errorShakeDuration) {
+            errorShakeIntensity = 0; // End shake
+            errorShakeTime = 0;
+        } else {
+            errorShakeIntensity *= errorShakeDecay; // Fade shake over time
+        }
+    }
+    
+    // Stone button properties (same as hard mode)
+    const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
+    const buttonStrokeWeight = halfStrokeWeight * 2;
+    
+    // Black stone button (left position)
+    // Calculate shake offset for error animation (only for incorrect stone)
+    let blackShakeOffsetX = 0;
+    let blackShakeOffsetY = 0;
+    let showBlackAsError = false;
+    
+    if (errorShakeIntensity > 0 && correct !== 'black') {
+        // Only shake if this is NOT the correct answer
+        blackShakeOffsetX = (Math.random() - 0.5) * errorShakeIntensity * 8;
+        blackShakeOffsetY = (Math.random() - 0.5) * errorShakeIntensity * 8;
+        showBlackAsError = true;
+    }
+    
+    push();
+    translate(bx + blackShakeOffsetX, by + blackShakeOffsetY);
+    
+    // Calculate bounce scale for black stone
+    const blackScale = 1 + blackStoneBounce * bounceStrength;
+    
+    // Handle hover effect
+    if (dist(mouseX, mouseY, bx, by) < stoneRadius) {
+        if (mouseIsPressed) {
+            scale(blackScale * 1.1); // Bigger when pressed
+        } else {
+            scale(blackScale * 1.05); // Slightly bigger on hover
+        }
+    } else {
+        scale(blackScale);
+    }
+    
+    // Handle dev mode highlighting and error state
+    let strokeColor = 0;
+    let strokeWeight_val = buttonStrokeWeight;
+    
+    if (showBlackAsError) {
+        // Error state - red stone during shake animation
+        fill('#FF4444');
+        stroke('#CC0000');
+        strokeWeight(buttonStrokeWeight * 2);
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
+    } else {
+        // Normal black stone
+        fill(0); // Pure black like board stones
+        if (IS_DEV_MODE && correctColor === 'black') {
+            strokeColor = '#00FF00'; // Green highlight for correct answer
+            strokeWeight_val = buttonStrokeWeight * 2;
+        }
+        stroke(strokeColor);
+        strokeWeight(strokeWeight_val);
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
+    }
+    
+    pop();
+    
+    // White stone button (right position)
+    // Calculate shake offset for error animation (only for incorrect stone)
+    let whiteShakeOffsetX = 0;
+    let whiteShakeOffsetY = 0;
+    let showWhiteAsError = false;
+    
+    if (errorShakeIntensity > 0 && correctColor !== 'white') {
+        // Only shake if this is NOT the correct answer
+        whiteShakeOffsetX = (Math.random() - 0.5) * errorShakeIntensity * 8;
+        whiteShakeOffsetY = (Math.random() - 0.5) * errorShakeIntensity * 8;
+        showWhiteAsError = true;
+    }
+    
+    push();
+    translate(wx + whiteShakeOffsetX, wy + whiteShakeOffsetY);
+    
+    // Calculate bounce scale for white stone
+    const whiteScale = 1 + whiteStoneBounce * bounceStrength;
+    
+    // Handle hover effect
+    if (dist(mouseX, mouseY, wx, wy) < stoneRadius) {
+        if (mouseIsPressed) {
+            scale(whiteScale * 1.1); // Bigger when pressed
+        } else {
+            scale(whiteScale * 1.05); // Slightly bigger on hover
+        }
+    } else {
+        scale(whiteScale);
+    }
+    
+    // Handle dev mode highlighting and error state
+    strokeColor = 0;
+    strokeWeight_val = buttonStrokeWeight;
+    
+    if (showWhiteAsError) {
+        // Error state - red stone during shake animation
+        fill('#FF4444');
+        stroke('#CC0000');
+        strokeWeight(buttonStrokeWeight * 2);
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
+    } else {
+        // Normal white stone
+        fill(255); // Pure white like board stones
+        if (IS_DEV_MODE && correctColor === 'white') {
+            strokeColor = '#00FF00'; // Green highlight for correct answer
+            strokeWeight_val = buttonStrokeWeight * 2;
+        }
+        stroke(strokeColor);
+        strokeWeight(strokeWeight_val);
+        circle(0, 0, stoneRadius - buttonStrokeWeight/2);
+    }
+    
+    pop();
+    
+    // Store stone positions for click detection
+    normalModeBlackStone = { x: bx, y: by, radius: stoneRadius };
+    normalModeWhiteStone = { x: wx, y: wy, radius: stoneRadius };
 }
 
 function drawHardModeUI() {
@@ -3920,7 +3941,7 @@ function drawHardModeUI() {
                                   ((selectedColorValue === 1 && window.currentTerritoryScore.winningColor === 'black') ||
                                    (selectedColorValue === -1 && window.currentTerritoryScore.winningColor === 'white'));
             const isCorrectScore = hasCorrectColor && window.currentTerritoryScore && 
-                                 score === window.currentTerritoryScore.scoreDifference;
+                                 score === window.currentTerritoryScore.scoreMagnitude;
             
             // Check if this button is currently selected
             const isSelected = selectedDifference === score;
@@ -4018,44 +4039,56 @@ function loadMultiplayerBoard(boardIndex) {
     
     // Update board number indicator
     updateBoardNumberIndicator();
-    // Parse board string representation (x=black, o=white, .=empty)
-    const currentBoards = getCurrentBoards();
-    const boardLines = currentBoards[boardNumber].split('\n').map(row => row.trim()).filter(row => row !== '');
-    const textBoard = boardLines.map(row => row.split(''));
-    
-    board = {width: textBoard[0].length, height: textBoard.length};
 
+    // Extract board strings
+    const currentBoards = getCurrentBoards();
+    let boardString = currentBoards[boardNumber]
+    const currentDeadStones = getCurrentDeadStones();
+    let deadStonesString = currentDeadStones[boardNumber];
+
+    // Compute board transformations
     let flipX = Math.random() < 0.5;
     let flipY = Math.random() < 0.5;
-    let transpose = (board.width == board.height) && (Math.random() < 0.5);
+    let transpose = Math.random() < 0.5;
     let invert = Math.random() < 0.5;
-    correct = invert ? "white" : "black";
     
     // Save transformations globally for server submission
     currentBoardTransforms = { flipX, flipY, transpose, invert };
     
-    // Show correct answer in dev mode console
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correct.toUpperCase()}`);
-
-    for (let x = 0; x < board.width; x++) {
-        board[x] = {};
-        for (let y = 0; y < board.height; y++) {
-            let a = flipX ? board.width - 1 - x : x;
-            let b = flipY ? board.height - 1 - y : y;
-            if (transpose) [a, b] = [b, a];
-            board[x][y] = {'o':1,'x':-1,'.':0}[textBoard[b][a]] * (-1)**invert;
-        }
-    }
+    // Log board transformations during gameplay
+    console.log(`🔄 BOARD TRANSFORMATIONS (Board #${boardNumber}, Game Board ${boardIndex + 1}):`);
+    console.log(`   flipX: ${flipX} (${flipX ? 'horizontally flipped' : 'not flipped horizontally'})`);
+    console.log(`   flipY: ${flipY} (${flipY ? 'vertically flipped' : 'not flipped vertically'})`);
+    console.log(`   transpose: ${transpose} (${transpose ? 'rotated 90°' : 'not rotated'})`);
+    console.log(`   invert: ${invert} (${invert ? 'colors inverted' : 'colors normal'})`);
     
-    // Do the same procedure for the deadstones
-    const currentDeadStones = getCurrentDeadStones();
-    deadstones = convertDeadStoneStringToObject(currentDeadStones[boardNumber], flipX, flipY, transpose);
+
+    // Use the processed board that matches what the player sees, and pass the board number for dead stones
+    boardString = applyBoardTransformations(boardString, currentBoardTransforms);
+    deadStonesString = applyBoardTransformations(deadStonesString, currentBoardTransforms);
+    const territoryScore = calculateTerritoryScore(boardString, deadStonesString);
+
+    // Update board variable
+    board = getBoard(boardString)
+
+    // Show correct answer in dev mode console
+    const correctDifference = territoryScore.difference;
+    if (correctDifference > 0) {
+        correctColor = "black"
+    }
+    else if (correctDifference < 0) {
+        correctColor = "white"
+    }
+    else {
+        correctColor = "tie"
+    }
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correctColor.toUpperCase()}`);
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Difference is ${correctDifference}`);
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Black territory is ${territoryScore.blackTerritory}`);
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - White territory is ${territoryScore.whiteTerritory}`);
     
     // Calculate territory score for hard mode
-    let territoryScore = null;
     if (gameState.settings && gameState.settings.hardMode) {
-        // Use the processed board that matches what the player sees, and pass the board number for dead stones
-        territoryScore = calculateTerritoryScore(board, deadstones);
         
         // Show detailed scoring in dev mode
         console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackTerritory}, White: ${territoryScore.whiteTerritory}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
@@ -4065,7 +4098,6 @@ function loadMultiplayerBoard(boardIndex) {
         window.currentTerritoryScore = territoryScore;
         
         // Generate score choice buttons with varied wrong choices (no duplicates)
-        const correctDifference = territoryScore.scoreDifference;
         const uniqueChoices = new Set();
         
         // Add the correct answer first
@@ -4164,6 +4196,14 @@ function loadMultiplayerBoard(boardIndex) {
         scoreButtonBounces = [0, 0, 0, 0];
     }
     
+    // Reset normal mode stone animations
+    blackStoneBounce = 0;
+    whiteStoneBounce = 0;
+    
+    // Reset error shake animation when loading new board
+    errorShakeIntensity = 0;
+    errorShakeTime = 0;
+    
     failed = false;
     
     // Don't override completion colors - only set green for active gameplay
@@ -4221,7 +4261,7 @@ function updateLeaderboard() {
 function submitMultiplayer(guess) {
     if (gameState.phase !== 'playing' || penaltyMode) return;
     
-    const isCorrect = guess === correct;
+    const isCorrect = guess === correctColor;
     
     // Track board result for summary screen
     if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
@@ -4238,7 +4278,7 @@ function submitMultiplayer(guess) {
             
             if (currentBoardTransforms) {
                 boardString = applyBoardTransformations(boardString, currentBoardTransforms);
-                deadStonesString = applyDeadStoneTransformations(deadStonesString, currentBoardTransforms);
+                deadStonesString = applyBoardTransformations(deadStonesString, currentBoardTransforms);
             }
             
             const rawTerritoryScore = calculateTerritoryScore(boardString, deadStonesString);
@@ -4248,10 +4288,10 @@ function submitMultiplayer(guess) {
                 territoryScore = {
                     blackTerritory: rawTerritoryScore.whiteTerritory,
                     whiteTerritory: rawTerritoryScore.blackTerritory,
-                    difference: -rawTerritoryScore.difference,
+                    difference: rawTerritoryScore.difference,
                     winningColor: rawTerritoryScore.winningColor === 'black' ? 'white' : 
                                  rawTerritoryScore.winningColor === 'white' ? 'black' : rawTerritoryScore.winningColor,
-                    scoreDifference: rawTerritoryScore.scoreDifference
+                    scoreMagnitude: rawTerritoryScore.scoreMagnitude
                 };
             } else {
                 territoryScore = rawTerritoryScore;
@@ -4264,12 +4304,12 @@ function submitMultiplayer(guess) {
             boardId: boardId,
             gameInstanceId: currentGameInstanceId,
             playerAnswer: guess,
-            correctAnswer: correct,
+            correctAnswer: correctColor,
             isCorrect: isCorrect,
             blackScore: territoryScore ? territoryScore.blackTerritory : 0,
             whiteScore: territoryScore ? territoryScore.whiteTerritory : 0,
             difference: territoryScore ? territoryScore.difference : 0,
-            winningColor: territoryScore ? territoryScore.winningColor : correct,
+            winningColor: territoryScore ? territoryScore.winningColor : correctColor,
             transforms: currentBoardTransforms
         };
         
@@ -4325,6 +4365,10 @@ function submitMultiplayer(guess) {
                 // Wrong answer - only apply penalty if game is still active and there's more than 1 second left
                 if (gameState.phase !== 'finished' && timer > 1000) {
                     console.log('Wrong answer - applying 1 second penalty');
+                    
+                    // Trigger shake animation for wrong answer (same as hard mode)
+                    errorShakeIntensity = 1.0; // Start with full shake intensity
+                    errorShakeTime = 0; // Reset time counter
                     
                     // Enter penalty mode to prevent input
                     penaltyMode = true;
@@ -4437,10 +4481,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log('Successfully auto-joined room from URL');
                     } else {
                         console.error('Failed to auto-join room:', response.error);
-                        // Show join panel as fallback
-                        document.getElementById('room-code').value = roomIdFromUrl.toUpperCase();
-                        showJoinRoom();
-                        alert(`Failed to join room: ${response.error}`);
+                        // Show error message but stay on main menu
+                        alert(`Failed to join room "${roomIdFromUrl}": ${response.error}\n\nPlease ask the room creator for a new room link.`);
                     }
                 });
             } else {
@@ -4495,9 +4537,9 @@ function windowResized() {
 
     sx = width/2;
     sy = 1.5*R;
-    bx = width/2 - 2*D;
+    bx = width/2 - D;
     by = height - 1.5*R;
-    wx = width/2 + 2*D;
+    wx = width/2 + D;
     wy = height - 1.5*R;
     
     resizeCanvas(width, height);
@@ -4593,13 +4635,12 @@ function draw() {
                 // Hard mode: Show stone selection buttons and score buttons
                 drawHardModeUI();
             } else {
-                // Normal mode: Show traditional Black/White text buttons
-                drawNormalModeUI();
+                // Normal mode: Show stone buttons (like hard mode but simpler)
+                drawNormalModeStoneUI();
             }
         }
         
         // Handle timer countdown and game logic
-        
         if (started && gameState.phase === 'playing' && timer > 0) {
             timer -= deltaTime;
             
@@ -4647,6 +4688,32 @@ function draw() {
     // Removed countdown display - players stay in summary screen
 }
 
+function getBoard(boardString){
+    const boardLines = boardString.split('\n').map(row => row.trim()).filter(row => row !== '');
+    const textBoard = boardLines.map(row => row.split(''));
+    const boardArray = {width: textBoard[0].length, height: textBoard.length};
+    const displayBoard = [];
+    for (let bx = 0; bx < boardArray.width; bx++) {
+        displayBoard[bx] = [];
+        for (let by = 0; by < boardArray.height; by++) {
+            const cell = textBoard[by][bx];
+            if (cell === 'x') { 
+                displayBoard[bx][by] = window.BLACK;
+            } else if (cell === 'o') {
+                displayBoard[bx][by] = window.WHITE;
+            } else {
+                displayBoard[bx][by] = 0; // Empty
+            }
+        }
+    }
+
+    // Add width and height properties required by drawGoBoard
+    displayBoard.width = boardArray.width;
+    displayBoard.height = boardArray.height;
+
+    return displayBoard;
+}
+
 function handleHardModeClick() {
     // Check stone toggle button click
     if (window.hardModeStone) {
@@ -4682,6 +4749,36 @@ function handleHardModeClick() {
     }
 }
 
+function handleNormalModeClick() {
+    // Check black stone button click
+    if (normalModeBlackStone) {
+        const stone = normalModeBlackStone;
+        
+        if (dist(mouseX, mouseY, stone.x, stone.y) < stone.radius) {
+            // Trigger bounce animation for black stone button
+            blackStoneBounce = 1;
+            
+            // Submit black answer
+            submitMultiplayer('black');
+            return;
+        }
+    }
+    
+    // Check white stone button click
+    if (normalModeWhiteStone) {
+        const stone = normalModeWhiteStone;
+        
+        if (dist(mouseX, mouseY, stone.x, stone.y) < stone.radius) {
+            // Trigger bounce animation for white stone button
+            whiteStoneBounce = 1;
+            
+            // Submit white answer
+            submitMultiplayer('white');
+            return;
+        }
+    }
+}
+
 function submitHardModeAnswer(colorValue, scoreDiff) {
     // Calculate the signed score (positive for black, negative for white)
     const signedScore = colorValue * scoreDiff;
@@ -4694,9 +4791,9 @@ function submitHardModeAnswer(colorValue, scoreDiff) {
     if (window.currentTerritoryScore) {
         const territoryScore = window.currentTerritoryScore;
         const correctColorValue = territoryScore.winningColor === 'black' ? 1 : -1;
-        const correctSignedScore = correctColorValue * territoryScore.scoreDifference;
+        const correctSignedScore = territoryScore.difference;
         
-        console.log(`🎯 Correct answer: ${territoryScore.winningColor} by ${territoryScore.scoreDifference} = ${correctSignedScore}`);
+        console.log(`🎯 Correct answer: ${territoryScore.winningColor} by ${territoryScore.scoreMagnitude} = ${correctSignedScore}`);
         
         const isCorrect = signedScore === correctSignedScore;
         console.log(`✅ Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
@@ -4797,6 +4894,10 @@ function submitMultiplayerHardMode(guess, isCorrect) {
                 if (gameState.phase !== 'finished' && timer > 1000) {
                     console.log('❌ Wrong answer - applying 1 second penalty');
                     
+                    // Trigger shake animation for wrong answer
+                    errorShakeIntensity = 1.0; // Start with full shake intensity
+                    errorShakeTime = 0; // Reset time counter
+                    
                     // Enter penalty mode to prevent input
                     penaltyMode = true;
                     
@@ -4866,12 +4967,8 @@ function handleClick() {
         // Hard mode click handling
         handleHardModeClick();
     } else {
-        // Normal mode click handling
-        if (dist(mouseX, mouseY, bx, by) < D) {
-            submitMultiplayer('black');
-        } else if (dist(mouseX, mouseY, wx, wy) < D) {
-            submitMultiplayer('white');
-        }
+        // Normal mode stone button click handling
+        handleNormalModeClick();
     }
     
     mouseX = -1;
@@ -4907,8 +5004,39 @@ function keyPressed() {
     
     if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode || failed) return;
     
-    if (keyCode === LEFT_ARROW) submitMultiplayer('black');
-    if (keyCode === RIGHT_ARROW) submitMultiplayer('white');
+    // Hard mode keyboard controls
+    if (gameState.settings && gameState.settings.hardMode) {
+        // 'C' key to toggle color selection
+        if (key === 'c' || key === 'C') {
+            selectedColorValue = selectedColorValue === 1 ? -1 : 1;
+            console.log(`Toggled to ${selectedColorValue === 1 ? 'black' : 'white'} (${selectedColorValue})`);
+            
+            // Trigger bounce animation for stone button
+            stoneButtonBounce = 1;
+            return;
+        }
+        
+        // Number keys 1-4 to select score buttons
+        if (key >= '1' && key <= '4') {
+            const buttonIndex = parseInt(key) - 1; // Convert to 0-based index
+            
+            if (scoreChoices && scoreChoices[buttonIndex] !== undefined) {
+                selectedDifference = scoreChoices[buttonIndex];
+                console.log(`Selected score difference: ${selectedDifference} (button ${key})`);
+                
+                // Trigger bounce animation for selected score button
+                scoreButtonBounces[buttonIndex] = 1;
+                
+                // Submit answer with color value and score
+                submitHardModeAnswer(selectedColorValue, selectedDifference);
+            }
+            return;
+        }
+    } else {
+        // Normal mode keyboard controls
+        if (keyCode === LEFT_ARROW) submitMultiplayer('black');
+        if (keyCode === RIGHT_ARROW) submitMultiplayer('white');
+    }
 }
 
 function mousePressed() {
@@ -4955,3 +5083,149 @@ function touchMoved() {
 }
 
 // Functions are now automatically global in regular script mode
+
+// =============================================
+// TESTING FUNCTIONS (for debugging)
+// =============================================
+
+/**
+ * Test function to debug territory counting
+ * Usage: testBoard(0, false, false, false, false) - tests board 0 with no transformations
+ * Usage: testBoard(42, true, false, true, true) - tests board 42 with flipX, transpose, and invert
+ */
+window.testBoard = function(boardNumber, flipX = false, flipY = false, transpose = false, invert = false) {
+    console.log(`\n🧪 === TESTING BOARD ${boardNumber} ===`);
+    console.log(`🔄 Transforms: flipX=${flipX}, flipY=${flipY}, transpose=${transpose}, invert=${invert}`);
+    
+    try {
+        // Get the original board and dead stones
+        const currentBoards = getCurrentBoards();
+        const currentDeadStones = getCurrentDeadStones();
+        
+        if (boardNumber >= currentBoards.length) {
+            console.error(`❌ Board ${boardNumber} doesn't exist! Max board: ${currentBoards.length - 1}`);
+            return;
+        }
+        
+        const originalBoard = currentBoards[boardNumber];
+        const originalDeadStones = currentDeadStones[boardNumber];
+        
+        console.log(`📋 Original board (${boardNumber}):`);
+        console.log(originalBoard);
+        console.log(`💀 Original dead stones:`);
+        console.log(originalDeadStones);
+        
+        // Apply transformations
+        const transforms = { flipX, flipY, transpose, invert };
+        const transformedBoard = applyBoardTransformations(originalBoard, transforms);
+        const transformedDeadStones = applyBoardTransformations(originalDeadStones, transforms);
+        
+        console.log(`\n🔄 Transformed board:`);
+        console.log(transformedBoard);
+        console.log(`🔄 Transformed dead stones:`);
+        console.log(transformedDeadStones);
+        
+        // Calculate territory score on original (untransformed) board
+        console.log(`\n📊 === TERRITORY CALCULATION (Original) ===`);
+        const originalScore = calculateTerritoryScore(originalBoard, originalDeadStones);
+        console.log(`🖤 Black Territory: ${originalScore.blackTerritory}`);
+        console.log(`⚪ White Territory: ${originalScore.whiteTerritory}`);
+        console.log(`📊 Difference: ${originalScore.difference} (${originalScore.winningColor} wins by ${originalScore.scoreMagnitude})`);
+        
+        // Calculate territory score on transformed board
+        console.log(`\n📊 === TERRITORY CALCULATION (Transformed) ===`);
+        const transformedScore = calculateTerritoryScore(transformedBoard, transformedDeadStones);
+        console.log(`🖤 Black Territory: ${transformedScore.blackTerritory}`);
+        console.log(`⚪ White Territory: ${transformedScore.whiteTerritory}`);
+        console.log(`📊 Difference: ${transformedScore.difference} (${transformedScore.winningColor} wins by ${transformedScore.scoreMagnitude})`);
+        
+        // If invert was applied, show what the adjusted score should be (like in game)
+        if (invert) {
+            console.log(`\n🔄 === INVERTED SCORE ADJUSTMENT ===`);
+            const adjustedScore = {
+                blackTerritory: transformedScore.whiteTerritory,
+                whiteTerritory: transformedScore.blackTerritory,
+                difference: -transformedScore.difference,
+                winningColor: transformedScore.winningColor === 'black' ? 'white' : 
+                             transformedScore.winningColor === 'white' ? 'black' : transformedScore.winningColor,
+                scoreMagnitude: transformedScore.scoreMagnitude
+            };
+            console.log(`🖤 Adjusted Black Territory: ${adjustedScore.blackTerritory}`);
+            console.log(`⚪ Adjusted White Territory: ${adjustedScore.whiteTerritory}`);
+            console.log(`📊 Adjusted Difference: ${adjustedScore.difference} (${adjustedScore.winningColor} wins by ${adjustedScore.scoreMagnitude})`);
+            
+            // Check if adjustment matches original
+            const matches = (
+                adjustedScore.blackTerritory === originalScore.blackTerritory &&
+                adjustedScore.whiteTerritory === originalScore.whiteTerritory &&
+                adjustedScore.winningColor === originalScore.winningColor
+            );
+            console.log(`✅ Inversion adjustment ${matches ? 'CORRECT' : 'INCORRECT'}`);
+        }
+        
+        // Show what the correct answer would be for both normal and hard mode
+        console.log(`\n🎯 === CORRECT ANSWERS ===`);
+        const correctColor = invert ? (originalScore.winningColor === 'black' ? 'white' : 'black') : originalScore.winningColor;
+        console.log(`🎮 Normal Mode Answer: ${correctColor}`);
+        console.log(`🔥 Hard Mode Answer: ${correctColor === 'black' ? 'B' : 'W'}+${originalScore.scoreMagnitude}`);
+        
+        return {
+            original: originalScore,
+            transformed: transformedScore,
+            correctColor: correctColor,
+            boardNumber: boardNumber,
+            transforms: transforms
+        };
+        
+    } catch (error) {
+        console.error(`❌ Error testing board ${boardNumber}:`, error);
+        console.error(error.stack);
+    }
+};
+
+/**
+ * Test multiple boards at once
+ * Usage: testBoards([0, 1, 2]) - tests boards 0, 1, 2 with random transforms
+ * Usage: testBoards([0, 1], false, true, false, true) - tests boards with specific transforms
+ */
+window.testBoards = function(boardNumbers, flipX = null, flipY = null, transpose = null, invert = null) {
+    console.log(`\n🧪 === TESTING MULTIPLE BOARDS ===`);
+    
+    const results = [];
+    for (const boardNum of boardNumbers) {
+        // Use specified transforms or randomize them
+        const useFlipX = flipX !== null ? flipX : Math.random() < 0.5;
+        const useFlipY = flipY !== null ? flipY : Math.random() < 0.5;
+        const useTranspose = transpose !== null ? transpose : Math.random() < 0.5;
+        const useInvert = invert !== null ? invert : Math.random() < 0.5;
+        
+        const result = testBoard(boardNum, useFlipX, useFlipY, useTranspose, useInvert);
+        if (result) {
+            results.push(result);
+        }
+    }
+    
+    console.log(`\n📊 === SUMMARY OF ${results.length} BOARDS ===`);
+    results.forEach(result => {
+        console.log(`Board ${result.boardNumber}: ${result.correctColor} wins by ${result.original.scoreMagnitude} (transforms: ${JSON.stringify(result.transforms)})`);
+    });
+    
+    return results;
+};
+
+/**
+ * Quick test of current board being displayed
+ * Usage: testCurrentBoard()
+ */
+window.testCurrentBoard = function() {
+    if (!gameState.boardSequence || gameState.currentBoard >= gameState.boardSequence.length) {
+        console.log('❌ No current board to test');
+        return;
+    }
+    
+    const currentBoardNumber = gameState.boardSequence[gameState.currentBoard];
+    const transforms = currentBoardTransforms || { flipX: false, flipY: false, transpose: false, invert: false };
+    
+    console.log(`🎮 Testing current game board (board #${currentBoardNumber}, game board ${gameState.currentBoard + 1})`);
+    return testBoard(currentBoardNumber, transforms.flipX, transforms.flipY, transforms.transpose, transforms.invert);
+};
