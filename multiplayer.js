@@ -17,6 +17,7 @@ function getCurrentDeadStones() {
 
 // Multiplayer game state
 let socket;
+let socketInitialized = false;
 let gameState = {
     phase: 'menu', // menu, lobby, playing, finished, summary
     roomId: null,
@@ -203,25 +204,59 @@ function drawSummaryScreen() {
         return;
     }
     
-    // Title and subtitle (always use current game format)
+    // Title and subtitle (always use current game format) with responsive sizing
     push();
     fill(255);
     textAlign(CENTER, CENTER);
-    textSize(24);
+    
+    // Scale title size based on canvas width (24px base, scales between 18-32px)
+    const titleSize = Math.max(18, Math.min(32, width * 0.024));
+    textSize(titleSize);
     textFont('Arial');
     
     text(titleText, width/2, 50);
     
-    textSize(16);
+    // Scale subtitle size based on canvas width (16px base, scales between 12-20px)
+    const subtitleSize = Math.max(12, Math.min(20, width * 0.016));
+    textSize(subtitleSize);
     fill(200);
     text(subtitleText, width/2, 80);
     pop();
     
-    // Calculate grid layout (always use current game format)
-    const boardsPerRow = Math.min(4, Math.ceil(Math.sqrt(totalCount)));
+    // Calculate responsive grid layout
+    const availableWidth = width * 0.9; // Use 90% of canvas width with margins
+    const maxMiniSize = 120;
+    const minMiniSize = 80;
+    const gap = Math.max(10, width * 0.015); // Responsive gap (1.5% of width, min 10px)
+    
+    // Calculate optimal boards per row based on available width
+    let boardsPerRow = Math.min(4, Math.ceil(Math.sqrt(totalCount)));
+    let miniSize = maxMiniSize;
+    
+    // Adjust layout for smaller screens
+    while (boardsPerRow > 1) {
+        const testWidth = boardsPerRow * miniSize + (boardsPerRow - 1) * gap;
+        if (testWidth <= availableWidth) {
+            break; // Current layout fits
+        }
+        
+        // Try smaller miniSize first
+        if (miniSize > minMiniSize) {
+            miniSize = Math.max(minMiniSize, miniSize - 10);
+        } else {
+            // If miniSize is at minimum, reduce boards per row
+            boardsPerRow--;
+            miniSize = maxMiniSize; // Reset size for fewer columns
+        }
+    }
+    
+    // Ensure at least 1 board per row with minimum size
+    if (boardsPerRow < 1) {
+        boardsPerRow = 1;
+        miniSize = Math.min(maxMiniSize, availableWidth);
+    }
+    
     const rows = Math.ceil(totalCount / boardsPerRow);
-    const miniSize = 120;
-    const gap = 20;
     const gridWidth = boardsPerRow * miniSize + (boardsPerRow - 1) * gap;
     const gridStartX = (width - gridWidth) / 2;
     const gridStartY = 120;
@@ -336,15 +371,9 @@ function drawBoardReview() {
                 testBoard(boardId, t.flipX, t.flipY, t.transpose, t.invert)
             }
         }
-        
+
         // Parse board using exact same logic as loadMultiplayerBoard
-        const tempBoard = getBoard(boardString)
-        
-        // Save current board state
-        const savedBoard = board;
-        
-        // Temporarily use this board for display
-        board = tempBoard;
+        board = getBoard(boardString)
         
         clear();
         
@@ -359,12 +388,12 @@ function drawBoardReview() {
         textFont('Arial');
         textStyle(BOLD);
         fill(255);
-        text(`Board #${boardId}`, width/2, D+20);
+        titleY = R;
+        text(`Board #${boardId}`, width/2, titleY);
         
         // Show answer details - larger, bold, and positioned between title and board
         textSize(R * 0.72); // Same proportional sizing as hard mode buttons (R * 1.2 * 0.6)
         textAlign(RIGHT, CENTER);
-        const lineSpacing = R; // Proportional line spacing
         textStyle(BOLD);
         fill(255);
         
@@ -380,14 +409,14 @@ function drawBoardReview() {
             formattedPlayer = formatAnswerWithEmojis(result.playerAnswer);
         }
         const answerX = 0.35 * width;
-        const answerY = D + 55;
-        text(`     Answer: ${formattedCorrect}`, answerX, answerY);
-        text(`Your answer: ${formattedPlayer}`, answerX, answerY + lineSpacing);
+        const answerY = titleY + 0.5 * R;
+        text(`Answer: ${formattedCorrect}`, answerX, answerY);
+        text(`Your answer: ${formattedPlayer}`, answerX, answerY + R);
         pop();
 
         // Draw board using exact same logic as normal gameplay
         const boardX = D;
-        const boardY = 2*D + 70;
+        const boardY = answerY + 2.5*R;
         const cellSpacing = D;
         drawGoBoard(board, boardX, boardY, cellSpacing, R - halfStrokeWeight, 2*halfStrokeWeight, false);
 
@@ -400,20 +429,12 @@ function drawBoardReview() {
             textStyle(BOLD); // Same style as hard mode buttons
             textFont('Arial');
             const territoryX = 0.5 * width;
-            const territoryY = 2*D + 90 + cellSpacing*8.5;
+            const territoryY = boardY + cellSpacing*8.5 + R;
             
-            // Break into 3 lines with proportional spacing: "Territory", "⚫ X", "⚪ Y"
-            text('Territory', territoryX, territoryY);
-            text(`⚫ ${result.blackScore}   ⚪ ${result.whiteScore}`, territoryX, territoryY + lineSpacing);
-            text(``, territoryX, territoryY + lineSpacing * 2);
-            //text(`⚫ ${result.blackScore}`, territoryX, territoryY + lineSpacing);
-            //text(`⚪ ${result.whiteScore}`, territoryX, territoryY + lineSpacing * 2);
+            // Print territory
+            text(`⚫ ${result.blackScore}   ⚪ ${result.whiteScore}`, territoryX, territoryY);
             pop();
         }
-        
-        
-        // Restore original board state
-        board = savedBoard;
     }
 }
 
@@ -423,7 +444,7 @@ function viewBoardFromSummary(boardIndex) {
     reviewingBoardIndex = boardIndex;
     // Resize canvas to normal size for board review
     windowResized();
-    // Use centered layout for individual board review
+    // Use centered layout for individual board review (no scrolling)
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
     // Update button visibility for board review
@@ -504,6 +525,16 @@ function drawGoBoard(boardData, startX, startY, cellSpacing, stoneRadius, stroke
     // Draw stones (exactly matching hard mode button style)
     for (let x = 0; x < boardData.width; x++) {
         for (let y = 0; y < boardData.height; y++) {
+            // Draw tengen
+            if (x == 4 && y == 4) {
+                // Black stone - exactly match hard mode button style
+                fill(0); // Pure black like board stones
+                stroke(0); // Black stroke like hard mode buttons
+                strokeWeight(strokeWeightValue);
+                circle(x * cellSpacing, y * cellSpacing, 0.15*stoneRadius);
+            }
+
+            // Draw board data
             if (boardData[x] && boardData[x][y] !== 0) {
                 if (boardData[x][y] === window.BLACK) {
                     // Black stone - exactly match hard mode button style
@@ -705,6 +736,12 @@ async function viewHistoricalGameSummary(gameId) {
         summaryLogged = false; // Reset logging flag
         cachedSummaryData = null; // Clear cached data for historical view
         
+        // Enable scrolling for summary content (same as enterSummaryMode)
+        document.body.style.alignItems = 'flex-start';
+        document.body.style.paddingTop = '20px';
+        
+        windowResized() 
+        
         // Show UI elements needed for canvas interaction
         document.getElementById('leaderboard').style.display = 'none';
         document.getElementById('leaderboard-toggle').style.display = 'none';
@@ -897,48 +934,48 @@ const SERVER_URL = window.location.hostname === 'localhost'
 let IS_DEV_MODE = window.location.hostname === 'localhost' || window.location.search.includes('dev=1');
 
 // Override console methods to only show output in dev mode
-if (typeof window !== 'undefined') {
-    const originalConsole = {
-        log: console.log,
-        error: console.error,
-        warn: console.warn,
-        info: console.info,
-        debug: console.debug
-    };
+//if (typeof window !== 'undefined') {
+    //const originalConsole = {
+        //log: console.log,
+        //error: console.error,
+        //warn: console.warn,
+        //info: console.info,
+        //debug: console.debug
+    //};
     
-    console.log = function(...args) {
-        if (IS_DEV_MODE) {
-            originalConsole.log.apply(console, args);
-        }
-    };
+    //console.log = function(...args) {
+        //if (IS_DEV_MODE) {
+            //return originalConsole.log(...args);
+        //}
+    //};
     
-    console.error = function(...args) {
-        if (IS_DEV_MODE) {
-            originalConsole.error.apply(console, args);
-        }
-    };
+    //console.error = function(...args) {
+        //if (IS_DEV_MODE) {
+            //return originalConsole.error(...args);
+        //}
+    //};
     
-    console.warn = function(...args) {
-        if (IS_DEV_MODE) {
-            originalConsole.warn.apply(console, args);
-        }
-    };
+    //console.warn = function(...args) {
+        //if (IS_DEV_MODE) {
+            //return originalConsole.warn(...args);
+        //}
+    //};
     
-    console.info = function(...args) {
-        if (IS_DEV_MODE) {
-            originalConsole.info.apply(console, args);
-        }
-    };
+    //console.info = function(...args) {
+        //if (IS_DEV_MODE) {
+            //return originalConsole.info(...args);
+        //}
+    //};
     
-    console.debug = function(...args) {
-        if (IS_DEV_MODE) {
-            originalConsole.debug.apply(console, args);
-        }
-    };
+    //console.debug = function(...args) {
+        //if (IS_DEV_MODE) {
+            //return originalConsole.debug(...args);
+        //}
+    //};
     
-    // Store original console for potential restoration
-    window.originalConsole = originalConsole;
-}
+    //// Store original console for potential restoration
+    //window.originalConsole = originalConsole;
+//}
 
 // Mock data control - separate from dev mode
 let useMockData = false;
@@ -1530,6 +1567,19 @@ window.debugLeaderboard = async function(roomId = null) {
 
 // Initialize socket connection
 function initSocket() {
+    console.log('🔌 initSocket() called - SERVER_URL:', SERVER_URL);
+    
+    if (socketInitialized) {
+        console.log('⚠️ Socket already initialized, skipping');
+        return;
+    }
+    
+    if (socket) {
+        console.log('⚠️ Socket already exists, disconnecting old one');
+        socket.disconnect();
+    }
+    
+    socketInitialized = true;
     socket = io(SERVER_URL);
     
     socket.on('connect', () => {
@@ -1559,11 +1609,8 @@ function initSocket() {
         
         // Only reload leaderboard history when the current user joins (not when others join)
         if (isCurrentPlayer && gameState.phase === 'lobby' && gameState.roomId) {
-            // Don't load if showRoomLobby will be called soon (which loads it anyway)
-            setTimeout(() => {
-                console.log('🔄 Loading history after current user joined (if not loaded recently) - roomId:', gameState.roomId);
-                loadLeaderboardHistory(); // This will be debounced if called too frequently
-            }, 1000); // Longer delay to avoid conflict with showRoomLobby
+            console.log('🔄 Player joined room - history will be loaded by showRoomLobby()');
+            // Don't call loadLeaderboardHistory here since showRoomLobby() already handles it
         }
     });
     
@@ -1785,8 +1832,6 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
             return;
         }
         
-        historyContent.innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">Loading...</div>';
-        
         // Use mock data only when explicitly enabled
         if (useMockData) {
             console.log('🚀 Development mode: Using mock data');
@@ -1848,21 +1893,6 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
             if (roomGames.length > 0) {
                 displayLeaderboardHistory(roomGames);
             } else {
-                // If no games found and we just joined, try again once
-                // (server might not have updated data yet)
-                const isRecentJoin = gameState.phase === 'lobby' && gameState.roomId;
-                if (isRecentJoin && !isRetry && historyRetryCount < MAX_HISTORY_RETRIES) {
-                    historyRetryCount++;
-                    console.log('⏳ No games found on first try, retrying in 2 seconds... (attempt', historyRetryCount, '/', MAX_HISTORY_RETRIES, ')');
-                    setTimeout(() => {
-                        console.log('🔄 Retrying loadLeaderboardHistory after delay');
-                        loadLeaderboardHistory(true);
-                    }, 2000);
-                } else {
-                    // Reset retry counter for next time
-                    historyRetryCount = 0;
-                }
-                
                 // Show empty table when no games for this room
                 displayLeaderboardHistory([]);
             }
@@ -2748,7 +2778,7 @@ function updateRoomSettingsDisplay() {
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <input type="number" id="room-boards-input" min="0" max="50" step="5" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                        <input type="number" id="room-boards-input" min="5" max="50" step="5" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
@@ -2989,6 +3019,9 @@ function leaveRoom() {
     clearRoomStorage();
     console.log('Left room, cleared storage');
     
+    // Reset URL before reloading to ensure clean state
+    resetBrowserURL();
+    
     socket.disconnect();
     location.reload(); // Simple way to reset everything
 }
@@ -3057,8 +3090,10 @@ async function returnToLobbyUI() {
     userOverridePhase = null;
     console.log('🔓 Cleared user override phase for lobby return');
     
-    // Reset browser URL to base URL (remove room parameter)
-    resetBrowserURL();
+    // Only reset browser URL if completely leaving the room (not in room lobby)
+    if (!gameState.roomId || gameState.phase !== 'lobby') {
+        resetBrowserURL();
+    }
     
     // Clear the canvas and reset background
     if (typeof clear === 'function') {
@@ -3402,9 +3437,6 @@ async function updateUI() {
             if (gameState.phase === 'playing' || gameState.phase === 'finished' || gameState.allPlayersFinished) {
                 const pointText = player.score === 1 ? 'point' : 'points';
                 scoreText = ` • ${player.score} ${pointText}`;
-                if (player.finished) {
-                    scoreText += ' ⏹️'; // Stop symbol for finished players
-                }
             } else if (showingTotalScores) {
                 const pointText = displayScore === 1 ? 'point' : 'points';
                 scoreText = ` • ${displayScore} ${pointText}`;
@@ -3478,6 +3510,10 @@ function startMultiplayerGame() {
     // Show board number indicator for bug reporting
     showBoardNumberIndicator();
     
+    // Hide summary back buttons during gameplay
+    document.getElementById('back-to-summary-button').style.display = 'none';
+    document.getElementById('back-to-lobby-button').style.display = 'none';
+    
     // Show leaderboard and toggle button
     leaderboardVisible = true;
     document.getElementById('leaderboard').style.display = 'block';
@@ -3498,6 +3534,9 @@ function startMultiplayerGame() {
     document.body.style.backgroundColor = '';
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
+    
+    // Ensure canvas is properly sized for gameplay
+    windowResized();
     
     // Load first board
     loadMultiplayerBoard(0);
@@ -3601,9 +3640,9 @@ function convertDeadStoneStringToObject(boardString, flipX=false, flipY=false, t
 }
 
 // Territory scoring using lightvector/goscorer
-function calculateTerritoryScore(board, deadstones_raw) {
+function calculateTerritoryScore(board_raw, deadstones_raw) {
     // Convert our internal board representation to goscorer format
-    stones = convertBoardStringToStones(board);
+    stones = convertBoardStringToStones(board_raw);
     deadstones = convertDeadStoneStringToObject(deadstones_raw);
     
     const ysize = stones.length;
@@ -3720,7 +3759,7 @@ function drawNormalModeStoneUI() {
     let blackShakeOffsetY = 0;
     let showBlackAsError = false;
     
-    if (errorShakeIntensity > 0 && correct !== 'black') {
+    if (errorShakeIntensity > 0 && correctColor !== 'black') {
         // Only shake if this is NOT the correct answer
         blackShakeOffsetX = (Math.random() - 0.5) * errorShakeIntensity * 8;
         blackShakeOffsetY = (Math.random() - 0.5) * errorShakeIntensity * 8;
@@ -4072,20 +4111,15 @@ function loadMultiplayerBoard(boardIndex) {
     board = getBoard(boardString)
 
     // Show correct answer in dev mode console
-    const correctDifference = territoryScore.difference;
-    if (correctDifference > 0) {
-        correctColor = "black"
-    }
-    else if (correctDifference < 0) {
-        correctColor = "white"
-    }
-    else {
-        correctColor = "tie"
-    }
+    correctColor = territoryScore.winningColor
+    const scoreMagnitude = territoryScore.scoreMagnitude;
     console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correctColor.toUpperCase()}`);
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Difference is ${correctDifference}`);
+    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Difference is ${territoryScore.difference}`);
     console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Black territory is ${territoryScore.blackTerritory}`);
     console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - White territory is ${territoryScore.whiteTerritory}`);
+
+    // Store the territory info for answer validation
+    window.currentTerritoryScore = territoryScore;
     
     // Calculate territory score for hard mode
     if (gameState.settings && gameState.settings.hardMode) {
@@ -4094,14 +4128,12 @@ function loadMultiplayerBoard(boardIndex) {
         console.log(`🎯 DEV MODE: Territory scoring - Black: ${territoryScore.blackTerritory}, White: ${territoryScore.whiteTerritory}, Difference: ${territoryScore.difference}, Winner: ${territoryScore.winningColor}`);
         console.log(`🎯 DEV MODE: Loading board ${boardIndex + 1}/${gameState.boardSequence.length} (board #${boardNumber}) - boardNumber: ${boardNumber}`);
         
-        // Store the territory info for answer validation
-        window.currentTerritoryScore = territoryScore;
         
         // Generate score choice buttons with varied wrong choices (no duplicates)
         const uniqueChoices = new Set();
         
         // Add the correct answer first
-        uniqueChoices.add(correctDifference);
+        uniqueChoices.add(scoreMagnitude);
         
         // Generate wrong choices within max difference of 3
         const maxDifference = 3;
@@ -4137,13 +4169,13 @@ function loadMultiplayerBoard(boardIndex) {
             }
             
             if (useNegativeOffset) {
-                choice = Math.max(1, correctDifference - offset); // Prevent zero as wrong answer
+                choice = Math.max(1, scoreMagnitude - offset); // Prevent zero as wrong answer
             } else {
-                choice = correctDifference + offset;
+                choice = scoreMagnitude + offset;
             }
             
             // Don't add zero as a wrong answer (only allow if it's the correct answer)
-            if (choice === 0 && correctDifference !== 0) {
+            if (choice === 0 && scoreMagnitude !== 0) {
                 continue;
             }
             
@@ -4164,15 +4196,15 @@ function loadMultiplayerBoard(boardIndex) {
                 // Try to add choices within max difference range
                 for (let offset = 1; offset <= maxDifference; offset++) {
                     // Try positive offset first
-                    const posChoice = correctDifference + offset;
+                    const posChoice = scoreMagnitude + offset;
                     if (!currentChoices.includes(posChoice)) {
                         fallbackChoice = posChoice;
                         break;
                     }
                     
                     // Try negative offset (ensuring minimum of 1)
-                    const negChoice = Math.max(1, correctDifference - offset);
-                    if (!currentChoices.includes(negChoice) && !(negChoice === 0 && correctDifference !== 0)) {
+                    const negChoice = Math.max(1, scoreMagnitude - offset);
+                    if (!currentChoices.includes(negChoice) && !(negChoice === 0 && scoreMagnitude !== 0)) {
                         fallbackChoice = negChoice;
                         break;
                     }
@@ -4258,9 +4290,9 @@ function updateLeaderboard() {
     // Host control buttons have been removed from leaderboard
 }
 
-function submitMultiplayer(guess) {
+function submitNormalModeAnswer(guess) {
     if (gameState.phase !== 'playing' || penaltyMode) return;
-    
+
     const isCorrect = guess === correctColor;
     
     // Track board result for summary screen
@@ -4281,21 +4313,8 @@ function submitMultiplayer(guess) {
                 deadStonesString = applyBoardTransformations(deadStonesString, currentBoardTransforms);
             }
             
-            const rawTerritoryScore = calculateTerritoryScore(boardString, deadStonesString);
+            territoryScore = calculateTerritoryScore(boardString, deadStonesString);
             
-            // If transforms include invert, flip the territory scores
-            if (currentBoardTransforms && currentBoardTransforms.invert) {
-                territoryScore = {
-                    blackTerritory: rawTerritoryScore.whiteTerritory,
-                    whiteTerritory: rawTerritoryScore.blackTerritory,
-                    difference: rawTerritoryScore.difference,
-                    winningColor: rawTerritoryScore.winningColor === 'black' ? 'white' : 
-                                 rawTerritoryScore.winningColor === 'white' ? 'black' : rawTerritoryScore.winningColor,
-                    scoreMagnitude: rawTerritoryScore.scoreMagnitude
-                };
-            } else {
-                territoryScore = rawTerritoryScore;
-            }
         } catch (error) {
             console.error('Error calculating territory score for tracking:', error);
         }
@@ -4306,10 +4325,10 @@ function submitMultiplayer(guess) {
             playerAnswer: guess,
             correctAnswer: correctColor,
             isCorrect: isCorrect,
-            blackScore: territoryScore ? territoryScore.blackTerritory : 0,
-            whiteScore: territoryScore ? territoryScore.whiteTerritory : 0,
-            difference: territoryScore ? territoryScore.difference : 0,
-            winningColor: territoryScore ? territoryScore.winningColor : correctColor,
+            blackScore: territoryScore.blackTerritory,
+            whiteScore: territoryScore.whiteTerritory,
+            difference: territoryScore.difference,
+            winningColor: territoryScore.winningColor,
             transforms: currentBoardTransforms
         };
         
@@ -4475,9 +4494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, (response) => {
                     if (response.success) {
                         handleJoinRoomSuccess(response);
-                        // Clear the URL parameter after successful join
-                        const newUrl = window.location.origin + window.location.pathname;
-                        window.history.replaceState({}, document.title, newUrl);
+                        // Keep the room parameter in URL for refresh persistence
                         console.log('Successfully auto-joined room from URL');
                     } else {
                         console.error('Failed to auto-join room:', response.error);
@@ -4537,6 +4554,7 @@ function windowResized() {
 
     sx = width/2;
     sy = 1.5*R;
+    
     bx = width/2 - D;
     by = height - 1.5*R;
     wx = width/2 + D;
@@ -4561,6 +4579,13 @@ function windowResized() {
 function draw() {
     // Handle different game phases
     if (gameState.phase === 'summary') {
+        // Don't draw summary if lobby UI overlay is visible
+        const uiOverlay = document.getElementById('ui-overlay');
+        if (uiOverlay && uiOverlay.style.display !== 'none') {
+            clear(); // Clear canvas when lobby is visible
+            return;
+        }
+        
         // Always ensure back buttons are visible in summary mode
         updateSummaryButtons();
         
@@ -4759,7 +4784,7 @@ function handleNormalModeClick() {
             blackStoneBounce = 1;
             
             // Submit black answer
-            submitMultiplayer('black');
+            submitNormalModeAnswer('black');
             return;
         }
     }
@@ -4773,7 +4798,7 @@ function handleNormalModeClick() {
             whiteStoneBounce = 1;
             
             // Submit white answer
-            submitMultiplayer('white');
+            submitNormalModeAnswer('white');
             return;
         }
     }
@@ -4790,7 +4815,6 @@ function submitHardModeAnswer(colorValue, scoreDiff) {
     // Validate hard mode answer using territory score
     if (window.currentTerritoryScore) {
         const territoryScore = window.currentTerritoryScore;
-        const correctColorValue = territoryScore.winningColor === 'black' ? 1 : -1;
         const correctSignedScore = territoryScore.difference;
         
         console.log(`🎯 Correct answer: ${territoryScore.winningColor} by ${territoryScore.scoreMagnitude} = ${correctSignedScore}`);
@@ -5032,10 +5056,28 @@ function keyPressed() {
             }
             return;
         }
+        
+        // HJKL keys (vim-style) to select score buttons: H=1st, J=2nd, K=3rd, L=4th
+        const hjklKeys = {'h': 0, 'j': 1, 'k': 2, 'l': 3, 'H': 0, 'J': 1, 'K': 2, 'L': 3};
+        if (hjklKeys.hasOwnProperty(key)) {
+            const buttonIndex = hjklKeys[key];
+            
+            if (scoreChoices && scoreChoices[buttonIndex] !== undefined) {
+                selectedDifference = scoreChoices[buttonIndex];
+                console.log(`Selected score difference: ${selectedDifference} (${key.toUpperCase()} key)`);
+                
+                // Trigger bounce animation for selected score button
+                scoreButtonBounces[buttonIndex] = 1;
+                
+                // Submit answer with color value and score
+                submitHardModeAnswer(selectedColorValue, selectedDifference);
+            }
+            return;
+        }
     } else {
         // Normal mode keyboard controls
-        if (keyCode === LEFT_ARROW) submitMultiplayer('black');
-        if (keyCode === RIGHT_ARROW) submitMultiplayer('white');
+        if (keyCode === LEFT_ARROW) submitNormalModeAnswer('black');
+        if (keyCode === RIGHT_ARROW) submitNormalModeAnswer('white');
     }
 }
 
@@ -5063,13 +5105,13 @@ function touchEnded() {
 }
 
 function mouseWheel(event) {
-    // In summary mode, allow default browser scrolling
+    // In summary mode, only allow scrolling in grid view, not in detailed board view
     if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
-        // Don't prevent default scrolling in summary grid view
+        // Allow scrolling only in summary grid view
         return true;
     }
-    // Let browser handle default scrolling behavior in other modes too
-    return true;
+    // Prevent scrolling in detailed board view and other modes
+    return false;
 }
 
 function touchStarted() {
@@ -5139,40 +5181,15 @@ window.testBoard = function(boardNumber, flipX = false, flipY = false, transpose
         console.log(`⚪ White Territory: ${transformedScore.whiteTerritory}`);
         console.log(`📊 Difference: ${transformedScore.difference} (${transformedScore.winningColor} wins by ${transformedScore.scoreMagnitude})`);
         
-        // If invert was applied, show what the adjusted score should be (like in game)
-        if (invert) {
-            console.log(`\n🔄 === INVERTED SCORE ADJUSTMENT ===`);
-            const adjustedScore = {
-                blackTerritory: transformedScore.whiteTerritory,
-                whiteTerritory: transformedScore.blackTerritory,
-                difference: -transformedScore.difference,
-                winningColor: transformedScore.winningColor === 'black' ? 'white' : 
-                             transformedScore.winningColor === 'white' ? 'black' : transformedScore.winningColor,
-                scoreMagnitude: transformedScore.scoreMagnitude
-            };
-            console.log(`🖤 Adjusted Black Territory: ${adjustedScore.blackTerritory}`);
-            console.log(`⚪ Adjusted White Territory: ${adjustedScore.whiteTerritory}`);
-            console.log(`📊 Adjusted Difference: ${adjustedScore.difference} (${adjustedScore.winningColor} wins by ${adjustedScore.scoreMagnitude})`);
-            
-            // Check if adjustment matches original
-            const matches = (
-                adjustedScore.blackTerritory === originalScore.blackTerritory &&
-                adjustedScore.whiteTerritory === originalScore.whiteTerritory &&
-                adjustedScore.winningColor === originalScore.winningColor
-            );
-            console.log(`✅ Inversion adjustment ${matches ? 'CORRECT' : 'INCORRECT'}`);
-        }
-        
         // Show what the correct answer would be for both normal and hard mode
         console.log(`\n🎯 === CORRECT ANSWERS ===`);
-        const correctColor = invert ? (originalScore.winningColor === 'black' ? 'white' : 'black') : originalScore.winningColor;
-        console.log(`🎮 Normal Mode Answer: ${correctColor}`);
-        console.log(`🔥 Hard Mode Answer: ${correctColor === 'black' ? 'B' : 'W'}+${originalScore.scoreMagnitude}`);
+        console.log(`🎮 Normal Mode Answer: ${transformedScore.winningColor}`);
+        console.log(`🔥 Hard Mode Answer: ${transformedScore.winningColor === 'black' ? 'B' : 'W'}+${transformedScore.scoreMagnitude}`);
         
         return {
             original: originalScore,
             transformed: transformedScore,
-            correctColor: correctColor,
+            winningColor: transformedScore.winningColor,
             boardNumber: boardNumber,
             transforms: transforms
         };
@@ -5207,7 +5224,7 @@ window.testBoards = function(boardNumbers, flipX = null, flipY = null, transpose
     
     console.log(`\n📊 === SUMMARY OF ${results.length} BOARDS ===`);
     results.forEach(result => {
-        console.log(`Board ${result.boardNumber}: ${result.correctColor} wins by ${result.original.scoreMagnitude} (transforms: ${JSON.stringify(result.transforms)})`);
+        console.log(`Board ${result.boardNumber}: ${result.winningColor} wins by ${result.original.scoreMagnitude} (transforms: ${JSON.stringify(result.transforms)})`);
     });
     
     return results;

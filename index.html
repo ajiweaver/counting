@@ -108,6 +108,32 @@
             display: none;
             transition: opacity 0.3s ease;
             z-index: 100;
+            max-width: min(200px, 10vw);
+            min-width: 150px;
+            max-height: min(400px, 60vh);
+            overflow-y: auto;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            #leaderboard {
+                max-width: min(180px, 15vw);
+                min-width: 120px;
+                max-height: 50vh;
+                padding: 10px;
+                font-size: 11px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #leaderboard {
+                max-height: 40vh;
+                padding: 8px;
+                font-size: 11px;
+            }
         }
         
         /* Special styling for emojis in leaderboard */
@@ -283,7 +309,6 @@
                     <span id="dev-mode-indicator" style="display: none; font-size: 10px; color: #FFA726; margin-left: 5px;">(DEV)</span>
                 </h3>
                 <div id="history-content" style="max-height: 200px; overflow-y: auto; font-size: 12px;">
-                    <div style="color: #888; text-align: center; padding: 20px;">Loading...</div>
                 </div>
             </div>
         </div>

@@ -208,6 +208,9 @@ class GameRoom {
     this.currentBoard = 0;
     this.startTime = null;
     
+    // Clear player responses from previous game
+    this.playerResponses.clear();
+    
     // Reset all players
     for (let player of this.players.values()) {
       player.score = 0;
