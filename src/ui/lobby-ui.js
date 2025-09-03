@@ -895,6 +895,8 @@ function windowResized() {
 }
 
 function keyPressed() {
+    console.log('⌨️ keyPressed called - keyCode:', keyCode, 'key:', key, 'ENTER constant:', ENTER, 'gameState.phase:', gameState.phase);
+    
     // Handle Escape key for resignation during gameplay
     if (keyCode === ESCAPE && gameState.phase === 'playing' && !failed) {
         resignGame();
@@ -914,7 +916,7 @@ function keyPressed() {
     }
     
     // Handle Enter key to view first board in summary grid mode
-    if (keyCode === ENTER && gameState.phase === 'summary' && reviewingBoardIndex === -1) {
+    if ((keyCode === ENTER || keyCode === 13 || key === 'Enter') && gameState.phase === 'summary' && reviewingBoardIndex === -1) {
         // Always use the same filtering logic as the miniboards grid (don't reuse stale data)
         const boardResultsToShow = currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
         if (boardResultsToShow.length > 0) {
@@ -945,14 +947,19 @@ function keyPressed() {
     }
     
     // Handle Enter key to create room when in main menu
-    if (keyCode === ENTER && gameState.phase === 'menu') {
-        createRoom();
-        console.log('⌨️ Enter pressed - creating room from main menu');
-        return;
+    if (keyCode === ENTER || keyCode === 13 || key === 'Enter') {
+        console.log('⌨️ Enter key detected, current phase:', gameState.phase);
+        if (gameState.phase === 'menu') {
+            console.log('⌨️ In menu phase - creating room');
+            createRoom();
+            return;
+        } else {
+            console.log('⌨️ Not in menu phase, ignoring Enter key');
+        }
     }
     
     // Handle Enter key to start game when in lobby (if user is creator and can start)
-    if (keyCode === ENTER && gameState.phase === 'lobby') {
+    if ((keyCode === ENTER || keyCode === 13 || key === 'Enter') && gameState.phase === 'lobby') {
         const startButton = document.getElementById('start-button');
         if (startButton && !startButton.classList.contains('hidden') && gameState.isCreator) {
             startGame();
@@ -1585,8 +1592,8 @@ function drawSummaryScreen() {
         const computedTitleText = `Game Summary - ${correctCount}/${totalCount} Correct`;
         
         // Add average time to subtitle if available
-        const avgTimeText = avgTime !== null ? ` • Avg: ${avgTime.toFixed(1)}s` : '';
-        const computedSubtitleText = `Click any board to review in detail${avgTimeText}`;
+        const avgTimeText = avgTime !== null ? `Average time per board: ${avgTime.toFixed(1)}s` : '';
+        const computedSubtitleText = `Click any board to review in detail`;
         
         // Cache the computed data
         cachedSummaryData = {
@@ -1594,7 +1601,8 @@ function drawSummaryScreen() {
             correctCount,
             totalCount,
             titleText: computedTitleText,
-            subtitleText: computedSubtitleText
+            subtitleText: computedSubtitleText,
+            avgTimeText: avgTimeText, 
         };
     }
     
@@ -1602,6 +1610,7 @@ function drawSummaryScreen() {
     boardResultsToShow = cachedSummaryData.boardResultsToShow;
     titleText = cachedSummaryData.titleText;
     subtitleText = cachedSummaryData.subtitleText;
+    avgTimeText = cachedSummaryData.avgTimeText;
     const { correctCount, totalCount } = cachedSummaryData;
     
     clear();
@@ -1639,13 +1648,18 @@ function drawSummaryScreen() {
     textSize(titleSize);
     textFont('Arial');
     
-    text(titleText, width/2, 50);
+    const spacing = 30;
+    titleTextY = 20 + spacing;
+    text(titleText, width/2, titleTextY);
     
     // Scale subtitle size based on canvas width (16px base, scales between 12-20px)
     const subtitleSize = Math.max(12, Math.min(20, width * 0.016));
     textSize(subtitleSize);
     fill(200);
-    text(subtitleText, width/2, 80);
+    subtitleTextY = titleTextY + spacing;
+    text(subtitleText, width/2, subtitleTextY);
+    avgTimeY = subtitleTextY + spacing;
+    text(avgTimeText, width/2, avgTimeY);
     pop();
     
     // Calculate responsive grid layout
@@ -1684,7 +1698,7 @@ function drawSummaryScreen() {
     const rows = Math.ceil(totalCount / boardsPerRow);
     const gridWidth = boardsPerRow * miniSize + (boardsPerRow - 1) * gap;
     const gridStartX = (width - gridWidth) / 2;
-    const gridStartY = 120;
+    const gridStartY = avgTimeY + spacing + 10;
     
     // Draw mini boards (always use current game format)
     for (let i = 0; i < boardResultsToShow.length; i++) {
@@ -2722,8 +2736,8 @@ function drawHardModeUI() {
                 strokeColor = '#CC0000';
                 strokeWeight_val = buttonStrokeWeight * 1.5;
                 textColor = '#FFFFFF';
-            } else if (isCorrectScore) {
-                // Golden highlight for correct answer when correct color is selected
+            } else if (isCorrectScore && IS_DEV_MODE) {
+                // Golden highlight for correct answer when correct color is selected (dev mode only)
                 fillColor = '#FFD700';
                 strokeColor = '#FF8C00'; // Darker gold for border
                 strokeWeight_val = buttonStrokeWeight * 1.5;

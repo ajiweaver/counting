@@ -6,169 +6,173 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Counting Battle is a sophisticated multiplayer web-based Go territory counting practice game. Players join rooms and compete to correctly identify which side (black or white) is winning on random Go board positions, with an optional hard mode requiring exact territory score differences. The game features real-time multiplayer synchronization, customizable timers, multiple game modes, and comprehensive scoring systems using the lightvector/goscorer library.
 
+## Common Development Commands
+
+### Running the Game
+```bash
+# Install server dependencies
+npm run install-server
+
+# Start the multiplayer server (development mode with nodemon)
+npm run dev
+
+# Start the multiplayer server (production mode)
+npm start
+
+# Serve the frontend files locally
+python3 -m http.server 8000
+
+# Access the game
+# Frontend: http://localhost:8000
+# Server: http://localhost:3000
+```
+
+### Development Tools
+- **Board Editor**: Access at `http://localhost:8000/board-editor.html` (localhost only)
+- **Development Mode**: Toggle in main menu (localhost only) - shows correct answers
+- **Debug Console**: Available in browser console for testing and debugging
+
 ## Architecture Overview
 
-### Frontend (Client-Side)
-- **index.html**: Main application entry point with module loading and UI structure
-- **multiplayer.js**: Core game logic, UI rendering, Socket.IO client, and p5.js integration
-- **boards.js**: 1000+ hand-crafted Go board positions in string format
-- **goscorer.js**: Imported Go territory scoring library (lightvector/goscorer)
-- **name-generator.js**: Random player name generation
-- **about.html/about.css**: Game rules and information pages
-- **style.css**: Minimal base styling for canvas centering
+### Modular Frontend Structure
+The codebase has been restructured from a monolithic `multiplayer.js` into a modular architecture:
 
-### Backend (Server-Side)
-- **server/server.js**: Node.js Express server with Socket.IO for multiplayer coordination
+```
+src/
+├── core/
+│   ├── game-state.js      # Central game state management
+│   ├── board-logic.js     # Board manipulation and validation
+│   ├── scoring.js         # Territory scoring integration
+│   └── goscorer.js        # Go territory scoring library
+├── ui/
+│   └── lobby-ui.js        # UI rendering, canvas drawing, user interactions
+├── multiplayer/
+│   └── socket-client.js   # Socket.IO client communication
+├── utils/
+│   ├── storage.js         # localStorage utilities
+│   ├── helpers.js         # Common utility functions
+│   ├── name-generator.js  # Random player name generation
+│   └── dev-tools.js       # Development/debugging tools
+├── editor/
+│   └── board-editor.js    # Visual board editor (localhost only)
+└── main.js                # Application initialization and configuration
+```
+
+### Data Organization
+```
+data/
+├── boards/
+│   ├── normal.js          # 1000+ Go board positions for normal mode
+│   └── hard.js            # Go board positions for hard mode
+└── deadstones/
+    ├── normal.js          # Dead stone patterns for normal mode
+    └── hard.js            # Dead stone patterns for hard mode
+
+assets/
+├── lib/
+│   └── p5.min.js          # p5.js graphics library
+└── css/
+    └── main.css           # Base styling
+```
+
+### Backend Structure
+- **server/server.js**: Node.js Express server with Socket.IO for real-time multiplayer
 - **server/package.json**: Server dependencies (express, socket.io, cors)
-
-### Key Libraries
-- **p5.js**: Graphics rendering and canvas management
-- **Socket.IO**: Real-time multiplayer communication
-- **lightvector/goscorer**: Accurate Go territory scoring with seki detection
-
-## Core Features
-
-### Game Modes
-1. **Normal Mode**: Players select winning color (black/white)
-2. **Hard Mode**: Players select winning color AND exact territory score difference
-3. **Development Mode**: Shows correct answers for testing (localhost only)
-
-### Multiplayer System
-- Real-time room-based multiplayer via Socket.IO
-- Room creation with 6-character codes
-- Host controls (start game, return to lobby)
-- Live leaderboard with player rankings
-- Room history showing completed games
-- Automatic lobby return after game completion
-
-### Board Management
-- 1000+ unique Go positions stored as strings ('x'=black, 'o'=white, '.'=empty)
-- Dynamic board transformations (rotation, flipping, color inversion)
-- Sequential board progression during games
-- Territory scoring using goscorer library with flood fill algorithms
-
-### UI Features
-- Responsive canvas rendering with p5.js
-- Animated stone selection toggle button
-- Bounce animations on button interactions  
-- Score choice buttons with golden highlighting for correct answers (dev mode)
-- Countdown timers and penalty systems
-- Leaderboard toggle with click-to-hide functionality
-- Clean state transitions between lobby/game phases
 
 ## Technical Implementation
 
 ### Module Loading Strategy
-Due to p5.js compatibility issues with ES6 modules, the project uses a hybrid approach:
+Due to p5.js compatibility requirements, the project uses a hybrid module approach:
+
+1. **ES6 modules** for goscorer library imports (inline script in HTML)
+2. **Global script loading** for p5.js-compatible modules
+3. **Sequential loading** in index.html maintains dependency order
 
 ```html
-<!-- Inline ES6 module for goscorer functions -->
+<!-- ES6 module for goscorer -->
 <script type="module">
-    import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './goscorer.js';
+    import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './src/core/goscorer.js';
     window.EMPTY = EMPTY;
-    window.BLACK = BLACK; 
-    window.WHITE = WHITE;
-    window.territoryScoring = territoryScoring;
-    window.finalTerritoryScore = finalTerritoryScore;
+    // ... global exports for p5.js compatibility
 </script>
-<!-- Regular script for p5.js compatibility -->
-<script src="multiplayer.js"></script>
+<!-- Sequential module loading -->
+<script src="src/main.js"></script>
+<script src="src/core/game-state.js"></script>
+<!-- ... other modules -->
 ```
 
-### Hard Mode Implementation
-- Two-step selection: color toggle + score difference choice
-- Territory scoring converts board strings to numerical arrays for goscorer
-- Score validation: `selectedColorValue × selectedDifference = signedAnswer`
-- Wrong answer generation with varied distributions (3 below, 2+1, 1+2, 3 above)
+### Game State Architecture
+Central state management in `src/core/game-state.js`:
+- **Phase management**: menu → lobby → playing → finished → summary
+- **Player state**: tracking scores, status, multiplayer synchronization
+- **Board state**: current board, transforms, results tracking
+- **User override system**: allows client-side phase control (e.g., staying in summary mode)
 
-### Game State Management
-```javascript
-gameState = {
-    phase: 'menu', // menu, lobby, playing, finished
-    roomId: null,
-    playerId: null,
-    playerName: '',
-    isCreator: false,
-    players: [],
-    currentBoard: 0,
-    boardSequence: [],
-    startTime: null
-};
-```
+### Key Architectural Patterns
 
-### Animation System
-- Bounce effects using transform scaling with decay
-- Button press feedback with configurable strength/decay
-- CSS transitions for smooth UI state changes
+#### p5.js Integration
+- Global functions (setup, draw, mousePressed, keyPressed) in `src/ui/lobby-ui.js`
+- Canvas-based Go board rendering with responsive sizing
+- Mouse/touch event handling for button interactions
+- Animation system with bounce effects and time-based decay
+
+#### Real-time Multiplayer
+- Socket.IO client in `src/multiplayer/socket-client.js`
+- Server state synchronization with conflict resolution
+- Room-based game sessions with persistent history
+- Real-time leaderboard updates during gameplay
+
+#### Territory Scoring System
+- Board string format: 'x'=black, 'o'=white, '.'=empty
+- Integration with lightvector/goscorer library for accuracy
+- Dead stone overlay system for complex scoring scenarios
+- Score choice generation for hard mode (4 strategic wrong answers)
 
 ## Development Guidelines
 
-### File Organization
-- **Never create new files** unless absolutely necessary - prefer editing existing files
-- **Never create documentation** unless explicitly requested
-- All core logic resides in `multiplayer.js` to maintain p5.js compatibility
-- Server logic separated in `server/` directory
+### File Organization Principles
+- **Modular by function**: core, ui, multiplayer, utils, editor
+- **Global exports**: All modules export to window object for p5.js compatibility
+- **Single responsibility**: Each module has a focused purpose
+- **Dependency management**: main.js handles configuration, modules handle implementation
 
-### Code Patterns
-- Use p5.js global functions (setup, draw, mousePressed, etc.)
-- Socket.IO event handlers for multiplayer synchronization
-- Territory scoring via goscorer library functions
-- Responsive canvas sizing with proper coordinate systems
-- Animation updates in draw() loop with time-based decay
+### Critical Constraints
+- **p5.js global scope**: All game functions must be globally accessible via window object
+- **No ES6 modules in p5.js code**: Use traditional script loading for p5.js-dependent code
+- **Mouse coordinate handling**: Never manually reset p5.js mouseX/mouseY variables
+- **Socket.IO sync**: All game state changes must coordinate with server
+- **Territory scoring**: Always use goscorer library, never custom implementations
 
-### Testing and Development
-- Development mode toggles available on localhost
-- Test board functions for debugging specific positions  
-- Mock data system for offline development
-- Server supports both local and production environments
-
-### Key Functions
-- `calculateTerritoryScore(board)`: Convert board to goscorer format and score
-- `generateScoreChoices(correctScore)`: Create 4 score options with strategic wrong answers
-- `toggleSelectedColor()`: Animate stone selection button
-- `selectScoreChoice(index)`: Handle score selection with validation
-- `returnToLobbyUI()`: Clean canvas and reset UI state for lobby
-
-## Configuration
-
-### Environment Detection
-- Localhost detection for development features
-- Automatic server URL selection (localhost:3000 vs production)
-- Development mode toggle appears only on localhost
-
-### Game Settings
-- Customizable timer (1-120 seconds per board)
-- Variable board count (1-50 boards per game)
-- Hard mode toggle for exact scoring
-- Development mode for answer visibility
+### Testing and Debugging
+- **Development mode**: Toggle in main menu (localhost only) shows correct answers
+- **Board editor**: Visual editing tool for board positions (localhost only)
+- **Console debugging**: Mock data functions and state inspection tools
+- **Environment detection**: Automatic localhost vs production configuration
 
 ## Common Operations
 
-### Adding New Features
-1. Implement client-side logic in `multiplayer.js`
-2. Add server-side coordination in `server/server.js` if needed
-3. Update UI in `index.html` only if new elements required
-4. Test in both normal and hard modes
-5. Verify multiplayer synchronization
+### Adding New Game Features
+1. **State changes**: Update `src/core/game-state.js` for new state variables
+2. **UI rendering**: Modify `src/ui/lobby-ui.js` for visual changes
+3. **Server sync**: Add Socket.IO events in `src/multiplayer/socket-client.js` if needed
+4. **Test both modes**: Verify normal and hard mode compatibility
 
-### Debugging Territory Scoring
-- Use development mode to see correct answers
-- Test specific boards with `setTestBoard(boardIndex)`
-- Verify goscorer integration with proper array conversion
-- Check score choice generation logic
+### Mouse/Click Event Handling
+- **Never reset mouseX/mouseY**: p5.js manages these automatically
+- **Use handleClick()**: Central click routing in `src/ui/lobby-ui.js`
+- **Event bubbling**: Return false from mousePressed() to allow event propagation
+- **Button positioning**: Store button coordinates during draw() for click detection
 
-### UI State Management
-- Always clean up when transitioning between phases
-- Hide game UI elements when returning to lobby
-- Reset canvas background colors and clear drawings
-- Stop any active animations or timers
+### UI State Transitions
+- **Phase management**: Use `getEffectivePhase()` for current phase with user override support
+- **Canvas cleanup**: Reset background colors and clear drawings between phases
+- **Button visibility**: Show/hide UI elements based on current phase
+- **Animation cleanup**: Stop active animations during state transitions
 
-## Important Constraints
+### Board Editor Operations
+- **localhost only**: Editor automatically redirects on non-localhost access
+- **Export functionality**: Generate updated boards.js and deadstones.js files
+- **Visual editing**: Click-based stone placement with undo/redo support
+- **Territory preview**: Real-time scoring display during editing
 
-- **ES6 modules not fully supported**: Use hybrid loading approach for external libraries
-- **p5.js global scope required**: All game functions must be globally accessible
-- **Socket.IO synchronization**: All game state changes must be coordinated with server
-- **Territory scoring accuracy**: Always use goscorer library, not custom implementations
-- **UI cleanup mandatory**: Clean state transitions prevent visual artifacts
-
-This codebase represents a sophisticated multiplayer game requiring careful attention to real-time synchronization, accurate territory scoring, and responsive UI state management.
+This codebase represents a sophisticated multiplayer game with careful attention to real-time synchronization, accurate territory scoring, modular architecture, and responsive UI state management.
