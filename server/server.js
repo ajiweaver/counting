@@ -584,10 +584,16 @@ io.on('connection', (socket) => {
         console.log(`Room ${roomId}: Marked game as finished since all players are done`);
       }
       
-      // If game is finished or playing, reset to waiting state first
-      if (room.gameState === 'finished' || room.gameState === 'playing') {
+      // Don't allow starting a new game if players are still playing
+      if (room.gameState === 'playing' && !room.areAllPlayersFinished()) {
+        callback({ success: false, error: 'Cannot start a new game while other players are still playing' });
+        return;
+      }
+      
+      // If game is finished, reset to waiting state first
+      if (room.gameState === 'finished') {
         room.returnToLobby();
-        console.log(`Room ${roomId}: Reset ${room.gameState} game to waiting state for new game`);
+        console.log(`Room ${roomId}: Reset finished game to waiting state for new game`);
       }
       
       console.log(`Room ${roomId}: Game state after reset: ${room.gameState}`);

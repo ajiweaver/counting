@@ -105,7 +105,11 @@ function enterSummaryMode() {
     
     // Adjust body alignment for scrollable summary content
     document.body.style.alignItems = 'flex-start';
-    document.body.style.paddingTop = '20px';
+    document.body.style.paddingTop = '80px';
+    document.body.style.height = 'auto';
+    document.body.style.minHeight = '100vh';
+    document.body.style.overflowY = 'auto';
+    document.body.style.webkitOverflowScrolling = 'touch';
     
     // Show appropriate back button
     // Use setTimeout to ensure DOM is ready
@@ -160,8 +164,20 @@ function drawSummaryScreen() {
         const correctCount = filteredBoardResults.filter(result => result.isCorrect).length;
         const totalCount = filteredBoardResults.length;
         
+        // Calculate average time from boards with timing data
+        const timesArray = filteredBoardResults
+            .filter(r => r.timeTaken !== undefined && r.timeTaken !== null)
+            .map(r => r.timeTaken);
+        const avgTime = timesArray.length > 0 
+            ? timesArray.reduce((a, b) => a + b, 0) / timesArray.length 
+            : null;
+        
         // Always use the same title format regardless of historical vs current
         const computedTitleText = `Game Summary - ${correctCount}/${totalCount} Correct`;
+        
+        // Add average time to subtitle if available
+        const avgTimeText = avgTime !== null ? ` • Avg: ${avgTime.toFixed(1)}s` : '';
+        const computedSubtitleText = `Click any board to review in detail${avgTimeText}`;
         
         // Cache the computed data
         cachedSummaryData = {
@@ -169,7 +185,7 @@ function drawSummaryScreen() {
             correctCount,
             totalCount,
             titleText: computedTitleText,
-            subtitleText: 'Click any board to review in detail'
+            subtitleText: computedSubtitleText
         };
     }
     
@@ -266,7 +282,7 @@ function drawSummaryScreen() {
         const row = Math.floor(i / boardsPerRow);
         const col = i % boardsPerRow;
         const x = gridStartX + col * (miniSize + gap);
-        const y = gridStartY + row * (miniSize + 50) + row * gap;
+        const y = gridStartY + row * (miniSize + 60) + row * gap;
         
         // Always use the current format mini board drawing
         drawMiniBoard(x, y, miniSize, i, boardResultsToShow[i]);
@@ -336,6 +352,13 @@ function drawMiniBoard(x, y, size, boardIndex, result) {
     const statusText = result.isCorrect ? '✓ Correct' : '✗ Wrong';
     fill(result.isCorrect ? color(76, 175, 80) : color(244, 67, 54));
     text(statusText, x + size/2, y + size + 30);
+    
+    // Time taken (if available)
+    if (result.timeTaken !== undefined && result.timeTaken !== null) {
+        fill(200);
+        textSize(11);
+        text(`${result.timeTaken.toFixed(1)}s`, x + size/2, y + size + 45);
+    }
     
     pop();
 }
@@ -448,6 +471,10 @@ function viewBoardFromSummary(boardIndex) {
     // Use centered layout for individual board review (no scrolling)
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
+    document.body.style.height = '100%';
+    document.body.style.minHeight = '';
+    document.body.style.overflowY = '';
+    document.body.style.webkitOverflowScrolling = '';
     // Update button visibility for board review
     updateSummaryButtons();
     console.log(`👁️ Viewing board ${boardIndex} from summary`);
@@ -459,7 +486,11 @@ function backToSummary() {
     windowResized();
     // Restore scrollable layout for summary grid
     document.body.style.alignItems = 'flex-start';
-    document.body.style.paddingTop = '20px';
+    document.body.style.paddingTop = '80px';
+    document.body.style.height = 'auto';
+    document.body.style.minHeight = '100vh';
+    document.body.style.overflowY = 'auto';
+    document.body.style.webkitOverflowScrolling = 'touch';
     // Update button visibility
     updateSummaryButtons();
     console.log('🔙 Returning to summary view');
@@ -479,8 +510,10 @@ function backToLobbyFromSummary() {
 function updateSummaryButtons() {
     const backToSummaryButton = document.getElementById('back-to-summary-button');
     const backToLobbyButton = document.getElementById('back-to-lobby-button');
+    const prevBoardButton = document.getElementById('prev-board-button');
+    const nextBoardButton = document.getElementById('next-board-button');
     
-    // If elements don't exist yet, try again after DOM is ready
+    // If essential elements don't exist yet, try again after DOM is ready
     if (!backToSummaryButton || !backToLobbyButton) {
         setTimeout(updateSummaryButtons, 100);
         return;
@@ -489,19 +522,76 @@ function updateSummaryButtons() {
     // Always show appropriate back button when in summary phase, regardless of other conditions
     if (gameState.phase === 'summary') {
         if (reviewingBoardIndex !== -1) {
-            // Viewing individual board - ALWAYS show "Back to Summary"
+            // Viewing individual board - ALWAYS show "Back to Summary" and navigation buttons
             backToSummaryButton.style.display = 'block';
             backToLobbyButton.style.display = 'none';
+            
+            // Show navigation buttons for detailed summary view (if they exist)
+            if (prevBoardButton) prevBoardButton.style.display = 'block';
+            if (nextBoardButton) nextBoardButton.style.display = 'block';
+            
+            // Update button states based on current position
+            updateNavigationButtonStates();
         } else {
-            // Viewing summary grid - ALWAYS show "Back to Lobby"
+            // Viewing summary grid - ALWAYS show "Back to Lobby", hide navigation
             backToSummaryButton.style.display = 'none';
             backToLobbyButton.style.display = 'block';
+            if (prevBoardButton) prevBoardButton.style.display = 'none';
+            if (nextBoardButton) nextBoardButton.style.display = 'none';
         }
     } else {
-        // Not in summary mode - hide both
+        // Not in summary mode - hide all
         backToSummaryButton.style.display = 'none';
         backToLobbyButton.style.display = 'none';
+        if (prevBoardButton) prevBoardButton.style.display = 'none';
+        if (nextBoardButton) nextBoardButton.style.display = 'none';
     }
+}
+
+// Update navigation button states based on current position
+function updateNavigationButtonStates() {
+    const prevBoardButton = document.getElementById('prev-board-button');
+    const nextBoardButton = document.getElementById('next-board-button');
+    
+    if (!prevBoardButton || !nextBoardButton) return;
+    
+    // Get the current board results for navigation
+    const boardResultsToShow = window.currentDisplayBoardResults || 
+                               currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
+    
+    const maxIndex = boardResultsToShow.length - 1;
+    
+    // Update button states
+    prevBoardButton.disabled = reviewingBoardIndex <= 0;
+    nextBoardButton.disabled = reviewingBoardIndex >= maxIndex;
+    
+    // Update button opacity based on state
+    prevBoardButton.style.opacity = prevBoardButton.disabled ? '0.5' : '1';
+    nextBoardButton.style.opacity = nextBoardButton.disabled ? '0.5' : '1';
+}
+
+// Navigate to previous board in detailed summary view
+function navigateToPreviousBoard() {
+    if (gameState.phase !== 'summary' || reviewingBoardIndex <= 0) return;
+    
+    reviewingBoardIndex--;
+    updateNavigationButtonStates();
+    console.log(`Navigated to previous board: ${reviewingBoardIndex}`);
+}
+
+// Navigate to next board in detailed summary view
+function navigateToNextBoard() {
+    if (gameState.phase !== 'summary') return;
+    
+    const boardResultsToShow = window.currentDisplayBoardResults || 
+                               currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
+    const maxIndex = boardResultsToShow.length - 1;
+    
+    if (reviewingBoardIndex >= maxIndex) return;
+    
+    reviewingBoardIndex++;
+    updateNavigationButtonStates();
+    console.log(`Navigated to next board: ${reviewingBoardIndex}`);
 }
 
 // Reusable parametrized board drawing function
@@ -607,6 +697,22 @@ async function viewHistoricalGameSummary(gameId) {
                     
                     // Add the filtered responses to currentGameBoardResults
                     currentPlayerResponses.forEach(response => {
+                        // Calculate timing from historical data
+                        let timeTaken = null;
+                        if (response.timestamp) {
+                            // For the first board, use game start time if available
+                            if (response.boardIndex === 0 && result.game.startTime) {
+                                timeTaken = (response.timestamp - result.game.startTime) / 1000;
+                            }
+                            // For subsequent boards, find the previous response timestamp
+                            else if (response.boardIndex > 0) {
+                                const prevResponse = currentPlayerResponses.find(r => r.boardIndex === response.boardIndex - 1);
+                                if (prevResponse && prevResponse.timestamp) {
+                                    timeTaken = (response.timestamp - prevResponse.timestamp) / 1000;
+                                }
+                            }
+                        }
+                          
                         // Calculate correct answer using territory scoring
                         let correctAnswer = 'Unknown';
                         let blackScore = 0;
@@ -646,7 +752,7 @@ async function viewHistoricalGameSummary(gameId) {
                         } catch (error) {
                             console.error('Error calculating territory score for historical board:', error);
                         }
-                        
+
                         currentGameBoardResults.push({
                             boardId: response.boardId,
                             isCorrect: response.isCorrect,
@@ -657,8 +763,10 @@ async function viewHistoricalGameSummary(gameId) {
                             whiteScore: whiteScore,
                             difference: difference,
                             winningColor: winningColor,
-                            gameInstanceId: result.game.id,
-                            transforms: response.transforms // Store transforms for consistent display
+                            gameInstanceId: result.game.id, 
+                            transforms: response.transforms, // Store transforms for consistent display 
+                            timeTaken: timeTaken, // Include calculated timing data 
+                            timestamp: response.timestamp // Keep original timestamp for debugging
                         });
                     });
                 }
@@ -668,78 +776,20 @@ async function viewHistoricalGameSummary(gameId) {
         console.log(`✅ Converted ${currentGameBoardResults.length} board results from historical game`);
         
         
-        // If no player responses found, fall back to showing board sequence without user-specific data
-        if (currentGameBoardResults.length === 0 && result.game.boardSequence) {
-            console.log('🔄 No player responses found, using board sequence fallback');
-            for (let i = 0; i < result.game.boardSequence.length; i++) {
-                const boardId = result.game.boardSequence[i];
-                
-                // Calculate correct answer using territory scoring
-                let correctAnswer = 'Unknown';
-                let blackScore = 0;
-                let whiteScore = 0;
-                let difference = 0;
-                let winningColor = 'black';
-                
-                try {
-                    const currentBoards = result.game.settings?.hardMode ? window.boardsHard : boards;
-                    const currentDeadStones = result.game.settings?.hardMode ? window.deadStonesHard : window.deadStones;
-
-                    // Apply transforms to get the board as the player saw it
-                    let boardString = currentBoards[boardId];
-                    let deadStonesString = currentDeadStones[boardId];
-                                
-
-                    if (response.transforms) {
-                        boardString = applyBoardTransformations(boardString, response.transforms);
-                        deadStonesString = applyBoardTransformations(deadStonesString, response.transforms);
-                    }
-                    
-                    if (boardString && deadStonesString) {
-                        const territoryScore = calculateTerritoryScore(boardString, deadStonesString);
-                        
-                        blackScore = territoryScore.blackTerritory;
-                        whiteScore = territoryScore.whiteTerritory;
-                        difference = territoryScore.difference;
-                        magnitude = territoryScore.scoreMagnitude;
-                        winningColor = territoryScore.winningColor;
-                        
-                        if (result.game.settings?.hardMode) {
-                            // Hard mode: format as color+difference
-                            correctAnswer = winningColor === 'black' ? `B+${magnitude}` : `W+${magnitude}`;
-                        } else {
-                            // Normal mode: just the winning color
-                            correctAnswer = winningColor
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error calculating territory score for fallback board:', error);
-                }
-                
-                currentGameBoardResults.push({
-                    boardId: boardId,
-                    isCorrect: null,
-                    correctAnswer: correctAnswer,
-                    playerAnswer: 'N/A',
-                    mode: result.game.settings?.hardMode ? 'hard' : 'normal',
-                    blackScore: blackScore,
-                    whiteScore: whiteScore,
-                    difference: difference,
-                    winningColor: winningColor,
-                    gameInstanceId: result.game.id
-                });
-            }
-        }
-        
         // Use regular summary mode
         gameState.phase = 'summary';
+        viewingSummary = true; // Enable proper scrolling control
         reviewingBoardIndex = -1; // Start with grid view
         summaryLogged = false; // Reset logging flag
         cachedSummaryData = null; // Clear cached data for historical view
         
         // Enable scrolling for summary content (same as enterSummaryMode)
         document.body.style.alignItems = 'flex-start';
-        document.body.style.paddingTop = '20px';
+        document.body.style.paddingTop = '80px';
+        document.body.style.height = 'auto';
+        document.body.style.minHeight = '100vh';
+        document.body.style.overflowY = 'auto';
+        document.body.style.webkitOverflowScrolling = 'touch';
         
         windowResized() 
         
@@ -810,11 +860,11 @@ function handleSummaryGridClick() {
         const row = Math.floor(i / boardsPerRow);
         const col = i % boardsPerRow;
         const x = startX + col * (miniSize + gap);
-        const y = startY + row * (miniSize + 80) + row * gap;
+        const y = startY + row * (miniSize + 60) + row * gap;
         
         // Check if click is within this mini board (including text area)
         if (mouseX >= x && mouseX <= x + miniSize &&
-            mouseY >= y && mouseY <= y + miniSize + 60) {
+            mouseY >= y && mouseY <= y + miniSize + 70) {
             // Store the filtered results for board review and use the filtered index
             window.currentDisplayBoardResults = filteredBoardResults;
             viewBoardFromSummary(i);
@@ -844,11 +894,11 @@ function handleHistoricalSummaryGridClick() {
         const row = Math.floor(i / boardsPerRow);
         const col = i % boardsPerRow;
         const x = gridStartX + col * (miniSize + gap);
-        const y = gridStartY + row * (miniSize + 80) + row * gap;
+        const y = gridStartY + row * (miniSize + 60) + row * gap;
         
         // Check if click is within this mini board (including text area)
         if (mouseX >= x && mouseX <= x + miniSize &&
-            mouseY >= y && mouseY <= y + miniSize + 60) {
+            mouseY >= y && mouseY <= y + miniSize + 70) {
             viewBoardFromSummary(i); // Reuse the same function
             console.log(`🖱️ Clicked on historical mini board ${i} (Board #${currentHistoricalBoardResults[i].boardId})`);
             return;
@@ -879,6 +929,7 @@ let score = 0;
 let timer = 0;
 let maxTime = 0; // Maximum time for current game
 let started = false;
+let boardStartTime = null; // Track when each board starts for timing
 let correctColor;
 let failed = false;
 let defaultTimePerBoard = 60;
@@ -1971,7 +2022,7 @@ function displayLeaderboardHistory(games) {
                 </div>
                 <div style="color: #bbb; font-size: 10px; margin-top: 4px; line-height: 1.3;">
                     ${game.players.map(player => 
-                        `${player.name}: ${player.score}${player.isCreator ? ' (Host)' : ''}`
+                        `${player.name}: ${player.score}`
                     ).join(' • ')}
                 </div>
             </div>
@@ -2080,7 +2131,11 @@ window.testSummaryScrolling = function(numBoards = 20) {
     // Set golden background and adjust layout for scrolling
     document.body.style.backgroundColor = 'goldenrod';
     document.body.style.alignItems = 'flex-start';
-    document.body.style.paddingTop = '20px';
+    document.body.style.paddingTop = '80px';
+    document.body.style.height = 'auto';
+    document.body.style.minHeight = '100vh';
+    document.body.style.overflowY = 'auto';
+    document.body.style.webkitOverflowScrolling = 'touch';
     
     // Hide UI elements
     document.getElementById('ui-overlay').style.display = 'none';
@@ -2665,6 +2720,10 @@ async function showRoomLobby() {
     }, 300); // Increased delay
 }
 
+// Debounce timers for room settings updates
+let roomSettingsTimeDebounceTimer = null;
+let roomSettingsBoardsDebounceTimer = null;
+
 function updateRoomTimeFromInput() {
     if (!gameState.isCreator) {
         console.log('❌ Only room creator can update settings');
@@ -2687,7 +2746,16 @@ function updateRoomTimeFromInput() {
     }
     
     if (newTime !== gameState.settings.timePerBoard) {
-        updateRoomSettings({ timePerBoard: newTime });
+        // Clear existing debounce timer
+        if (roomSettingsTimeDebounceTimer) {
+            clearTimeout(roomSettingsTimeDebounceTimer);
+        }
+        
+        // Debounce the update to prevent rapid server calls
+        roomSettingsTimeDebounceTimer = setTimeout(() => {
+            updateRoomSettings({ timePerBoard: newTime });
+            roomSettingsTimeDebounceTimer = null;
+        }, 500); // Wait 500ms after user stops typing
     }
 }
 
@@ -2713,7 +2781,16 @@ function updateRoomBoardsFromInput() {
     }
     
     if (newBoards !== gameState.settings.totalBoards) {
-        updateRoomSettings({ totalBoards: newBoards });
+        // Clear existing debounce timer
+        if (roomSettingsBoardsDebounceTimer) {
+            clearTimeout(roomSettingsBoardsDebounceTimer);
+        }
+        
+        // Debounce the update to prevent rapid server calls
+        roomSettingsBoardsDebounceTimer = setTimeout(() => {
+            updateRoomSettings({ totalBoards: newBoards });
+            roomSettingsBoardsDebounceTimer = null;
+        }, 500); // Wait 500ms after user stops typing
     }
 }
 
@@ -2770,16 +2847,26 @@ function updateRoomSettingsDisplay() {
         const isCreator = gameState.isCreator && gameState.phase === 'lobby';
         
         if (isCreator) {
+            // Check if inputs already exist and preserve focused input values
+            const existingTimeInput = document.getElementById('room-time-input');
+            const existingBoardsInput = document.getElementById('room-boards-input');
+            const isTimeInputFocused = existingTimeInput && document.activeElement === existingTimeInput;
+            const isBoardsInputFocused = existingBoardsInput && document.activeElement === existingBoardsInput;
+            
+            // Preserve current input values if user is typing
+            const timeValue = isTimeInputFocused ? existingTimeInput.value : settings.timePerBoard;
+            const boardsValue = isBoardsInputFocused ? existingBoardsInput.value : settings.totalBoards;
+            
             // Interactive controls for room creator
             roomSettingsEl.innerHTML = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER [s]</div>
-                        <input type="number" id="room-time-input" min="5" max="600" step="10" value="${settings.timePerBoard}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                        <input type="number" id="room-time-input" min="5" max="600" step="10" value="${timeValue}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <input type="number" id="room-boards-input" min="5" max="50" step="5" value="${settings.totalBoards}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                        <input type="number" id="room-boards-input" min="5" max="50" step="5" value="${boardsValue}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
@@ -2787,17 +2874,59 @@ function updateRoomSettingsDisplay() {
                     </div>
                 </div>
             `;
+            
+            // Restore focus if an input was previously focused
+            if (isTimeInputFocused) {
+                const newTimeInput = document.getElementById('room-time-input');
+                if (newTimeInput) {
+                    try {
+                        newTimeInput.focus();
+                        // Use setTimeout to ensure DOM is ready before setting selection
+                        setTimeout(() => {
+                            try {
+                                if (newTimeInput && newTimeInput.value !== undefined) {
+                                    newTimeInput.setSelectionRange(newTimeInput.value.length, newTimeInput.value.length);
+                                }
+                            } catch (e) {
+                                console.log('⚠️ Could not set selection range on time input:', e.message);
+                            }
+                        }, 0);
+                    } catch (e) {
+                        console.log('⚠️ Could not focus time input:', e.message);
+                    }
+                }
+            }
+            if (isBoardsInputFocused) {
+                const newBoardsInput = document.getElementById('room-boards-input');
+                if (newBoardsInput) {
+                    try {
+                        newBoardsInput.focus();
+                        // Use setTimeout to ensure DOM is ready before setting selection
+                        setTimeout(() => {
+                            try {
+                                if (newBoardsInput && newBoardsInput.value !== undefined) {
+                                    newBoardsInput.setSelectionRange(newBoardsInput.value.length, newBoardsInput.value.length);
+                                }
+                            } catch (e) {
+                                console.log('⚠️ Could not set selection range on boards input:', e.message);
+                            }
+                        }, 0);
+                    } catch (e) {
+                        console.log('⚠️ Could not focus boards input:', e.message);
+                    }
+                }
+            }
         } else {
             // Read-only display for non-creators
             roomSettingsEl.innerHTML = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER [s]</div>
-                        <div style="color: #fff; font-weight: bold; font-size: 16px;">${timeDisplay}</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 14px; padding: 6px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;">${timeDisplay}</div>
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <div style="color: #fff; font-weight: bold; font-size: 16px;">${boardsDisplay}</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 14px; padding: 6px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;">${boardsDisplay}</div>
                     </div>
                     <div style="padding: 8px; background: #555; border-radius: 4px;">
                         <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
@@ -2937,22 +3066,44 @@ function fallbackCopyToClipboard(text) {
 }
 
 function showCopyFeedback(message, isError = false) {
-    // Show feedback to user
-    const copyButton = document.querySelector('button[onclick="copyRoomLink()"]');
-    if (copyButton) {
-        const originalText = copyButton.innerHTML;
-        const originalBackground = copyButton.style.background;
-        
-        copyButton.innerHTML = isError ? '❌ Failed' : '✅ Copied!';
-        copyButton.style.background = isError ? '#f44336' : '#4CAF50';
-        copyButton.disabled = true;
-        
+    // Create a toast notification
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${isError ? '#f44336' : '#4CAF50'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 2000;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
         setTimeout(() => {
-            copyButton.innerHTML = originalText;
-            copyButton.style.background = originalBackground;
-            copyButton.disabled = false;
-        }, 2000);
-    }
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
     
     console.log(message);
 }
@@ -3062,6 +3213,10 @@ function returnToRoomLobby() {
     document.body.style.backgroundColor = '';
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
+    document.body.style.height = '100%';
+    document.body.style.minHeight = '';
+    document.body.style.overflowY = '';
+    document.body.style.webkitOverflowScrolling = '';
     
     // Reset game state variables that might affect drawing
     failed = false;
@@ -3076,8 +3231,15 @@ function returnToRoomLobby() {
     document.getElementById('resign-button').style.display = 'none';
     
     // Hide summary back buttons
-    document.getElementById('back-to-summary-button').style.display = 'none';
-    document.getElementById('back-to-lobby-button').style.display = 'none';
+    const backToSummaryBtn = document.getElementById('back-to-summary-button');
+    const backToLobbyBtn = document.getElementById('back-to-lobby-button');
+    const prevBoardBtn = document.getElementById('prev-board-button');
+    const nextBoardBtn = document.getElementById('next-board-button');
+    
+    if (backToSummaryBtn) backToSummaryBtn.style.display = 'none';
+    if (backToLobbyBtn) backToLobbyBtn.style.display = 'none';
+    if (prevBoardBtn) prevBoardBtn.style.display = 'none';
+    if (nextBoardBtn) nextBoardBtn.style.display = 'none';
     
     // Show the room UI overlay (lobby)
     document.getElementById('ui-overlay').style.display = 'flex';
@@ -3106,6 +3268,10 @@ async function returnToLobbyUI() {
     document.body.style.backgroundColor = '';
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
+    document.body.style.height = '100%';
+    document.body.style.minHeight = '';
+    document.body.style.overflowY = '';
+    document.body.style.webkitOverflowScrolling = '';
     
     // Reset game state variables that might affect drawing
     failed = false;
@@ -3118,8 +3284,15 @@ async function returnToLobbyUI() {
     document.getElementById('leaderboard').style.display = 'none';
     document.getElementById('leaderboard-toggle').style.display = 'none';
     document.getElementById('resign-button').style.display = 'none';
-    document.getElementById('back-to-summary-button').style.display = 'none';
-    document.getElementById('back-to-lobby-button').style.display = 'none';
+    const backToSummaryBtn = document.getElementById('back-to-summary-button');
+    const backToLobbyBtn = document.getElementById('back-to-lobby-button');
+    const prevBoardBtn = document.getElementById('prev-board-button');
+    const nextBoardBtn = document.getElementById('next-board-button');
+    
+    if (backToSummaryBtn) backToSummaryBtn.style.display = 'none';
+    if (backToLobbyBtn) backToLobbyBtn.style.display = 'none';
+    if (prevBoardBtn) prevBoardBtn.style.display = 'none';
+    if (nextBoardBtn) nextBoardBtn.style.display = 'none';
     hideBoardNumberIndicator();
     
     // Reset leaderboard visibility flag
@@ -3512,8 +3685,15 @@ function startMultiplayerGame() {
     showBoardNumberIndicator();
     
     // Hide summary back buttons during gameplay
-    document.getElementById('back-to-summary-button').style.display = 'none';
-    document.getElementById('back-to-lobby-button').style.display = 'none';
+    const backToSummaryBtn = document.getElementById('back-to-summary-button');
+    const backToLobbyBtn = document.getElementById('back-to-lobby-button');
+    const prevBoardBtn = document.getElementById('prev-board-button');
+    const nextBoardBtn = document.getElementById('next-board-button');
+    
+    if (backToSummaryBtn) backToSummaryBtn.style.display = 'none';
+    if (backToLobbyBtn) backToLobbyBtn.style.display = 'none';
+    if (prevBoardBtn) prevBoardBtn.style.display = 'none';
+    if (nextBoardBtn) nextBoardBtn.style.display = 'none';
     
     // Show leaderboard and toggle button
     leaderboardVisible = true;
@@ -3535,6 +3715,10 @@ function startMultiplayerGame() {
     document.body.style.backgroundColor = '';
     document.body.style.alignItems = 'center';
     document.body.style.paddingTop = '';
+    document.body.style.height = '100%';
+    document.body.style.minHeight = '';
+    document.body.style.overflowY = '';
+    document.body.style.webkitOverflowScrolling = '';
     
     // Ensure canvas is properly sized for gameplay
     windowResized();
@@ -4077,6 +4261,9 @@ function loadMultiplayerBoard(boardIndex) {
     
     const boardNumber = gameState.boardSequence[boardIndex];
     
+    // Start timing for this board
+    boardStartTime = Date.now();
+    
     // Update board number indicator
     updateBoardNumberIndicator();
 
@@ -4320,6 +4507,9 @@ function submitNormalModeAnswer(guess) {
             console.error('Error calculating territory score for tracking:', error);
         }
         
+        // Calculate time taken for this board
+        const timeTaken = boardStartTime ? (Date.now() - boardStartTime) / 1000 : null;
+        
         const boardResult = {
             boardId: boardId,
             gameInstanceId: currentGameInstanceId,
@@ -4330,7 +4520,8 @@ function submitNormalModeAnswer(guess) {
             whiteScore: territoryScore.whiteTerritory,
             difference: territoryScore.difference,
             winningColor: territoryScore.winningColor,
-            transforms: currentBoardTransforms
+            transforms: currentBoardTransforms,
+            timeTaken: timeTaken
         };
         
         playerBoardResults.push(boardResult);
@@ -4499,6 +4690,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log('Successfully auto-joined room from URL');
                     } else {
                         console.error('Failed to auto-join room:', response.error);
+                        // Clean up URL parameter when join fails
+                        resetBrowserURL();
                         // Show error message but stay on main menu
                         alert(`Failed to join room "${roomIdFromUrl}": ${response.error}\n\nPlease ask the room creator for a new room link.`);
                     }
@@ -4529,7 +4722,7 @@ function windowResized() {
             
             // Calculate required height: title area + grid + margins
             const titleHeight = 120; // Space for title and text
-            const gridHeight = rows * (miniSize + 80) + (rows - 1) * gap; // Each row + gaps
+            const gridHeight = rows * (miniSize + 90) + (rows - 1) * gap; // Each row + gaps + time text
             const bottomMargin = 100; // Space for back button and bottom margin
             
             const calculatedHeight = titleHeight + gridHeight + bottomMargin;
@@ -4854,6 +5047,9 @@ function submitMultiplayerHardMode(guess, isCorrect) {
         const boardId = gameState.boardSequence[gameState.currentBoard];
         const territoryScore = window.currentTerritoryScore;
         
+        // Calculate time taken for this board
+        const timeTaken = boardStartTime ? (Date.now() - boardStartTime) / 1000 : null;
+        
         const boardResult = {
             boardId: boardId,
             gameInstanceId: currentGameInstanceId,
@@ -4865,7 +5061,8 @@ function submitMultiplayerHardMode(guess, isCorrect) {
             difference: territoryScore ? territoryScore.difference : 0,
             winningColor: territoryScore ? territoryScore.winningColor : guess,
             mode: 'hard',
-            transforms: currentBoardTransforms
+            transforms: currentBoardTransforms,
+            timeTaken: timeTaken
         };
         
         playerBoardResults.push(boardResult);
@@ -5019,9 +5216,51 @@ function keyPressed() {
         return;
     }
     
+    // Handle Enter key to view first board in summary grid mode
+    if (keyCode === ENTER && gameState.phase === 'summary' && reviewingBoardIndex === -1) {
+        // Always use the same filtering logic as the miniboards grid (don't reuse stale data)
+        const boardResultsToShow = currentGameBoardResults.filter(result => result.gameInstanceId === currentGameInstanceId);
+        if (boardResultsToShow.length > 0) {
+            // Store the filtered results for board review and navigate to first board
+            window.currentDisplayBoardResults = boardResultsToShow;
+            viewBoardFromSummary(0);
+            console.log('⌨️ Enter pressed - viewing first board in detailed summary');
+        }
+        return;
+    }
+    
+    // Handle arrow key navigation in detailed summary view
+    if (gameState.phase === 'summary' && reviewingBoardIndex !== -1) {
+        if (keyCode === LEFT_ARROW) {
+            navigateToPreviousBoard();
+            return;
+        }
+        if (keyCode === RIGHT_ARROW) {
+            navigateToNextBoard();
+            return;
+        }
+    }
+    
     // Handle Escape key to leave room when in lobby
     if (keyCode === ESCAPE && gameState.phase === 'lobby') {
         leaveRoom();
+        return;
+    }
+    
+    // Handle Enter key to create room when in main menu
+    if (keyCode === ENTER && gameState.phase === 'menu') {
+        createRoom();
+        console.log('⌨️ Enter pressed - creating room from main menu');
+        return;
+    }
+    
+    // Handle Enter key to start game when in lobby (if user is creator and can start)
+    if (keyCode === ENTER && gameState.phase === 'lobby') {
+        const startButton = document.getElementById('start-button');
+        if (startButton && !startButton.classList.contains('hidden') && gameState.isCreator) {
+            startGame();
+            console.log('⌨️ Enter pressed - starting game from lobby');
+        }
         return;
     }
     
@@ -5106,23 +5345,50 @@ function touchEnded() {
 }
 
 function mouseWheel(event) {
+    // Allow scrolling in lobby mode (for room history)
+    if (gameState.phase === 'lobby') {
+        return true;
+    }
+    
     // In summary mode, only allow scrolling in grid view, not in detailed board view
     if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
         // Allow scrolling only in summary grid view
         return true;
     }
-    // Prevent scrolling in detailed board view and other modes
+    // Prevent scrolling in detailed board view and other game modes
     return false;
 }
 
 function touchStarted() {
+    // Allow touch scrolling in lobby mode (for room history)
+    if (gameState.phase === 'lobby') {
+        return undefined; // Allow default browser touch behavior for scrolling
+    }
+    
+    // In summary grid mode, allow default touch scrolling behavior
+    if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
+        return undefined; // Allow default browser touch behavior for scrolling
+    }
+    
     // Historical summaries now use current game format without custom scrolling
     // Let browser handle default touch behavior
+    return undefined;
 }
 
 function touchMoved() {
+    // Allow touch scrolling in lobby mode (for room history)
+    if (gameState.phase === 'lobby') {
+        return undefined; // Allow default browser touch behavior for scrolling
+    }
+    
+    // In summary grid mode, allow default touch scrolling behavior
+    if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex === -1) {
+        return undefined; // Allow default browser touch behavior for scrolling
+    }
+    
     // Historical summaries now use current game format without custom scrolling
     // Let browser handle default touch scrolling behavior
+    return undefined;
 }
 
 // Functions are now automatically global in regular script mode
