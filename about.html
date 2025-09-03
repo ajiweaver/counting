@@ -4,7 +4,7 @@
 	<title>About Counting Battle!</title>
 	<meta charset="UTF-8">
     <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/main.css">
     <style>
         #about-overlay {
             position: fixed;
@@ -176,14 +176,21 @@
     
     <script>
         function goBack() {
+            console.log('goBack() called - navigating to ./');
             window.location.href = './';
         }
         
         // Add Esc key support
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                goBack();
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('About page DOM loaded - setting up ESC key listener');
+            document.addEventListener('keydown', function(event) {
+                console.log('Key pressed:', event.key);
+                if (event.key === 'Escape') {
+                    console.log('Escape key detected - calling goBack()');
+                    event.preventDefault(); // Prevent default browser behavior
+                    goBack();
+                }
+            });
         });
     </script>
 </body>

@@ -1,0 +1,145 @@
+🔍 Analyzing functions in backup/multiplayer.js vs src/ files...
+======================================================================
+📂 Extracting functions from backup file...
+Found 103 functions in backup file
+
+📂 Extracting functions from src/ files...
+  src/main.js: 5 functions
+  src/editor/board-editor.js: 33 functions
+  src/core/board-logic.js: 4 functions
+  src/core/game-state.js: 6 functions
+  src/core/scoring.js: 4 functions
+  src/core/goscorer.js: 28 functions
+  src/utils/dev-tools.js: 4 functions
+  src/utils/helpers.js: 12 functions
+  src/utils/storage.js: 4 functions
+  src/utils/name-generator.js: 1 functions
+  src/ui/lobby-ui.js: 73 functions
+  src/multiplayer/socket-client.js: 8 functions
+Found 182 total functions in 12 src files
+
+🔍 Comparing functions...
+
+======================================================================
+📊 COMPARISON RESULTS
+======================================================================
+
+✅ EXACT MATCHES (103 functions):
+--------------------------------------------------
+  getCurrentBoards          | backup:   4 | src/core/game-state.js:5
+  getCurrentDeadStones      | backup:  11 | src/core/game-state.js:12
+  getEffectivePhase         | backup:  37 | src/core/game-state.js:38
+  resetBoardResults         | backup:  59 | src/core/game-state.js:59
+  enterSummaryMode          | backup:  71 | src/ui/lobby-ui.js:891
+  drawSummaryScreen         | backup: 141 | src/ui/lobby-ui.js:1411
+  drawMiniBoard             | backup: 293 | src/ui/lobby-ui.js:1563
+  drawBoardReview           | backup: 368 | src/ui/lobby-ui.js:1637
+  viewBoardFromSummary      | backup: 467 | src/ui/lobby-ui.js:1735
+  backToSummary             | backup: 483 | src/ui/lobby-ui.js:1752
+  backToLobbyFromSummary    | backup: 499 | src/ui/lobby-ui.js:1769
+  updateSummaryButtons      | backup: 510 | src/ui/lobby-ui.js:1780
+  updateNavigationButtonStates | backup: 548 | src/ui/lobby-ui.js:1818
+  navigateToPreviousBoard   | backup: 570 | src/ui/lobby-ui.js:1840
+  navigateToNextBoard       | backup: 579 | src/ui/lobby-ui.js:1849
+  drawGoBoard               | backup: 594 | src/ui/lobby-ui.js:1864
+  viewHistoricalGameSummary | backup: 647 | src/ui/lobby-ui.js:3134
+  exitHistoricalSummary     | backup: 806 | src/ui/lobby-ui.js:1917
+  handleSummaryGridClick    | backup: 821 | src/ui/lobby-ui.js:1932
+  handleHistoricalSummaryGridClick | backup: 855 | src/ui/lobby-ui.js:1966
+  formatAnswerWithEmojis    | backup: 934 | src/utils/helpers.js:16
+  didCurrentPlayerWin       | backup:1403 | src/core/game-state.js:85
+  getTotalScoresForRoom     | backup:1431 | src/ui/lobby-ui.js:3293
+  initSocket                | backup:1585 | src/multiplayer/socket-client.js:5
+  showMainMenu              | backup:1769 | src/ui/lobby-ui.js:4
+  debugLeaderboardStats     | backup:1807 | src/utils/dev-tools.js:323
+  resetLeaderboardStats     | backup:1817 | src/utils/dev-tools.js:333
+  loadLeaderboardHistory    | backup:1825 | src/ui/lobby-ui.js:3323
+  displayLeaderboardHistory | backup:1942 | src/ui/lobby-ui.js:1293
+  getTimeAgo                | backup:2009 | src/utils/helpers.js:26
+  formatDuration            | backup:2022 | src/utils/helpers.js:39
+  saveToStorage             | backup:2045 | src/utils/storage.js:14
+  debugHardModeState        | backup:2193 | src/utils/dev-tools.js:54
+  loadFromStorage           | backup:2205 | src/utils/storage.js:22
+  getPlayerUUID             | backup:2216 | src/utils/storage.js:32
+  clearRoomStorage          | backup:2227 | src/utils/storage.js:43
+  initializeUI              | backup:2237 | src/main.js:96
+  blurHandler               | backup:2295 | src/main.js:408
+  boardsBlurHandler         | backup:2383 | src/main.js:423
+  tryReconnectToRoom        | backup:2432 | src/main.js:291
+  handleTimeChange          | backup:2500 | src/ui/lobby-ui.js:1998
+  createRoom                | backup:2523 | src/ui/lobby-ui.js:442
+  createNewRoom             | backup:2598 | src/ui/lobby-ui.js:2021
+  joinCreatedRoom           | backup:2629 | src/ui/lobby-ui.js:2053
+  handleJoinRoomSuccess     | backup:2646 | src/ui/lobby-ui.js:2071
+  showRoomLobby             | backup:2672 | src/ui/lobby-ui.js:32
+  updateRoomTimeFromInput   | backup:2701 | src/ui/lobby-ui.js:2097
+  updateRoomBoardsFromInput | backup:2736 | src/ui/lobby-ui.js:2133
+  toggleRoomHardMode        | backup:2771 | src/ui/lobby-ui.js:2169
+  updateRoomSettings        | backup:2786 | src/ui/lobby-ui.js:2185
+  updateRoomSettingsDisplay | backup:2808 | src/ui/lobby-ui.js:144
+  startGame                 | backup:2923 | src/ui/lobby-ui.js:517
+  copyRoomLink              | backup:2945 | src/utils/helpers.js:46
+  copyRoomLinkWithAnimation | backup:2969 | src/utils/helpers.js:70
+  updateBrowserURL          | backup:2983 | src/utils/helpers.js:152
+  resetBrowserURL           | backup:3003 | src/utils/helpers.js:171
+  fallbackCopyToClipboard   | backup:3017 | src/utils/helpers.js:83
+  showCopyFeedback          | backup:3042 | src/utils/helpers.js:108
+  updateResignButtonVisibility | backup:3085 | src/ui/lobby-ui.js:2208
+  resignGame                | backup:3097 | src/ui/lobby-ui.js:551
+  leaveRoom                 | backup:3143 | src/ui/lobby-ui.js:539
+  returnToLobby             | backup:3155 | src/ui/lobby-ui.js:597
+  returnToRoomLobby         | backup:3172 | src/ui/lobby-ui.js:614
+  returnToLobbyUI           | backup:3225 | src/ui/lobby-ui.js:960
+  toggleLeaderboard         | backup:3282 | src/ui/lobby-ui.js:1277
+  hideLeaderboard           | backup:3298 | src/ui/lobby-ui.js:395
+  showLeaderboard           | backup:3307 | src/ui/lobby-ui.js:381
+  checkLeaderboardOverlap   | backup:3321 | src/ui/lobby-ui.js:1361
+  updateGameState           | backup:3341 | src/core/game-state.js:112
+  updatePlayerListAndStatus | backup:3413 | src/ui/lobby-ui.js:57
+  updateUI                  | backup:3503 | src/ui/lobby-ui.js:259
+  showBoardNumberIndicator  | backup:3626 | src/ui/lobby-ui.js:2221
+  hideBoardNumberIndicator  | backup:3633 | src/ui/lobby-ui.js:2229
+  updateBoardNumberIndicator | backup:3640 | src/ui/lobby-ui.js:2237
+  startMultiplayerGame      | backup:3649 | src/ui/lobby-ui.js:1017
+  convertBoardStringToStones | backup:3722 | src/editor/board-editor.js:890
+  applyBoardTransformations | backup:3745 | src/core/board-logic.js:26
+  convertDeadStoneStringToObject | backup:3782 | src/core/board-logic.js:62
+  calculateTerritoryScore   | backup:3802 | src/editor/board-editor.js:912
+  drawNormalModeUI          | backup:3844 | src/ui/lobby-ui.js:2247
+  drawNormalModeStoneUI     | backup:3895 | src/ui/lobby-ui.js:2299
+  drawHardModeUI            | backup:4028 | src/ui/lobby-ui.js:2433
+  loadMultiplayerBoard      | backup:4230 | src/ui/lobby-ui.js:1089
+  updateLeaderboard         | backup:4418 | src/ui/lobby-ui.js:404
+  submitNormalModeAnswer    | backup:4455 | src/ui/lobby-ui.js:2636
+  preload                   | backup:4615 | src/ui/lobby-ui.js:668
+  setup                     | backup:4620 | src/editor/board-editor.js:715
+  windowResized             | backup:4680 | src/ui/lobby-ui.js:685
+  draw                      | backup:4747 | src/editor/board-editor.js:727
+  getBoard                  | backup:4884 | src/core/board-logic.js:81
+  handleHardModeClick       | backup:4910 | src/ui/lobby-ui.js:2796
+  handleNormalModeClick     | backup:4945 | src/ui/lobby-ui.js:2832
+  submitHardModeAnswer      | backup:4975 | src/ui/lobby-ui.js:2863
+  submitMultiplayerHardMode | backup:5016 | src/ui/lobby-ui.js:2905
+  handleClick               | backup:5146 | src/ui/lobby-ui.js:3036
+  keyPressed                | backup:5174 | src/ui/lobby-ui.js:757
+  mousePressed              | backup:5298 | src/editor/board-editor.js:865
+  mouseMoved                | backup:5305 | src/ui/lobby-ui.js:3065
+  mouseReleased             | backup:5309 | src/ui/lobby-ui.js:3070
+  touchEnded                | backup:5314 | src/ui/lobby-ui.js:3076
+  mouseWheel                | backup:5321 | src/ui/lobby-ui.js:3084
+  touchStarted              | backup:5336 | src/ui/lobby-ui.js:3100
+  touchMoved                | backup:5352 | src/ui/lobby-ui.js:3117
+
+⚠️  DIFFERENT IMPLEMENTATIONS (0 functions):
+----------------------------------------------------------------------
+
+❌ MISSING FUNCTIONS (0 functions):
+--------------------------------------------------
+
+======================================================================
+📈 SUMMARY:
+  Total functions in backup: 103
+  Exact matches: 103
+  Different implementations: 0
+  Missing from src/: 0
+======================================================================

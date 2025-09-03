@@ -508,13 +508,12 @@ function backToLobbyFromSummary() {
 
 // Update visibility of fixed position back buttons based on current mode
 function updateSummaryButtons() {
-    const backToSummaryButton = document.getElementById('back-to-summary-button');
     const backToLobbyButton = document.getElementById('back-to-lobby-button');
     const prevBoardButton = document.getElementById('prev-board-button');
     const nextBoardButton = document.getElementById('next-board-button');
     
     // If essential elements don't exist yet, try again after DOM is ready
-    if (!backToSummaryButton || !backToLobbyButton) {
+    if (!backToLobbyButton) {
         setTimeout(updateSummaryButtons, 100);
         return;
     }
@@ -523,7 +522,6 @@ function updateSummaryButtons() {
     if (gameState.phase === 'summary') {
         if (reviewingBoardIndex !== -1) {
             // Viewing individual board - ALWAYS show "Back to Summary" and navigation buttons
-            backToSummaryButton.style.display = 'block';
             backToLobbyButton.style.display = 'none';
             
             // Show navigation buttons for detailed summary view (if they exist)
@@ -534,14 +532,12 @@ function updateSummaryButtons() {
             updateNavigationButtonStates();
         } else {
             // Viewing summary grid - ALWAYS show "Back to Lobby", hide navigation
-            backToSummaryButton.style.display = 'none';
             backToLobbyButton.style.display = 'block';
             if (prevBoardButton) prevBoardButton.style.display = 'none';
             if (nextBoardButton) nextBoardButton.style.display = 'none';
         }
     } else {
         // Not in summary mode - hide all
-        backToSummaryButton.style.display = 'none';
         backToLobbyButton.style.display = 'none';
         if (prevBoardButton) prevBoardButton.style.display = 'none';
         if (nextBoardButton) nextBoardButton.style.display = 'none';
@@ -821,25 +817,6 @@ function exitHistoricalSummary() {
     returnToLobby();
 }
 
-function returnToRoomFromHistorical() {
-    console.log('Returning to room from historical summary');
-    
-    // Reset historical viewing state
-    gameState.phase = 'lobby';
-    viewingHistoricalGame = null;
-    reviewingBoardIndex = -1;
-    
-    // Show the room UI overlay again
-    document.getElementById('ui-overlay').style.display = 'flex';
-    
-    // Clear canvas
-    if (typeof clear === 'function') {
-        clear();
-    }
-    
-    console.log('Returned to lobby from historical summary');
-}
-
 // Handle clicks on the summary grid screen
 function handleSummaryGridClick() {
     // Use the same filtering as drawSummaryScreen
@@ -903,19 +880,6 @@ function handleHistoricalSummaryGridClick() {
             console.log(`🖱️ Clicked on historical mini board ${i} (Board #${currentHistoricalBoardResults[i].boardId})`);
             return;
         }
-    }
-    
-    // Check click on "Back to Room" button (current game format)
-    const roomButtonX = width/2;
-    const roomButtonY = height - 50;
-    const roomButtonW = 150;
-    const roomButtonH = 40;
-    
-    if (mouseX >= roomButtonX - roomButtonW/2 && mouseX <= roomButtonX + roomButtonW/2 &&
-        mouseY >= roomButtonY - roomButtonH/2 && mouseY <= roomButtonY + roomButtonH/2) {
-        console.log('🖱️ Clicked Back to Room from historical summary');
-        returnToRoomFromHistorical();
-        return;
     }
 }
 
@@ -1734,14 +1698,24 @@ function initSocket() {
     socket.on('game-finished', (data) => {
         console.log('🏁 Game finished event received:', data);
         
-        // Check if player is currently in summary mode BEFORE updating game state
-        const wasInSummaryMode = (gameState.phase === 'summary');
-        console.log('🔍 Player was in summary mode before update:', wasInSummaryMode);
+        // Check if player is currently in summary mode or lobby BEFORE updating game state
+        const wasInSummaryMode = (getEffectivePhase() === 'summary');
+        const wasInLobby = (getEffectivePhase() === 'lobby');
+        const wasViewingHistorical = (viewingHistoricalGame !== null);
+        console.log('🔍 Player state before game finished - Summary:', wasInSummaryMode, 'Lobby:', wasInLobby, 'Historical:', wasViewingHistorical);
+        
+        // For players in lobby or viewing historical data, ignore the game-finished event completely
+        if (wasInLobby || wasViewingHistorical) {
+            console.log('🚫 Player in lobby or viewing historical data - ignoring game-finished event');
+            updateLeaderboard(); // Only update leaderboard data
+            return;
+        }
         
         // Update game state with final results
         updateGameState(data.gameState);
         timer = -1;
         
+        // Only affect players who were actively playing (not in summary)
         if (!wasInSummaryMode) {
             // Only set background colors and show leaderboard for players not reviewing individual boards
             failed = true; // Mark as finished state
@@ -1769,10 +1743,10 @@ function initSocket() {
             console.log('🔍 Player was in summary mode - not changing background or showing leaderboard');
         }
         
-        // Only enter summary mode for players not already there
+        // Only enter summary mode for players who were actively playing (not in summary)
         if (!wasInSummaryMode) {
             enterSummaryMode();
-            console.log('🎯 Player transitioned to summary mode (was not already in summary)');
+            console.log('🎯 Player transitioned to summary mode (was actively playing)');
         } else {
             console.log('🎯 Player already in summary mode - preserving current view state');
         }
@@ -5319,22 +5293,6 @@ function keyPressed() {
         if (keyCode === LEFT_ARROW) submitNormalModeAnswer('black');
         if (keyCode === RIGHT_ARROW) submitNormalModeAnswer('white');
     }
-}
-
-function mousePressed() {
-    // No longer needed - removed automatic lobby countdown
-    
-    // Don't prevent default behavior for normal interactions
-    // Return undefined to allow normal behavior
-}
-
-function mouseMoved() {
-    // No longer needed for canvas-drawn buttons
-}
-
-function mouseReleased() {
-    // Allow normal mouse release behavior
-    // Return undefined to allow default behavior
 }
 
 function touchEnded() {

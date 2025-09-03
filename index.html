@@ -5,14 +5,17 @@
 	<meta charset="UTF-8">
 
 	<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-	<script src="p5.min.js"></script>
-	<script src="boards.js"></script>
-	<script src="deadstones.js"></script>
-	<script src="boards_hard.js"></script>
-	<script src="deadstones_hard.js"></script>
-	<script src="name-generator.js"></script>
+	<script src="assets/lib/p5.min.js"></script>
+	
+	<!-- Data files -->
+	<script src="data/boards/normal.js"></script>
+	<script src="data/boards/hard.js"></script>
+	<script src="data/deadstones/normal.js"></script>
+	<script src="data/deadstones/hard.js"></script>
+	
+	<!-- Core modules -->
 	<script type="module">
-		import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './goscorer.js';
+		import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './src/core/goscorer.js';
 		// Make goscorer functions available globally
 		window.EMPTY = EMPTY;
 		window.BLACK = BLACK; 
@@ -20,11 +23,28 @@
 		window.territoryScoring = territoryScoring;
 		window.finalTerritoryScore = finalTerritoryScore;
 	</script>
-	<script src="multiplayer.js"></script>
+	<script src="src/core/game-state.js"></script>
+	<script src="src/core/board-logic.js"></script>
+	<script src="src/core/scoring.js"></script>
+	
+	<!-- Utilities -->
+	<script src="src/utils/helpers.js"></script>
+	<script src="src/utils/storage.js"></script>
+	<script src="src/utils/name-generator.js"></script>
+	<script src="src/utils/dev-tools.js"></script>
+	
+	<!-- UI Components -->
+	<script src="src/ui/lobby-ui.js"></script>
+	
+	<!-- Multiplayer -->
+	<script src="src/multiplayer/socket-client.js"></script>
+	
+	<!-- Main entry point -->
+	<script src="src/main.js"></script>
 
 	<meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
 
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="assets/css/main.css">
     <style>
         #ui-overlay {
             position: fixed;

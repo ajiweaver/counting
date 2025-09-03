@@ -1,0 +1,197 @@
+🔍 Analyzing functions in backup/multiplayer.js vs src/ files...
+======================================================================
+📂 Extracting functions from backup file...
+Found 103 functions in backup file
+
+📂 Extracting functions from src/ files...
+  src/main.js: 5 functions
+  src/editor/board-editor.js: 33 functions
+  src/core/board-logic.js: 4 functions
+  src/core/game-state.js: 6 functions
+  src/core/scoring.js: 4 functions
+  src/core/goscorer.js: 28 functions
+  src/utils/dev-tools.js: 4 functions
+  src/utils/helpers.js: 12 functions
+  src/utils/storage.js: 4 functions
+  src/utils/name-generator.js: 1 functions
+  src/ui/lobby-ui.js: 70 functions
+  src/multiplayer/socket-client.js: 8 functions
+Found 179 total functions in 12 src files
+
+🔍 Comparing functions...
+
+======================================================================
+📊 COMPARISON RESULTS
+======================================================================
+
+✅ EXACT MATCHES (96 functions):
+--------------------------------------------------
+  getCurrentBoards          | backup:   4 | src/core/game-state.js:5
+  getCurrentDeadStones      | backup:  11 | src/core/game-state.js:12
+  getEffectivePhase         | backup:  37 | src/core/game-state.js:38
+  resetBoardResults         | backup:  59 | src/core/game-state.js:59
+  enterSummaryMode          | backup:  71 | src/ui/lobby-ui.js:691
+  drawSummaryScreen         | backup: 141 | src/ui/lobby-ui.js:1159
+  drawMiniBoard             | backup: 293 | src/ui/lobby-ui.js:1311
+  drawBoardReview           | backup: 368 | src/ui/lobby-ui.js:1385
+  viewBoardFromSummary      | backup: 467 | src/ui/lobby-ui.js:1483
+  backToSummary             | backup: 483 | src/ui/lobby-ui.js:1500
+  backToLobbyFromSummary    | backup: 499 | src/ui/lobby-ui.js:1517
+  updateSummaryButtons      | backup: 510 | src/ui/lobby-ui.js:1528
+  updateNavigationButtonStates | backup: 548 | src/ui/lobby-ui.js:1566
+  navigateToPreviousBoard   | backup: 570 | src/ui/lobby-ui.js:1588
+  navigateToNextBoard       | backup: 579 | src/ui/lobby-ui.js:1597
+  drawGoBoard               | backup: 594 | src/ui/lobby-ui.js:1612
+  exitHistoricalSummary     | backup: 806 | src/ui/lobby-ui.js:1665
+  handleSummaryGridClick    | backup: 821 | src/ui/lobby-ui.js:1680
+  handleHistoricalSummaryGridClick | backup: 855 | src/ui/lobby-ui.js:1714
+  formatAnswerWithEmojis    | backup: 934 | src/utils/helpers.js:16
+  didCurrentPlayerWin       | backup:1403 | src/core/game-state.js:85
+  initSocket                | backup:1585 | src/multiplayer/socket-client.js:5
+  showMainMenu              | backup:1769 | src/ui/lobby-ui.js:4
+  debugLeaderboardStats     | backup:1807 | src/utils/dev-tools.js:323
+  resetLeaderboardStats     | backup:1817 | src/utils/dev-tools.js:333
+  displayLeaderboardHistory | backup:1942 | src/ui/lobby-ui.js:1041
+  getTimeAgo                | backup:2009 | src/utils/helpers.js:26
+  formatDuration            | backup:2022 | src/utils/helpers.js:39
+  saveToStorage             | backup:2045 | src/utils/storage.js:14
+  debugHardModeState        | backup:2193 | src/utils/dev-tools.js:54
+  loadFromStorage           | backup:2205 | src/utils/storage.js:22
+  getPlayerUUID             | backup:2216 | src/utils/storage.js:32
+  clearRoomStorage          | backup:2227 | src/utils/storage.js:43
+  initializeUI              | backup:2237 | src/main.js:96
+  blurHandler               | backup:2295 | src/main.js:408
+  boardsBlurHandler         | backup:2383 | src/main.js:423
+  tryReconnectToRoom        | backup:2432 | src/main.js:291
+  handleTimeChange          | backup:2500 | src/ui/lobby-ui.js:1746
+  createRoom                | backup:2523 | src/ui/lobby-ui.js:242
+  createNewRoom             | backup:2598 | src/ui/lobby-ui.js:1769
+  joinCreatedRoom           | backup:2629 | src/ui/lobby-ui.js:1801
+  handleJoinRoomSuccess     | backup:2646 | src/ui/lobby-ui.js:1819
+  updateRoomTimeFromInput   | backup:2701 | src/ui/lobby-ui.js:1845
+  updateRoomBoardsFromInput | backup:2736 | src/ui/lobby-ui.js:1881
+  toggleRoomHardMode        | backup:2771 | src/ui/lobby-ui.js:1917
+  updateRoomSettings        | backup:2786 | src/ui/lobby-ui.js:1933
+  updateRoomSettingsDisplay | backup:2808 | src/ui/lobby-ui.js:62
+  startGame                 | backup:2923 | src/ui/lobby-ui.js:317
+  copyRoomLink              | backup:2945 | src/utils/helpers.js:46
+  copyRoomLinkWithAnimation | backup:2969 | src/utils/helpers.js:70
+  updateBrowserURL          | backup:2983 | src/utils/helpers.js:152
+  resetBrowserURL           | backup:3003 | src/utils/helpers.js:171
+  fallbackCopyToClipboard   | backup:3017 | src/utils/helpers.js:83
+  showCopyFeedback          | backup:3042 | src/utils/helpers.js:108
+  updateResignButtonVisibility | backup:3085 | src/ui/lobby-ui.js:1956
+  resignGame                | backup:3097 | src/ui/lobby-ui.js:351
+  leaveRoom                 | backup:3143 | src/ui/lobby-ui.js:339
+  returnToLobby             | backup:3155 | src/ui/lobby-ui.js:397
+  returnToRoomLobby         | backup:3172 | src/ui/lobby-ui.js:414
+  toggleLeaderboard         | backup:3282 | src/ui/lobby-ui.js:1025
+  hideLeaderboard           | backup:3298 | src/ui/lobby-ui.js:195
+  showLeaderboard           | backup:3307 | src/ui/lobby-ui.js:181
+  checkLeaderboardOverlap   | backup:3321 | src/ui/lobby-ui.js:1109
+  updateGameState           | backup:3341 | src/core/game-state.js:112
+  showBoardNumberIndicator  | backup:3626 | src/ui/lobby-ui.js:1969
+  hideBoardNumberIndicator  | backup:3633 | src/ui/lobby-ui.js:1977
+  updateBoardNumberIndicator | backup:3640 | src/ui/lobby-ui.js:1985
+  startMultiplayerGame      | backup:3649 | src/ui/lobby-ui.js:765
+  convertBoardStringToStones | backup:3722 | src/editor/board-editor.js:890
+  applyBoardTransformations | backup:3745 | src/core/board-logic.js:26
+  convertDeadStoneStringToObject | backup:3782 | src/core/board-logic.js:62
+  calculateTerritoryScore   | backup:3802 | src/editor/board-editor.js:912
+  drawNormalModeUI          | backup:3844 | src/ui/lobby-ui.js:1995
+  drawNormalModeStoneUI     | backup:3895 | src/ui/lobby-ui.js:2047
+  drawHardModeUI            | backup:4028 | src/ui/lobby-ui.js:2181
+  loadMultiplayerBoard      | backup:4230 | src/ui/lobby-ui.js:837
+  updateLeaderboard         | backup:4418 | src/ui/lobby-ui.js:204
+  submitNormalModeAnswer    | backup:4455 | src/ui/lobby-ui.js:2384
+  preload                   | backup:4615 | src/ui/lobby-ui.js:468
+  setup                     | backup:4620 | src/editor/board-editor.js:715
+  windowResized             | backup:4680 | src/ui/lobby-ui.js:485
+  draw                      | backup:4747 | src/editor/board-editor.js:727
+  getBoard                  | backup:4884 | src/core/board-logic.js:81
+  handleHardModeClick       | backup:4910 | src/ui/lobby-ui.js:2544
+  handleNormalModeClick     | backup:4945 | src/ui/lobby-ui.js:2580
+  submitHardModeAnswer      | backup:4975 | src/ui/lobby-ui.js:2611
+  submitMultiplayerHardMode | backup:5016 | src/ui/lobby-ui.js:2653
+  handleClick               | backup:5146 | src/ui/lobby-ui.js:2784
+  keyPressed                | backup:5174 | src/ui/lobby-ui.js:557
+  mousePressed              | backup:5298 | src/editor/board-editor.js:865
+  mouseMoved                | backup:5305 | src/ui/lobby-ui.js:2813
+  mouseReleased             | backup:5309 | src/ui/lobby-ui.js:2818
+  touchEnded                | backup:5314 | src/ui/lobby-ui.js:2824
+  mouseWheel                | backup:5321 | src/ui/lobby-ui.js:2832
+  touchStarted              | backup:5336 | src/ui/lobby-ui.js:2848
+  touchMoved                | backup:5352 | src/ui/lobby-ui.js:2865
+
+⚠️  DIFFERENT IMPLEMENTATIONS (4 functions):
+----------------------------------------------------------------------
+
+🔧 showRoomLobby (backup:2672 vs src/ui/lobby-ui.js:32)
+   BACKUP VERSION:
+     async function showRoomLobby() {
+         document.getElementById('main-menu').classList.add('hidden');
+         document.getElementById('room-panel').classList.remove('hidden');
+         
+         // Hide leaderboard elements when entering lobby
+     ...
+   SRC VERSION:
+     async function showRoomLobby() {
+         document.getElementById('main-menu').classList.add('hidden');
+         document.getElementById('room-panel').classList.remove('hidden');
+         
+         // Hide leaderboard elements when entering lobby
+     ...
+
+🔧 returnToLobbyUI (backup:3225 vs src/ui/lobby-ui.js:760)
+   BACKUP VERSION:
+     async function returnToLobbyUI() {
+         // Clear user override phase when returning to lobby
+         userOverridePhase = null;
+         console.log('🔓 Cleared user override phase for lobby return');
+         
+     ...
+   SRC VERSION:
+     function returnToLobbyUI() {
+         console.log('🔙 Return to lobby UI (placeholder)');
+         showMainMenu();
+     }
+
+🔧 updatePlayerListAndStatus (backup:3413 vs src/ui/lobby-ui.js:58)
+   BACKUP VERSION:
+     async function updatePlayerListAndStatus() {
+         try {
+             // Update room status
+             const statusEl = document.getElementById('room-status');
+             if (gameState.phase === 'lobby') {
+     ...
+   SRC VERSION:
+     function updatePlayerListAndStatus() {
+         console.log('👥 Updating player list (placeholder)');
+     }
+
+🔧 updateUI (backup:3503 vs src/ui/lobby-ui.js:177)
+   BACKUP VERSION:
+     async function updateUI() {
+         if (updateUIInProgress) {
+             console.log('UpdateUI already in progress, skipping...');
+             return;
+         }
+     ...
+   SRC VERSION:
+     function updateUI() {
+         console.log('🔄 Updating UI (placeholder)');
+     }
+
+❌ MISSING FUNCTIONS (3 functions):
+--------------------------------------------------
+  viewHistoricalGameSummary | backup: 647 | async function viewHistoricalGameSummary(gameId) {
+  getTotalScoresForRoom     | backup:1431 | async function getTotalScoresForRoom() {
+  loadLeaderboardHistory    | backup:1825 | async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
+
+======================================================================
+📈 SUMMARY:
+  Total functions in backup: 103
+  Exact matches: 96
+  Different implementations: 4
+  Missing from src/: 3
+======================================================================

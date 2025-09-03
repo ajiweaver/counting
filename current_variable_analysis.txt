@@ -1,0 +1,856 @@
+🔍 Analyzing variables in backup/multiplayer.js vs src/ files...
+================================================================================
+📂 Extracting variables from backup file...
+Found 391 variables in backup file
+
+📂 Checking variables in src/ files...
+
+================================================================================
+📊 VARIABLE ANALYSIS RESULTS
+================================================================================
+
+✅ VARIABLES FOUND AND DECLARED IN SRC (364 variables):
+------------------------------------------------------------
+  socket                    | backup:  19 | value: undefined
+    └─ declared in src/core/game-state.js:20
+  socketInitialized         | backup:  20 | value: false
+    └─ declared in src/core/game-state.js:21
+  gameState                 | backup:  21 | value: {
+    └─ declared in src/core/game-state.js:22
+  userOverridePhase         | backup:  34 | value: null
+    └─ declared in src/core/game-state.js:35
+  playerBoardResults        | backup:  42 | value: []
+    └─ declared in src/core/game-state.js:43
+  currentGameBoardResults   | backup:  43 | value: []
+    └─ declared in src/core/game-state.js:44
+  currentGameInstanceId     | backup:  44 | value: null
+    └─ declared in src/core/game-state.js:45
+  historicalGameData        | backup:  45 | value: {}
+    └─ declared in src/core/game-state.js:46
+  viewingSummary            | backup:  48 | value: false
+    └─ declared in src/core/game-state.js:49
+  reviewingBoardIndex       | backup:  49 | value: -1
+    └─ declared in src/core/game-state.js:50
+  viewingHistoricalGame     | backup:  50 | value: null
+    └─ declared in src/core/game-state.js:51
+  currentHistoricalBoardResults | backup:  51 | value: []
+    └─ declared in src/core/game-state.js:52
+  summaryLogged             | backup:  52 | value: false
+    └─ declared in src/main.js:26
+  cachedSummaryData         | backup:  53 | value: null
+    └─ declared in src/core/game-state.js:56
+  currentBoardTransforms    | backup:  55 | value: { flipX: false, flipY: false, 
+    └─ declared in src/core/game-state.js:55
+  wasAlreadyReviewingBoard  | backup:  84 | value: false
+    └─ declared in src/ui/lobby-ui.js:904
+  correctCount              | backup: 164 | value: filteredBoardResults.filter(re
+    └─ declared in src/ui/lobby-ui.js:944
+  isHistoricalData          | backup: 143 | value: (viewingHistoricalGame !== nul
+    └─ declared in src/ui/lobby-ui.js:1413
+  boardResultsToShow        | backup:5196 | value: currentGameBoardResults.filter
+    └─ declared in src/ui/lobby-ui.js:779
+  titleText                 | backup: 146 | value: ''
+    └─ declared in src/ui/lobby-ui.js:1416
+  subtitleText              | backup: 147 | value: ''
+    └─ declared in src/ui/lobby-ui.js:1417
+  filteredBoardResults      | backup: 823 | value: currentGameBoardResults.filter
+    └─ declared in src/ui/lobby-ui.js:1428
+  totalCount                | backup: 858 | value: currentHistoricalBoardResults.
+    └─ declared in src/ui/lobby-ui.js:1435
+  timesArray                | backup: 168 | value: filteredBoardResults
+    └─ declared in src/ui/lobby-ui.js:1438
+  avgTime                   | backup: 171 | value: timesArray.length > 0
+    └─ declared in src/ui/lobby-ui.js:1441
+  computedTitleText         | backup: 176 | value: `Game Summary - ${correctCount
+    └─ declared in src/ui/lobby-ui.js:1446
+  avgTimeText               | backup: 179 | value: avgTime !== null ? ` • Avg: ${
+    └─ declared in src/ui/lobby-ui.js:1449
+  computedSubtitleText      | backup: 180 | value: `Click any board to review in 
+    └─ declared in src/ui/lobby-ui.js:1450
+  cornerRadius              | backup: 203 | value: 20
+    └─ declared in src/ui/lobby-ui.js:1473
+  titleSize                 | backup: 229 | value: Math.max(18, Math.min(32, widt
+    └─ declared in src/ui/lobby-ui.js:1499
+  subtitleSize              | backup: 236 | value: Math.max(12, Math.min(20, widt
+    └─ declared in src/ui/lobby-ui.js:1506
+  availableWidth            | backup: 243 | value: width * 0.9
+    └─ declared in src/ui/lobby-ui.js:1513
+  maxMiniSize               | backup: 244 | value: 120
+    └─ declared in src/ui/lobby-ui.js:1514
+  minMiniSize               | backup: 245 | value: 80
+    └─ declared in src/ui/lobby-ui.js:1515
+  gap                       | backup:4695 | value: 20
+    └─ declared in src/ui/lobby-ui.js:700
+  boardsPerRow              | backup:4692 | value: Math.min(4, Math.ceil(Math.sqr
+    └─ declared in src/ui/lobby-ui.js:697
+  miniSize                  | backup:4694 | value: 120
+    └─ declared in src/ui/lobby-ui.js:699
+  testWidth                 | backup: 254 | value: boardsPerRow * miniSize + (boa
+    └─ declared in src/ui/lobby-ui.js:1524
+  rows                      | backup:4693 | value: Math.ceil(boardResults.length 
+    └─ declared in src/editor/board-editor.js:891
+  gridWidth                 | backup: 865 | value: boardsPerRow * miniSize + (boa
+    └─ declared in src/ui/lobby-ui.js:1546
+  gridStartX                | backup: 866 | value: (width - gridWidth) / 2
+    └─ declared in src/ui/lobby-ui.js:1547
+  gridStartY                | backup: 867 | value: 120
+    └─ declared in src/ui/lobby-ui.js:1548
+  row                       | backup: 871 | value: Math.floor(i / boardsPerRow)
+    └─ declared in src/ui/lobby-ui.js:1552
+  col                       | backup:3817 | value: deadstones[y]
+    └─ declared in src/editor/board-editor.js:927
+  borderColor               | backup: 297 | value: result.isCorrect ? color(76, 1
+    └─ declared in src/ui/lobby-ui.js:1567
+  boardId                   | backup:5021 | value: gameState.boardSequence[gameSt
+    └─ declared in src/ui/lobby-ui.js:1576
+  currentBoards             | backup:5385 | value: getCurrentBoards()
+    └─ declared in src/utils/dev-tools.js:265
+  boardString               | backup:4470 | value: currentBoards[boardId]
+    └─ declared in src/ui/lobby-ui.js:1105
+  displayBoard              | backup:4888 | value: []
+    └─ declared in src/core/board-logic.js:85
+  padding                   | backup: 319 | value: 10
+    └─ declared in src/ui/lobby-ui.js:1589
+  availableSize             | backup: 320 | value: size - 2 * padding
+    └─ declared in src/ui/lobby-ui.js:1590
+  miniD                     | backup: 321 | value: Math.min(availableSize / displ
+    └─ declared in src/ui/lobby-ui.js:1591
+  miniR                     | backup: 325 | value: miniD / 2
+    └─ declared in src/ui/lobby-ui.js:1595
+  miniHalfStroke            | backup: 326 | value: Math.max(1, miniR / 35)
+    └─ declared in src/ui/lobby-ui.js:1596
+  miniStoneSize             | backup: 327 | value: miniR - miniHalfStroke
+    └─ declared in src/ui/lobby-ui.js:1597
+  boardPixelWidth           | backup: 330 | value: (displayBoard.width - 1) * min
+    └─ declared in src/ui/lobby-ui.js:1600
+  boardPixelHeight          | backup: 331 | value: (displayBoard.height - 1) * mi
+    └─ declared in src/ui/lobby-ui.js:1601
+  boardStartX               | backup: 332 | value: x + (size - boardPixelWidth) /
+    └─ declared in src/ui/lobby-ui.js:1602
+  boardStartY               | backup: 333 | value: y + (size - boardPixelHeight) 
+    └─ declared in src/ui/lobby-ui.js:1603
+  statusText                | backup: 352 | value: result.isCorrect ? '✓ Correct'
+    └─ declared in src/ui/lobby-ui.js:1622
+  boardResultsToUse         | backup: 370 | value: window.currentDisplayBoardResu
+    └─ declared in src/ui/lobby-ui.js:1639
+  result                    | backup:5460 | value: testBoard(boardNum, useFlipX, 
+    └─ declared in src/ui/lobby-ui.js:1640
+  boardKey                  | backup: 385 | value: `${boardId}-${reviewingBoardIn
+    └─ declared in src/ui/lobby-ui.js:1654
+  t                         | backup: 388 | value: result.transforms
+    └─ declared in src/ui/lobby-ui.js:1657
+  statusColor               | backup: 406 | value: result.isCorrect ? color(76, 1
+    └─ declared in src/ui/lobby-ui.js:1675
+  formattedCorrect          | backup: 424 | value: ""
+    └─ declared in src/ui/lobby-ui.js:1693
+  formattedPlayer           | backup: 425 | value: ""
+    └─ declared in src/ui/lobby-ui.js:1694
+  correctFormatted          | backup: 428 | value: result.winningColor === 'black
+    └─ declared in src/ui/lobby-ui.js:1697
+  answerX                   | backup: 435 | value: 0.5 * width
+    └─ declared in src/ui/lobby-ui.js:1704
+  answerY                   | backup: 436 | value: titleY + 0.25 * R
+    └─ declared in src/ui/lobby-ui.js:1705
+  boardX                    | backup: 442 | value: D
+    └─ declared in src/ui/lobby-ui.js:1711
+  boardY                    | backup: 443 | value: answerY + 4*R
+    └─ declared in src/ui/lobby-ui.js:1712
+  cellSpacing               | backup: 444 | value: D
+    └─ declared in src/ui/lobby-ui.js:1713
+  territoryX                | backup: 455 | value: 0.5 * width
+    └─ declared in src/ui/lobby-ui.js:1724
+  territoryY                | backup: 456 | value: boardY + cellSpacing*8.5 + R
+    └─ declared in src/ui/lobby-ui.js:1725
+  backToLobbyButton         | backup: 511 | value: document.getElementById('back-
+    └─ declared in src/ui/lobby-ui.js:1781
+  prevBoardButton           | backup: 549 | value: document.getElementById('prev-
+    └─ declared in src/ui/lobby-ui.js:1782
+  nextBoardButton           | backup: 550 | value: document.getElementById('next-
+    └─ declared in src/ui/lobby-ui.js:1783
+  maxIndex                  | backup: 584 | value: boardResultsToShow.length - 1
+    └─ declared in src/ui/lobby-ui.js:1828
+  response                  | backup:1881 | value: await fetch(url, {
+    └─ declared in src/utils/dev-tools.js:91
+  currentPlayerName         | backup: 675 | value: gameState.playerName
+    └─ declared in src/ui/lobby-ui.js:3162
+  currentPlayerResponses    | backup: 688 | value: responses.filter(response => {
+    └─ declared in src/ui/lobby-ui.js:3175
+  timeTaken                 | backup:5025 | value: boardStartTime ? (Date.now() -
+    └─ declared in src/ui/lobby-ui.js:2666
+  prevResponse              | backup: 705 | value: currentPlayerResponses.find(r 
+    └─ declared in src/ui/lobby-ui.js:3192
+  correctAnswer             | backup:2089 | value: colors[Math.floor(Math.random(
+    └─ declared in src/utils/dev-tools.js:227
+  blackScore                | backup: 714 | value: 0
+    └─ declared in src/core/scoring.js:38
+  whiteScore                | backup: 715 | value: 0
+    └─ declared in src/core/scoring.js:39
+  difference                | backup:3832 | value: blackTerritory - whiteTerritor
+    └─ declared in src/editor/board-editor.js:942
+  winningColor              | backup:2072 | value: colors[Math.floor(Math.random(
+    └─ declared in src/utils/dev-tools.js:210
+  currentDeadStones         | backup:5386 | value: getCurrentDeadStones()
+    └─ declared in src/editor/board-editor.js:204
+  deadStonesString          | backup:4471 | value: currentDeadStones[boardId]
+    └─ declared in src/ui/lobby-ui.js:1107
+  territoryScore            | backup:5022 | value: window.currentTerritoryScore
+    └─ declared in src/core/scoring.js:35
+  startX                    | backup:4128 | value: width * 0.60 - totalWidth / 2
+    └─ declared in src/ui/lobby-ui.js:1943
+  startY                    | backup: 833 | value: 120
+    └─ declared in src/ui/lobby-ui.js:1944
+  leaderboardVisible        | backup: 887 | value: true
+    └─ declared in src/main.js:24
+  leaderboardAutoHidden     | backup: 888 | value: false
+    └─ declared in src/main.js:25
+  board                     | backup: 891 | value: undefined
+    └─ declared in src/core/scoring.js:14
+  score                     | backup:4132 | value: scoreChoices[i]
+    └─ declared in src/editor/board-editor.js:958
+  timer                     | backup: 893 | value: 0
+    └─ declared in src/core/game-state.js:74
+  maxTime                   | backup: 894 | value: 0
+    └─ declared in src/core/game-state.js:75
+  started                   | backup: 895 | value: false
+    └─ declared in src/core/game-state.js:72
+  boardStartTime            | backup: 896 | value: null
+    └─ declared in src/core/game-state.js:76
+  correctColor              | backup: 897 | value: undefined
+    └─ declared in src/core/game-state.js:77
+  failed                    | backup: 898 | value: false
+    └─ declared in src/core/game-state.js:73
+  defaultTimePerBoard       | backup: 899 | value: 60
+    └─ declared in src/main.js:8
+  defaultTotalBoards        | backup: 900 | value: 10
+    └─ declared in src/main.js:9
+  penaltyMode               | backup: 901 | value: false
+    └─ declared in src/core/game-state.js:78
+  lobbyCountdown            | backup: 902 | value: 0
+    └─ declared in src/core/game-state.js:79
+  lobbyCountdownActive      | backup: 903 | value: false
+    └─ declared in src/core/game-state.js:80
+  lobbyCountdownCancelled   | backup: 904 | value: false
+    └─ declared in src/core/game-state.js:81
+  selectedColorValue        | backup: 907 | value: 1
+    └─ declared in src/core/game-state.js:82
+  selectedDifference        | backup: 908 | value: null
+    └─ declared in src/main.js:33
+  scoreChoices              | backup: 909 | value: []
+    └─ declared in src/main.js:32
+  normalModeBlackStone      | backup: 912 | value: null
+    └─ declared in src/main.js:34
+  normalModeWhiteStone      | backup: 913 | value: null
+    └─ declared in src/main.js:35
+  blackStoneBounce          | backup: 914 | value: 0
+    └─ declared in src/main.js:49
+  whiteStoneBounce          | backup: 915 | value: 0
+    └─ declared in src/main.js:50
+  stoneButtonBounce         | backup: 918 | value: 0
+    └─ declared in src/main.js:51
+  scoreButtonBounces        | backup: 919 | value: [0, 0, 0, 0]
+    └─ declared in src/main.js:36
+  bounceDecay               | backup: 920 | value: 0.85
+    └─ declared in src/main.js:37
+  bounceStrength            | backup: 921 | value: 0.3
+    └─ declared in src/main.js:52
+  errorShakeIntensity       | backup: 924 | value: 0
+    └─ declared in src/main.js:18
+  errorShakeTime            | backup: 925 | value: 0
+    └─ declared in src/main.js:20
+  errorShakeDecay           | backup: 926 | value: 0.9
+    └─ declared in src/main.js:19
+  errorShakeDuration        | backup: 927 | value: 30
+    └─ declared in src/main.js:21
+  SERVER_URL                | backup: 944 | value: window.location.hostname === '
+    └─ declared in src/utils/helpers.js:5
+  IS_DEV_MODE               | backup: 950 | value: window.location.hostname === '
+    └─ declared in src/main.js:12
+  useMockData               | backup: 997 | value: false
+    └─ declared in src/utils/dev-tools.js:14
+  MOCK_BOARDS               | backup:1115 | value: [
+    └─ declared in src/core/board-logic.js:108
+  roomIds                   | backup:1556 | value: [...new Set(data.games.map(g =
+    └─ declared in src/utils/dev-tools.js:163
+  count                     | backup:1197 | value: MOCK_GAMES.filter(g => g.roomI
+    └─ declared in src/core/goscorer.js:1046
+  lines                     | backup:1274 | value: board.trim().split('\n')
+    └─ declared in src/editor/board-editor.js:157
+  boardLines                | backup:4885 | value: boardString.split('\n').map(ro
+    └─ declared in src/core/board-logic.js:32
+  timestamp                 | backup:1878 | value: Date.now()
+    └─ declared in src/utils/dev-tools.js:87
+  url                       | backup:1879 | value: `${SERVER_URL}/leaderboard?t=$
+    └─ declared in src/editor/board-editor.js:569
+  data                      | backup:1892 | value: await response.json()
+    └─ declared in src/utils/dev-tools.js:103
+  roomGames                 | backup:1906 | value: data.games.filter(game => {
+    └─ declared in src/utils/dev-tools.js:111
+  currentPlayer             | backup:1409 | value: gameState.players.find(p => p.
+    └─ declared in src/core/game-state.js:91
+  highestScore              | backup:4425 | value: sortedPlayers.length > 0 ? sor
+    └─ declared in src/core/game-state.js:97
+  isWinner                  | backup:1418 | value: currentPlayer.score === highes
+    └─ declared in src/core/game-state.js:100
+  winnersCount              | backup:4428 | value: sortedPlayers.filter(p => p.sc
+    └─ declared in src/core/game-state.js:103
+  isTie                     | backup:1422 | value: winnersCount > 1
+    └─ declared in src/core/game-state.js:104
+  totalScores               | backup:3526 | value: await getTotalScoresForRoom()
+    └─ declared in src/ui/lobby-ui.js:72
+  historyContent            | backup:1943 | value: document.getElementById('histo
+    └─ declared in src/utils/dev-tools.js:80
+  availableRoomIds          | backup:1898 | value: [...new Set(data.games.map(gam
+    └─ declared in src/utils/dev-tools.js:107
+  match                     | backup:1910 | value: gameRoomId === currentRoomId
+    └─ declared in src/utils/dev-tools.js:118
+  target                    | backup:1565 | value: roomId || gameState.roomId
+    └─ declared in src/utils/dev-tools.js:172
+  games                     | backup:1569 | value: data.games.filter(g => g.roomI
+    └─ declared in src/utils/dev-tools.js:176
+  joinedPlayer              | backup:1614 | value: data.player
+    └─ declared in src/multiplayer/socket-client.js:34
+  isCurrentPlayer           | backup:3466 | value: player.id === gameState.player
+    └─ declared in src/ui/lobby-ui.js:110
+  wasAllFinished            | backup:1674 | value: gameState.allPlayersFinished
+    └─ declared in src/multiplayer/socket-client.js:94
+  wasInSummaryMode          | backup:1702 | value: (getEffectivePhase() === 'summ
+    └─ declared in src/multiplayer/socket-client.js:122
+  wasInLobby                | backup:1703 | value: (getEffectivePhase() === 'lobb
+    └─ declared in src/multiplayer/socket-client.js:123
+  wasViewingHistorical      | backup:1704 | value: (viewingHistoricalGame !== nul
+    └─ declared in src/multiplayer/socket-client.js:124
+  winResult                 | backup:1722 | value: didCurrentPlayerWin()
+    └─ declared in src/multiplayer/socket-client.js:142
+  leaderboardHistoryCallCount | backup:1801 | value: 0
+    └─ declared in src/main.js:61
+  lastHistoryLoadTime       | backup:1802 | value: 0
+    └─ declared in src/main.js:62
+  historyLoadInProgress     | backup:1803 | value: false
+    └─ declared in src/main.js:63
+  now                       | backup:2010 | value: new Date()
+    └─ declared in src/utils/helpers.js:27
+  gameRoomId                | backup:1908 | value: String(game.roomId).trim()
+    └─ declared in src/ui/lobby-ui.js:3406
+  currentRoomId             | backup:1909 | value: String(gameState.roomId).trim(
+    └─ declared in src/ui/lobby-ui.js:3407
+  html                      | backup:1950 | value: games.map(game => {
+    └─ declared in src/ui/lobby-ui.js:1301
+  date                      | backup:1951 | value: new Date(game.completedAt)
+    └─ declared in src/ui/lobby-ui.js:1302
+  timeAgo                   | backup:1952 | value: getTimeAgo(date)
+    └─ declared in src/ui/lobby-ui.js:1303
+  duration                  | backup:1953 | value: formatDuration(game.duration)
+    └─ declared in src/ui/lobby-ui.js:1304
+  winners                   | backup:1959 | value: game.players.filter(player => 
+    └─ declared in src/ui/lobby-ui.js:1310
+  resultText                | backup:1961 | value: undefined
+    └─ declared in src/ui/lobby-ui.js:1312
+  resultColor               | backup:1962 | value: undefined
+    └─ declared in src/ui/lobby-ui.js:1313
+  pointText                 | backup:3589 | value: displayScore === 1 ? 'point' :
+    └─ declared in src/ui/lobby-ui.js:342
+  winnerNames               | backup:1971 | value: winners.map(w => w.name).join(
+    └─ declared in src/ui/lobby-ui.js:1322
+  diffMs                    | backup:2011 | value: now - date
+    └─ declared in src/utils/helpers.js:28
+  diffMins                  | backup:2012 | value: Math.floor(diffMs / 60000)
+    └─ declared in src/utils/helpers.js:29
+  diffHours                 | backup:2013 | value: Math.floor(diffMs / 3600000)
+    └─ declared in src/utils/helpers.js:30
+  diffDays                  | backup:2014 | value: Math.floor(diffMs / 86400000)
+    └─ declared in src/utils/helpers.js:31
+  mins                      | backup:2023 | value: Math.floor(seconds / 60)
+    └─ declared in src/utils/helpers.js:40
+  secs                      | backup:2024 | value: seconds % 60
+    └─ declared in src/utils/helpers.js:41
+  uiInitialized             | backup:2030 | value: false
+    └─ declared in src/main.js:66
+  currentTimePerBoard       | backup:2031 | value: defaultTimePerBoard
+    └─ declared in src/main.js:45
+  currentTotalBoards        | backup:2032 | value: 20
+    └─ declared in src/main.js:46
+  STORAGE_KEYS              | backup:2035 | value: {
+    └─ declared in src/utils/storage.js:5
+  isCorrect                 | backup:4990 | value: signedScore === correctSignedS
+    └─ declared in src/utils/dev-tools.js:205
+  mode                      | backup:2068 | value: Math.random() > 0.5 ? 'hard' :
+    └─ declared in src/utils/dev-tools.js:206
+  colors                    | backup:2088 | value: ['black', 'white']
+    └─ declared in src/utils/dev-tools.js:209
+  playerAnswer              | backup:2090 | value: isCorrect ? correctAnswer : co
+    └─ declared in src/core/scoring.js:109
+  gameStateValue            | backup:2194 | value: gameState.settings ? gameState
+    └─ declared in src/utils/dev-tools.js:55
+  item                      | backup:2207 | value: localStorage.getItem(key)
+    └─ declared in src/core/goscorer.js:281
+  uuid                      | backup:2217 | value: loadFromStorage(STORAGE_KEYS.P
+    └─ declared in src/utils/storage.js:33
+  timeSlider                | backup:2244 | value: document.getElementById('time-
+    └─ declared in src/main.js:103
+  totalBoardsInput          | backup:2245 | value: document.getElementById('total
+    └─ declared in src/main.js:104
+  timeDisplay               | backup:2817 | value: settings.timePerBoard === -1 ?
+    └─ declared in src/main.js:105
+  playerNameInput           | backup:2247 | value: document.getElementById('playe
+    └─ declared in src/main.js:106
+  savedTime                 | backup:2250 | value: loadFromStorage(STORAGE_KEYS.T
+    └─ declared in src/main.js:109
+  savedTotalBoards          | backup:2251 | value: loadFromStorage(STORAGE_KEYS.T
+    └─ declared in src/main.js:110
+  savedPlayerName           | backup:2252 | value: loadFromStorage(STORAGE_KEYS.P
+    └─ declared in src/main.js:111
+  savedRoomId               | backup:2253 | value: loadFromStorage(STORAGE_KEYS.R
+    └─ declared in src/main.js:112
+  newValue                  | backup:2403 | value: parseInt(e.target.value)
+    └─ declared in src/main.js:155
+  devModeToggle             | backup:2328 | value: document.getElementById('dev-m
+    └─ declared in src/main.js:187
+  devModeCheckbox           | backup:2329 | value: document.getElementById('dev-m
+    └─ declared in src/main.js:188
+  boardEditorLink           | backup:2336 | value: document.getElementById('board
+    └─ declared in src/main.js:195
+  devIndicator              | backup:2682 | value: document.getElementById('dev-m
+    └─ declared in src/main.js:210
+  playerName                | backup:4647 | value: document.getElementById('playe
+    └─ declared in src/main.js:301
+  verifyStorage             | backup:2513 | value: localStorage.getItem('timePerB
+    └─ declared in src/ui/lobby-ui.js:2011
+  timePerBoard              | backup:2927 | value: currentTimePerBoard
+    └─ declared in src/ui/lobby-ui.js:456
+  creatorUUID               | backup:2545 | value: getPlayerUUID()
+    └─ declared in src/ui/lobby-ui.js:464
+  timeInput                 | backup:2707 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:2103
+  newTime                   | backup:2713 | value: parseInt(timeInput.value)
+    └─ declared in src/ui/lobby-ui.js:2109
+  boardsInput               | backup:2742 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:2139
+  newBoards                 | backup:2748 | value: parseInt(boardsInput.value)
+    └─ declared in src/ui/lobby-ui.js:2145
+  newHardMode               | backup:2782 | value: !gameState.settings.hardMode
+    └─ declared in src/ui/lobby-ui.js:2180
+  currentSettings           | backup:2787 | value: gameState.settings
+    └─ declared in src/ui/lobby-ui.js:2186
+  settings                  | backup:2929 | value: {
+    └─ declared in src/ui/lobby-ui.js:152
+  roomSettingsEl            | backup:2809 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:145
+  boardsDisplay             | backup:2818 | value: settings.totalBoards === -1 ? 
+    └─ declared in src/ui/lobby-ui.js:154
+  modeDisplay               | backup:2819 | value: settings.hardMode ? 'Hard' : '
+    └─ declared in src/ui/lobby-ui.js:155
+  modeColor                 | backup:2820 | value: settings.hardMode ? '#FF6B6B' 
+    └─ declared in src/ui/lobby-ui.js:156
+  isCreator                 | backup:2821 | value: gameState.isCreator && gameSta
+    └─ declared in src/ui/lobby-ui.js:157
+  existingTimeInput         | backup:2825 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:161
+  existingBoardsInput       | backup:2826 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:162
+  isTimeInputFocused        | backup:2827 | value: existingTimeInput && document.
+    └─ declared in src/ui/lobby-ui.js:163
+  isBoardsInputFocused      | backup:2828 | value: existingBoardsInput && documen
+    └─ declared in src/ui/lobby-ui.js:164
+  timeValue                 | backup:2831 | value: isTimeInputFocused ? existingT
+    └─ declared in src/ui/lobby-ui.js:167
+  boardsValue               | backup:2832 | value: isBoardsInputFocused ? existin
+    └─ declared in src/ui/lobby-ui.js:168
+  newTimeInput              | backup:2854 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:190
+  newBoardsInput            | backup:2874 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:210
+  hardMode                  | backup:2928 | value: gameState.settings ? gameState
+    └─ declared in src/editor/board-editor.js:28
+  roomLink                  | backup:2952 | value: `${window.location.origin}${wi
+    └─ declared in src/utils/helpers.js:53
+  roomURL                   | backup:2991 | value: `${window.location.origin}${wi
+    └─ declared in src/utils/helpers.js:160
+  baseURL                   | backup:3006 | value: `${window.location.origin}${wi
+    └─ declared in src/utils/helpers.js:174
+  textarea                  | backup:3019 | value: document.createElement('textar
+    └─ declared in src/editor/board-editor.js:553
+  successful                | backup:3028 | value: document.execCommand('copy')
+    └─ declared in src/utils/helpers.js:94
+  toast                     | backup:3044 | value: document.createElement('div')
+    └─ declared in src/utils/helpers.js:110
+  resignButton              | backup:3086 | value: document.getElementById('resig
+    └─ declared in src/ui/lobby-ui.js:2209
+  ourPlayer                 | backup:5127 | value: gameState.players.find(p => p.
+    └─ declared in src/editor/board-editor.js:839
+  backToSummaryBtn          | backup:3662 | value: document.getElementById('back-
+    └─ declared in src/ui/lobby-ui.js:650
+  backToLobbyBtn            | backup:3663 | value: document.getElementById('back-
+    └─ declared in src/ui/lobby-ui.js:651
+  prevBoardBtn              | backup:3664 | value: document.getElementById('prev-
+    └─ declared in src/ui/lobby-ui.js:652
+  nextBoardBtn              | backup:3665 | value: document.getElementById('next-
+    └─ declared in src/ui/lobby-ui.js:653
+  leaderboard               | backup:3313 | value: document.getElementById('leade
+    └─ declared in src/ui/lobby-ui.js:387
+  toggle                    | backup:3314 | value: document.getElementById('leade
+    └─ declared in src/ui/lobby-ui.js:388
+  screenWidth               | backup:3325 | value: window.innerWidth
+    └─ declared in src/ui/lobby-ui.js:1365
+  screenHeight              | backup:3326 | value: window.innerHeight
+    └─ declared in src/ui/lobby-ui.js:1366
+  newPhase                  | backup:3347 | value: serverGameState.gameState === 
+    └─ declared in src/core/game-state.js:118
+  statusEl                  | backup:3612 | value: document.getElementById('room-
+    └─ declared in src/ui/lobby-ui.js:60
+  playerListEl              | backup:3522 | value: document.getElementById('playe
+    └─ declared in src/ui/lobby-ui.js:68
+  showingTotalScores        | backup:3527 | value: !gameState.phase || gameState.
+    └─ declared in src/ui/lobby-ui.js:73
+  sortedPlayers             | backup:4422 | value: [...gameState.players].sort((a
+    └─ declared in src/ui/lobby-ui.js:76
+  aScore                    | backup:3531 | value: showingTotalScores ? (totalSco
+    └─ declared in src/ui/lobby-ui.js:77
+  bScore                    | backup:3532 | value: showingTotalScores ? (totalSco
+    └─ declared in src/ui/lobby-ui.js:78
+  playerEl                  | backup:3545 | value: document.createElement('div')
+    └─ declared in src/ui/lobby-ui.js:91
+  rankIcon                  | backup:3549 | value: ''
+    └─ declared in src/ui/lobby-ui.js:95
+  displayScore              | backup:3550 | value: showingTotalScores ? (totalSco
+    └─ declared in src/ui/lobby-ui.js:96
+  playerText                | backup:3569 | value: rankIcon + playerName
+    └─ declared in src/ui/lobby-ui.js:109
+  scoreText                 | backup:3584 | value: ''
+    └─ declared in src/ui/lobby-ui.js:125
+  startBtn                  | backup:3601 | value: document.getElementById('start
+    └─ declared in src/ui/lobby-ui.js:132
+  hostHtml                  | backup:3572 | value: ''
+    └─ declared in src/ui/lobby-ui.js:328
+  devModeHtml               | backup:3578 | value: ''
+    └─ declared in src/ui/lobby-ui.js:334
+  indicator                 | backup:3634 | value: document.getElementById('board
+    └─ declared in src/ui/lobby-ui.js:2222
+  valueElement              | backup:3641 | value: document.getElementById('board
+    └─ declared in src/ui/lobby-ui.js:2238
+  actualBoardId             | backup:3644 | value: gameState.boardSequence[gameSt
+    └─ declared in src/ui/lobby-ui.js:2241
+  ysize                     | backup:3807 | value: stones.length
+    └─ declared in src/editor/board-editor.js:892
+  xsize                     | backup:3808 | value: stones[0].length
+    └─ declared in src/editor/board-editor.js:893
+  stones                    | backup:3727 | value: Array.from({length: ysize}, ()
+    └─ declared in src/editor/board-editor.js:895
+  c                         | backup:3731 | value: rows[y][x]
+    └─ declared in src/editor/board-editor.js:899
+  textBoard                 | backup:4886 | value: boardLines.map(row => row.spli
+    └─ declared in src/core/board-logic.js:33
+  transformedBoard          | backup:5403 | value: applyBoardTransformations(orig
+    └─ declared in src/core/board-logic.js:36
+  width                     | backup:3757 | value: textBoard[0].length
+    └─ declared in src/core/board-logic.js:38
+  height                    | backup:3758 | value: textBoard.length
+    └─ declared in src/core/board-logic.js:39
+  piece                     | backup:3766 | value: textBoard[b][a]
+    └─ declared in src/core/board-logic.js:47
+  deadStonesLines           | backup:3784 | value: boardString.split('\n').map(ro
+    └─ declared in src/core/board-logic.js:64
+  textDeadStones            | backup:3785 | value: deadStonesLines.map(row => row
+    └─ declared in src/core/board-logic.js:65
+  deadStonesParser          | backup:3786 | value: {'y':1,'x':0,'o':0,'.':0}
+    └─ declared in src/core/board-logic.js:66
+  markedDead                | backup:3811 | value: Array.from({length: ysize}, ()
+    └─ declared in src/editor/board-editor.js:921
+  finalScore                | backup:3828 | value: window.finalTerritoryScore(sto
+    └─ declared in src/editor/board-editor.js:938
+  blackTerritory            | backup:3830 | value: finalScore.black
+    └─ declared in src/editor/board-editor.js:940
+  whiteTerritory            | backup:3831 | value: finalScore.white
+    └─ declared in src/editor/board-editor.js:941
+  blackText                 | backup:3856 | value: 'black'
+    └─ declared in src/ui/lobby-ui.js:2259
+  whiteText                 | backup:3880 | value: 'white'
+    └─ declared in src/ui/lobby-ui.js:2283
+  stoneRadius               | backup:4048 | value: R * 1.25
+    └─ declared in src/ui/lobby-ui.js:2316
+  buttonStrokeWeight        | backup:4078 | value: halfStrokeWeight * 2
+    └─ declared in src/ui/lobby-ui.js:2317
+  blackShakeOffsetX         | backup:3917 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2321
+  blackShakeOffsetY         | backup:3918 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2322
+  showBlackAsError          | backup:3919 | value: false
+    └─ declared in src/ui/lobby-ui.js:2323
+  blackScale                | backup:3932 | value: 1 + blackStoneBounce * bounceS
+    └─ declared in src/ui/lobby-ui.js:2336
+  strokeColor               | backup:3946 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2350
+  strokeWeight_val          | backup:3947 | value: buttonStrokeWeight
+    └─ declared in src/ui/lobby-ui.js:2351
+  whiteShakeOffsetX         | backup:3971 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2375
+  whiteShakeOffsetY         | backup:3972 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2376
+  showWhiteAsError          | backup:3973 | value: false
+    └─ declared in src/ui/lobby-ui.js:2377
+  whiteScale                | backup:3986 | value: 1 + whiteStoneBounce * bounceS
+    └─ declared in src/ui/lobby-ui.js:2390
+  stoneX                    | backup:4049 | value: width * 0.15
+    └─ declared in src/ui/lobby-ui.js:2454
+  stoneY                    | backup:4050 | value: height - stoneRadius
+    └─ declared in src/ui/lobby-ui.js:2455
+  stoneScale                | backup:4053 | value: 1 + stoneButtonBounce * bounce
+    └─ declared in src/ui/lobby-ui.js:2458
+  isStoneColorCorrect       | backup:4056 | value: window.currentTerritoryScore &
+    └─ declared in src/ui/lobby-ui.js:2461
+  stoneShakeOffsetX         | backup:4061 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2466
+  stoneShakeOffsetY         | backup:4062 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2467
+  showStoneAsError          | backup:4063 | value: false
+    └─ declared in src/ui/lobby-ui.js:2468
+  hasCorrectColorHighlight  | backup:4081 | value: false
+    └─ declared in src/ui/lobby-ui.js:2486
+  isCorrectColor            | backup:4083 | value: (selectedColorValue === 1 && w
+    └─ declared in src/ui/lobby-ui.js:2488
+  buttonRadius              | backup:4124 | value: R * 1.2
+    └─ declared in src/ui/lobby-ui.js:2529
+  totalWidth                | backup:4125 | value: width * 0.5
+    └─ declared in src/ui/lobby-ui.js:2530
+  buttonY                   | backup:4126 | value: stoneY
+    └─ declared in src/ui/lobby-ui.js:2531
+  spacing                   | backup:4127 | value: totalWidth / 3
+    └─ declared in src/ui/lobby-ui.js:2532
+  buttonX                   | backup:4131 | value: startX + (i * spacing)
+    └─ declared in src/ui/lobby-ui.js:2536
+  buttonScale               | backup:4135 | value: 1 + scoreButtonBounces[i] * bo
+    └─ declared in src/ui/lobby-ui.js:2540
+  hasCorrectColor           | backup:4138 | value: window.currentTerritoryScore &
+    └─ declared in src/ui/lobby-ui.js:2543
+  isCorrectScore            | backup:4141 | value: hasCorrectColor && window.curr
+    └─ declared in src/ui/lobby-ui.js:2546
+  isSelected                | backup:4145 | value: selectedDifference === score
+    └─ declared in src/ui/lobby-ui.js:2550
+  shakeOffsetX              | backup:4148 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2553
+  shakeOffsetY              | backup:4149 | value: 0
+    └─ declared in src/ui/lobby-ui.js:2554
+  showAsError               | backup:4150 | value: false
+    └─ declared in src/ui/lobby-ui.js:2555
+  boardNumber               | backup:4236 | value: gameState.boardSequence[boardI
+    └─ declared in src/ui/lobby-ui.js:1095
+  flipX                     | backup:4251 | value: Math.random() < 0.5
+    └─ declared in src/ui/lobby-ui.js:1110
+  flipY                     | backup:4252 | value: Math.random() < 0.5
+    └─ declared in src/ui/lobby-ui.js:1111
+  transpose                 | backup:4253 | value: Math.random() < 0.5
+    └─ declared in src/ui/lobby-ui.js:1112
+  invert                    | backup:4254 | value: Math.random() < 0.5
+    └─ declared in src/ui/lobby-ui.js:1113
+  scoreMagnitude            | backup:4277 | value: territoryScore.scoreMagnitude
+    └─ declared in src/ui/lobby-ui.js:1136
+  uniqueChoices             | backup:4295 | value: new Set()
+    └─ declared in src/ui/lobby-ui.js:1154
+  maxDifference             | backup:4301 | value: 3
+    └─ declared in src/ui/lobby-ui.js:1160
+  attempts                  | backup:4302 | value: 0
+    └─ declared in src/ui/lobby-ui.js:1161
+  maxAttempts               | backup:4303 | value: 50
+    └─ declared in src/ui/lobby-ui.js:1162
+  distributionType          | backup:4306 | value: Math.random()
+    └─ declared in src/ui/lobby-ui.js:1165
+  forcedDirection           | backup:4307 | value: null
+    └─ declared in src/ui/lobby-ui.js:1166
+  offset                    | backup:4320 | value: Math.floor(Math.random() * max
+    └─ declared in src/ui/lobby-ui.js:1179
+  choice                    | backup:4322 | value: undefined
+    └─ declared in src/ui/lobby-ui.js:1181
+  useNegativeOffset         | backup:4323 | value: undefined
+    └─ declared in src/ui/lobby-ui.js:1182
+  currentChoices            | backup:4355 | value: [...scoreChoices]
+    └─ declared in src/ui/lobby-ui.js:1214
+  fallbackChoice            | backup:4356 | value: null
+    └─ declared in src/ui/lobby-ui.js:1215
+  posChoice                 | backup:4361 | value: scoreMagnitude + offset
+    └─ declared in src/ui/lobby-ui.js:1220
+  negChoice                 | backup:4368 | value: Math.max(1, scoreMagnitude - o
+    └─ declared in src/ui/lobby-ui.js:1227
+  maxChoice                 | backup:4377 | value: Math.max(...currentChoices)
+    └─ declared in src/ui/lobby-ui.js:1236
+  leaderboardContent        | backup:4419 | value: document.getElementById('leade
+    └─ declared in src/ui/lobby-ui.js:405
+  statusEmoji               | backup:4431 | value: player.finished ? '<span class
+    └─ declared in src/ui/lobby-ui.js:417
+  winnerEmoji               | backup:4434 | value: ''
+    └─ declared in src/ui/lobby-ui.js:420
+  devModeEmoji              | backup:4444 | value: ''
+    └─ declared in src/ui/lobby-ui.js:430
+  boardResult               | backup:5027 | value: {
+    └─ declared in src/ui/lobby-ui.js:2668
+  urlParams                 | backup:4638 | value: new URLSearchParams(window.loc
+    └─ declared in src/main.js:15
+  boardResults              | backup:4690 | value: currentGameBoardResults.filter
+    └─ declared in src/ui/lobby-ui.js:695
+  titleHeight               | backup:4698 | value: 120
+    └─ declared in src/ui/lobby-ui.js:703
+  gridHeight                | backup:4699 | value: rows * (miniSize + 90) + (rows
+    └─ declared in src/ui/lobby-ui.js:704
+  bottomMargin              | backup:4700 | value: 100
+    └─ declared in src/ui/lobby-ui.js:705
+  calculatedHeight          | backup:4702 | value: titleHeight + gridHeight + bot
+    └─ declared in src/ui/lobby-ui.js:707
+  minHeight                 | backup:4703 | value: Math.max(window.innerHeight * 
+    └─ declared in src/ui/lobby-ui.js:708
+  uiOverlay                 | backup:4751 | value: document.getElementById('ui-ov
+    └─ declared in src/editor/board-editor.js:731
+  boardText                 | backup:4792 | value: undefined
+    └─ declared in src/editor/board-editor.js:772
+  displayBoardNumber        | backup:4795 | value: gameState.currentBoard + 1
+    └─ declared in src/editor/board-editor.js:775
+  remainingSeconds          | backup:4804 | value: Math.max(0, Math.ceil(timer / 
+    └─ declared in src/editor/board-editor.js:784
+  displayText               | backup:4805 | value: `${boardText} - ${remainingSec
+    └─ declared in src/editor/board-editor.js:785
+  dx                        | backup:4813 | value: map(timer, 0, maxTime, 0, widt
+    └─ declared in src/editor/board-editor.js:793
+  boardArray                | backup:4887 | value: {width: textBoard[0].length, h
+    └─ declared in src/core/board-logic.js:84
+  cell                      | backup:4892 | value: textBoard[by][bx]
+    └─ declared in src/core/board-logic.js:89
+  stone                     | backup:4962 | value: normalModeWhiteStone
+    └─ declared in src/editor/board-editor.js:351
+  button                    | backup:4929 | value: window.hardModeButtons[i]
+    └─ declared in src/ui/lobby-ui.js:2815
+  signedScore               | backup:4977 | value: colorValue * scoreDiff
+    └─ declared in src/ui/lobby-ui.js:2865
+  correctSignedScore        | backup:4986 | value: territoryScore.difference
+    └─ declared in src/ui/lobby-ui.js:2874
+  colorString               | backup:5000 | value: colorValue === 1 ? 'black' : '
+    └─ declared in src/ui/lobby-ui.js:2888
+  formattedAnswer           | backup:5011 | value: colorValue === 1 ? `B+${scoreD
+    └─ declared in src/ui/lobby-ui.js:2889
+  startButton               | backup:5233 | value: document.getElementById('start
+    └─ declared in src/ui/lobby-ui.js:816
+  buttonIndex               | backup:5277 | value: hjklKeys[key]
+    └─ declared in src/ui/lobby-ui.js:842
+  hjklKeys                  | backup:5275 | value: {'h': 0, 'j': 1, 'k': 2, 'l': 
+    └─ declared in src/ui/lobby-ui.js:858
+  transforms                | backup:5485 | value: currentBoardTransforms || { fl
+    └─ declared in src/utils/dev-tools.js:287
+  useFlipX                  | backup:5455 | value: flipX !== null ? flipX : Math.
+    └─ declared in src/utils/dev-tools.js:302
+  useFlipY                  | backup:5456 | value: flipY !== null ? flipY : Math.
+    └─ declared in src/utils/dev-tools.js:303
+  useTranspose              | backup:5457 | value: transpose !== null ? transpose
+    └─ declared in src/utils/dev-tools.js:304
+  useInvert                 | backup:5458 | value: invert !== null ? invert : Mat
+    └─ declared in src/utils/dev-tools.js:305
+
+⚠️  VARIABLES REFERENCED BUT NOT DECLARED (7 variables):
+----------------------------------------------------------------------
+  lastLoggedDetailedBoard   | backup: 367 | value: null
+    └─ referenced in src/ui/lobby-ui.js:1655
+    └─ referenced in src/ui/lobby-ui.js:1656
+  MOCK_GAMES                | backup:1000 | value: [
+    └─ referenced in src/ui/lobby-ui.js:3363
+  HISTORY_LOAD_DEBOUNCE_MS  | backup:1804 | value: 2000
+    └─ referenced in src/ui/lobby-ui.js:3334
+    └─ referenced in src/ui/lobby-ui.js:3335
+  results                   | backup:5452 | value: []
+    └─ referenced in src/core/game-state.js:42
+    └─ referenced in src/core/game-state.js:43
+    └─ referenced in src/core/game-state.js:52
+  roomSettingsTimeDebounceTimer | backup:2698 | value: null
+    └─ referenced in src/ui/lobby-ui.js:2120
+    └─ referenced in src/ui/lobby-ui.js:2121
+    └─ referenced in src/ui/lobby-ui.js:2125
+  roomSettingsBoardsDebounceTimer | backup:2699 | value: null
+    └─ referenced in src/ui/lobby-ui.js:2156
+    └─ referenced in src/ui/lobby-ui.js:2157
+    └─ referenced in src/ui/lobby-ui.js:2161
+  updateUIInProgress        | backup:3501 | value: false
+    └─ referenced in src/ui/lobby-ui.js:260
+    └─ referenced in src/ui/lobby-ui.js:265
+    └─ referenced in src/ui/lobby-ui.js:377
+
+❌ MISSING VARIABLES (20 variables):
+--------------------------------------------------
+  originalConsole           | backup: 954 | const originalConsole = {
+  description               | backup:1275 | const description = lines[0].includes('X X X') ? 'Complex' :
+  targetRoom                | backup:1374 | const targetRoom = roomId || gameState.roomId;
+  historyRetryCount         | backup:1797 | let historyRetryCount = 0;
+  MAX_HISTORY_RETRIES       | backup:1798 | const MAX_HISTORY_RETRIES = 1;
+  uniqueResults             | backup:2131 | const uniqueResults = new Map();
+  resultKey                 | backup:2138 | const resultKey = `${score.winningColor}:${score.difference}`;
+  sortedResults             | backup:2162 | const sortedResults = Array.from(uniqueResults.entries()).sort((a, b) => {
+  exampleBoard              | backup:2178 | const exampleBoard = boardIndices[0];
+  exampleResult             | backup:2179 | const exampleResult = results.find(r => r.boardIndex === exampleBoard);
+  blackWins                 | backup:2184 | const blackWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('black')).length;
+  whiteWins                 | backup:2185 | const whiteWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('white')).length;
+  sliderUpdateInProgress    | backup:2235 | let sliderUpdateInProgress = false;
+  roomIdFromUrl             | backup:4639 | const roomIdFromUrl = urlParams.get('room');
+  originalBoard             | backup:5393 | const originalBoard = currentBoards[boardNumber];
+  originalDeadStones        | backup:5394 | const originalDeadStones = currentDeadStones[boardNumber];
+  transformedDeadStones     | backup:5404 | const transformedDeadStones = applyBoardTransformations(originalDeadStones, transforms);
+  originalScore             | backup:5413 | const originalScore = calculateTerritoryScore(originalBoard, originalDeadStones);
+  transformedScore          | backup:5420 | const transformedScore = calculateTerritoryScore(transformedBoard, transformedDeadStones);
+  currentBoardNumber        | backup:5484 | const currentBoardNumber = gameState.boardSequence[gameState.currentBoard];
+
+================================================================================
+📈 SUMMARY:
+  Total variables in backup: 391
+  Found and declared in src: 364
+  Referenced but not declared: 7
+  Completely missing: 20
+================================================================================
+
+🚨 CRITICAL ISSUES TO FIX:
+----------------------------------------
+  MISSING: lastLoggedDetailedBoard = null
+    From backup line 367: Referenced but not found
+  MISSING: MOCK_GAMES = [
+    From backup line 1000: Referenced but not found
+  MISSING: HISTORY_LOAD_DEBOUNCE_MS = 2000
+    From backup line 1804: Referenced but not found
+  MISSING: results = []
+    From backup line 5452: Referenced but not found
+  MISSING: roomSettingsTimeDebounceTimer = null
+    From backup line 2698: Referenced but not found
+  MISSING: roomSettingsBoardsDebounceTimer = null
+    From backup line 2699: Referenced but not found
+  MISSING: updateUIInProgress = false
+    From backup line 3501: Referenced but not found
+  MISSING: originalConsole = {
+    From backup line 954: const originalConsole = {
+  MISSING: description = lines[0].includes('X X X') ? 'Complex' :
+    From backup line 1275: const description = lines[0].includes('X X X') ? 'Complex' :
+  MISSING: targetRoom = roomId || gameState.roomId
+    From backup line 1374: const targetRoom = roomId || gameState.roomId;
+  MISSING: historyRetryCount = 0
+    From backup line 1797: let historyRetryCount = 0;
+  MISSING: MAX_HISTORY_RETRIES = 1
+    From backup line 1798: const MAX_HISTORY_RETRIES = 1;
+  MISSING: uniqueResults = new Map()
+    From backup line 2131: const uniqueResults = new Map();
+  MISSING: resultKey = `${score.winningColor}:${score.difference}`
+    From backup line 2138: const resultKey = `${score.winningColor}:${score.difference}`;
+  MISSING: sortedResults = Array.from(uniqueResults.entries()).sort((a, b) => {
+    From backup line 2162: const sortedResults = Array.from(uniqueResults.entries()).sort((a, b) => {
+  MISSING: exampleBoard = boardIndices[0]
+    From backup line 2178: const exampleBoard = boardIndices[0];
+  MISSING: exampleResult = results.find(r => r.boardIndex === exampleBoard)
+    From backup line 2179: const exampleResult = results.find(r => r.boardIndex === exampleBoard);
+  MISSING: blackWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('black')).length
+    From backup line 2184: const blackWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('black')).length;
+  MISSING: whiteWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('white')).length
+    From backup line 2185: const whiteWins = Array.from(uniqueResults.keys()).filter(k => k.startsWith('white')).length;
+  MISSING: sliderUpdateInProgress = false
+    From backup line 2235: let sliderUpdateInProgress = false;
+  MISSING: roomIdFromUrl = urlParams.get('room')
+    From backup line 4639: const roomIdFromUrl = urlParams.get('room');
+  MISSING: originalBoard = currentBoards[boardNumber]
+    From backup line 5393: const originalBoard = currentBoards[boardNumber];
+  MISSING: originalDeadStones = currentDeadStones[boardNumber]
+    From backup line 5394: const originalDeadStones = currentDeadStones[boardNumber];
+  MISSING: transformedDeadStones = applyBoardTransformations(originalDeadStones, transforms)
+    From backup line 5404: const transformedDeadStones = applyBoardTransformations(originalDeadStones, transforms);
+  MISSING: originalScore = calculateTerritoryScore(originalBoard, originalDeadStones)
+    From backup line 5413: const originalScore = calculateTerritoryScore(originalBoard, originalDeadStones);
+  MISSING: transformedScore = calculateTerritoryScore(transformedBoard, transformedDeadStones)
+    From backup line 5420: const transformedScore = calculateTerritoryScore(transformedBoard, transformedDeadStones);
+  MISSING: currentBoardNumber = gameState.boardSequence[gameState.currentBoard]
+    From backup line 5484: const currentBoardNumber = gameState.boardSequence[gameState.currentBoard];

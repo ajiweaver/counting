@@ -22,6 +22,9 @@ let modifiedBoards = new Set();
 let deadStonePositions = {}; // Maps board index to set of dead positions "x,y"
 let undoStack = [];
 let redoStack = [];
+
+// Drawing variables
+let R, D, halfStrokeWeight;
 let canvas;
 let boardSize = 400;
 let cellSize;
@@ -713,116 +716,66 @@ function setupKeyboardShortcuts() {
 
 // p5.js setup function
 function setup() {
-    // Create canvas in the board container
-    const container = document.getElementById('board-canvas');
-    canvas = createCanvas(boardSize, boardSize);
-    canvas.parent(container);
+    createCanvas();
+    windowResized();
     
-    // Calculate cell size for 9x9 board
-    cellSize = boardSize / 9;
+    ellipseMode(RADIUS);
+    strokeCap(PROJECT);
+    noStroke();
     
-    console.log('🎨 p5.js canvas created');
+    // Don't start game automatically - wait for multiplayer lobby
+}
+
+// Handle window resize for board editor
+function windowResized() {
+    // Calculate basic drawing dimensions like main game
+    R = floor(min(window.innerWidth/10, window.innerHeight/12)/2)-1;
+    D = 2 * R;
+    halfStrokeWeight = 1; // Basic stroke weight for board editor
+    
+    // Simple canvas sizing for board editor
+    const canvasSize = min(window.innerWidth - 40, window.innerHeight - 200);
+    resizeCanvas(canvasSize, canvasSize);
 }
 
 // p5.js draw function
 function draw() {
-    background(220, 179, 92); // Go board color
+    // Clear the canvas
+    clear();
     
-    // Draw board lines
-    stroke(0);
-    strokeWeight(1);
-    
-    for (let i = 0; i < 9; i++) {
-        // Vertical lines
-        line(cellSize * i + cellSize/2, cellSize/2, cellSize * i + cellSize/2, height - cellSize/2);
-        // Horizontal lines
-        line(cellSize/2, cellSize * i + cellSize/2, width - cellSize/2, cellSize * i + cellSize/2);
-    }
-    
-    // Draw star points
-    fill(0);
-    noStroke();
-    const starPoints = [[2,2], [2,6], [6,2], [6,6], [4,4]];
-    starPoints.forEach(([x, y]) => {
-        circle(x * cellSize + cellSize/2, y * cellSize + cellSize/2, 6);
-    });
-    
-    // Draw stones
-    if (currentBoardIndex < boardsArray.length) {
-        const board2D = parseBoard(boardsArray[currentBoardIndex]);
-        const deadSet = deadStonePositions[currentBoardIndex] || new Set();
+    // Only draw if we have a valid board to display
+    if (currentBoardIndex >= 0 && currentBoardIndex < boardsArray.length) {
+        // Draw the current board being edited
+        drawGoBoard(boardsArray[currentBoardIndex], D, 2*D, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
         
-        for (let y = 0; y < board2D.length; y++) {
-            for (let x = 0; x < board2D[y].length; x++) {
-                const stone = board2D[y][x];
-                const centerX = x * cellSize + cellSize/2;
-                const centerY = y * cellSize + cellSize/2;
-                const stoneRadius = cellSize * 0.45;
-                const isDead = deadSet.has(`${x},${y}`);
-                
-                if (stone === 'x') {
-                    // Black stone
-                    fill(0);
-                    stroke(isDead ? 200 : 50);
-                    strokeWeight(isDead ? 3 : 1);
-                    circle(centerX, centerY, stoneRadius * 2);
-                    
-                    // Add red X for dead stones
-                    if (isDead) {
-                        stroke(255, 50, 50);
-                        strokeWeight(3);
-                        const crossSize = stoneRadius * 0.6;
-                        line(centerX - crossSize, centerY - crossSize, centerX + crossSize, centerY + crossSize);
-                        line(centerX - crossSize, centerY + crossSize, centerX + crossSize, centerY - crossSize);
-                    }
-                } else if (stone === 'o') {
-                    // White stone
-                    fill(255);
-                    stroke(isDead ? 200 : 0);
-                    strokeWeight(isDead ? 3 : 1);
-                    circle(centerX, centerY, stoneRadius * 2);
-                    
-                    // Add red X for dead stones
-                    if (isDead) {
-                        stroke(255, 50, 50);
-                        strokeWeight(3);
-                        const crossSize = stoneRadius * 0.6;
-                        line(centerX - crossSize, centerY - crossSize, centerX + crossSize, centerY + crossSize);
-                        line(centerX - crossSize, centerY + crossSize, centerX + crossSize, centerY - crossSize);
-                    }
-                }
-            }
+        // Draw UI elements
+        push();
+        textSize(R);
+        fill('white');
+        textAlign(CENTER, CENTER);
+        textFont('Arial');
+        
+        // Show board number
+        const boardText = `Board ${currentBoardIndex + 1} of ${boardsArray.length}`;
+        text(boardText, width/2, R);
+        
+        // Show modifications indicator
+        if (modifications.length > 0) {
+            fill('#ff6b6b');
+            text('Modified', width/2, R + 30);
         }
+        
+        pop();
     }
 }
 
-// p5.js mouse click handler
+// p5.js mouse click handler for board editor
 function mousePressed() {
-    if (mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < height) {
-        const gridX = Math.floor(mouseX / cellSize);
-        const gridY = Math.floor(mouseY / cellSize);
-        
-        if (currentTool === 'dead') {
-            // Handle dead stone marking
-            toggleDeadStone(gridX, gridY);
-        } else {
-            // Determine what to place based on current tool and mouse button
-            let newValue;
-            if (mouseButton === RIGHT) {
-                newValue = '.'; // Right click always removes
-            } else {
-                switch (currentTool) {
-                    case 'black': newValue = 'x'; break;
-                    case 'white': newValue = 'o'; break;
-                    case 'empty': newValue = '.'; break;
-                    default: newValue = '.';
-                }
-            }
-            
-            editStone(gridX, gridY, newValue);
-        }
-        return false; // Prevent context menu
-    }
+    // Handle board editor specific mouse clicks here if needed
+    // For now, let other handlers process clicks
+    
+    // Don't prevent default behavior - allow other click handlers to work
+    return false; // This allows event to bubble up to other handlers
 }
 
 // Prevent context menu on right click
@@ -841,91 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Prevent context menu
 document.addEventListener('contextmenu', contextMenu);
-
-// Convert board string representation to goscorer format
-function convertBoardStringToStones(boardString) {
-    const rows = boardString.split("\n").map(row => row.trim()).filter(row => row !== "");
-    const ysize = rows.length;
-    const xsize = rows[0].length;
-
-    const stones = Array.from({length: ysize}, () => Array.from({length: xsize}, () => window.EMPTY));
-
-    for(let y = 0; y < ysize; y++) {
-        for(let x = 0; x < xsize; x++) {
-            let c = rows[y][x];
-            if(c === "x" || c === "X") {
-                stones[y][x] = window.BLACK;
-            } else if(c === "o" || c === "O") {
-                stones[y][x] = window.WHITE;
-            }
-            // '.' remains EMPTY (0)
-        }
-    }
-    return stones;
-}
-
-// Territory scoring using lightvector/goscorer
-function calculateTerritoryScore(board, deadStones) {
-    // Convert our internal board representation to goscorer format
-    let stones;
-
-    if (typeof board === 'string') {
-        // Board is a string representation (from boards.js)
-        stones = convertBoardStringToStones(board);
-    } else {
-        // Board is our internal 2D array format - convert it
-        stones = [];
-        for (let y = 0; y < board.height; y++) {
-            stones[y] = [];
-            for (let x = 0; x < board.width; x++) {
-                if (board[x][y] === 1) {
-                    stones[y][x] = window.BLACK;
-                } else if (board[x][y] === -1) {
-                    stones[y][x] = window.WHITE;
-                } else {
-                    stones[y][x] = window.EMPTY;
-                }
-            }
-        }
-    }
-
-    const ysize = stones.length;
-    const xsize = stones[0].length;
-
-    // Create markedDead array using deadstones.js data
-    const markedDead = Array.from({length: ysize}, () => Array.from({length: xsize}, () => false));
-
-    // If we have a board number and dead stones data, use it
-    if (typeof deadStones !== 'undefined' && deadStones) {
-        const deadStoneLines = deadStones.split('\n').map(row => row.trim()).filter(row => row !== '');
-
-        for (let y = 0; y < Math.min(ysize, deadStoneLines.length); y++) {
-            const row = deadStoneLines[y];
-            for (let x = 0; x < Math.min(xsize, row.length); x++) {
-                // 'y' in deadstones.js represents dead stones (both black and white)
-                if (row[x] === 'y') {
-                    markedDead[y][x] = true;
-                }
-            }
-        }
-    }
-
-    // Use goscorer's territory scoring
-    const finalScore = window.finalTerritoryScore(stones, markedDead, 0, 0, 0);
-
-    let blackTerritory = finalScore.black;
-    let whiteTerritory = finalScore.white;
-    const difference = blackTerritory - whiteTerritory;
-
-    return {
-        blackTerritory,
-        whiteTerritory,
-        difference, // Positive if black has more territory, negative if white
-        winningColor: difference > 0 ? 'black' : difference < 0 ? 'white' : 'tie',
-        scoreDifference: Math.abs(difference)
-    };
-}
-
 
 // Calculate and update score display
 function updateScoreDisplay() {

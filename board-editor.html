@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Include p5.js for board rendering -->
-    <script src="p5.min.js"></script>
+    <script src="assets/lib/p5.min.js"></script>
     <!-- Load board data -->
-    <script src="boards.js"></script>
-    <script src="deadstones.js"></script>
-    <script src="boards_hard.js"></script>
-    <script src="deadstones_hard.js"></script>
+    <script src="data/boards/normal.js"></script>
+    <script src="data/deadstones/normal.js"></script>
+    <script src="data/boards/hard.js"></script>
+    <script src="data/deadstones/hard.js"></script>
     <script type="module">
-        import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './goscorer.js';
+        import { EMPTY, BLACK, WHITE, territoryScoring, finalTerritoryScore } from './src/core/goscorer.js';
         // Make goscorer functions available globally
         window.EMPTY = EMPTY;
         window.BLACK = BLACK; 
@@ -285,6 +285,11 @@
         </div>
     </div>
 
-    <script src="board-editor.js"></script>
+    <!-- Include required core modules -->
+    <script src="src/main.js"></script>
+    <script src="src/core/board-logic.js"></script>
+    <script src="src/core/scoring.js"></script>
+    <script src="src/ui/lobby-ui.js"></script>
+    <script src="src/editor/board-editor.js"></script>
 </body>
 </html>
