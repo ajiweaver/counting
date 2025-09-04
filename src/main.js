@@ -60,6 +60,10 @@ let whiteStoneBounce = 0; // bounce animation for white stone
 let stoneButtonBounce = 0; // bounce animation for stone button
 const bounceStrength = 0.3; // strength of bounce effect
 
+// Success animation variables
+let successAnimationIntensity = 0; // green glow intensity for correct answers
+const successAnimationDecay = 0.88; // how fast success animation fades
+
 // Canvas drawing variables
 let R, D, halfStrokeWeight;
 
@@ -418,6 +422,8 @@ window.normalModeBlackStone = normalModeBlackStone;
 window.normalModeWhiteStone = normalModeWhiteStone;
 window.scoreButtonBounces = scoreButtonBounces;
 window.bounceDecay = bounceDecay;
+window.successAnimationIntensity = successAnimationIntensity;
+window.successAnimationDecay = successAnimationDecay;
 window.errorShakeTime = errorShakeTime;
 window.errorShakeDuration = errorShakeDuration;
 window.leaderboardHistoryCallCount = leaderboardHistoryCallCount;

@@ -7,6 +7,7 @@ let updateUIInProgress = false;
 let roomSettingsTimeDebounceTimer = null;
 let roomSettingsBoardsDebounceTimer = null;
 let sliderUpdateInProgress = false;
+const correctAnswerDelay = 200; // milliseconds
 
 function showMainMenu() {
     // Clear the canvas and reset background
@@ -2429,6 +2430,14 @@ function drawNormalModeUI() {
     blackStoneBounce *= bounceDecay;
     whiteStoneBounce *= bounceDecay;
     
+    // Update success animation
+    if (successAnimationIntensity > 0) {
+        successAnimationIntensity *= successAnimationDecay;
+        if (successAnimationIntensity < 0.01) {
+            successAnimationIntensity = 0; // Clean cutoff
+        }
+    }
+    
     // Update error shake animation (same as hard mode)
     if (errorShakeIntensity > 0) {
         errorShakeTime++;
@@ -2512,6 +2521,16 @@ function drawNormalModeUI() {
         circle(0, 0, stoneRadius - buttonStrokeWeight/2);
     }
     
+    // Draw success animation glow effect for black stone
+    if (successAnimationIntensity > 0 && correctColor === 'black') {
+        push();
+        noFill();
+        stroke(76, 175, 80, successAnimationIntensity * 255); // Green glow
+        strokeWeight(buttonStrokeWeight * 3 * successAnimationIntensity);
+        circle(0, 0, stoneRadius + buttonStrokeWeight);
+        pop();
+    }
+    
     pop();
     
     // White stone button (right position)
@@ -2566,6 +2585,16 @@ function drawNormalModeUI() {
         circle(0, 0, stoneRadius - buttonStrokeWeight/2);
     }
     
+    // Draw success animation glow effect for white stone
+    if (successAnimationIntensity > 0 && correctColor === 'white') {
+        push();
+        noFill();
+        stroke(76, 175, 80, successAnimationIntensity * 255); // Green glow
+        strokeWeight(buttonStrokeWeight * 3 * successAnimationIntensity);
+        circle(0, 0, stoneRadius + buttonStrokeWeight);
+        pop();
+    }
+    
     pop();
     
     // Store stone positions for click detection (using scaled radius)
@@ -2582,6 +2611,14 @@ function drawHardModeUI() {
     stoneButtonBounce *= bounceDecay;
     for (let i = 0; i < scoreButtonBounces.length; i++) {
         scoreButtonBounces[i] *= bounceDecay;
+    }
+    
+    // Update success animation
+    if (successAnimationIntensity > 0) {
+        successAnimationIntensity *= successAnimationDecay;
+        if (successAnimationIntensity < 0.01) {
+            successAnimationIntensity = 0; // Clean cutoff
+        }
     }
     
     // Update error shake animation
@@ -2694,6 +2731,17 @@ function drawHardModeUI() {
         }
         circle(0, 0, stoneRadius - buttonStrokeWeight/2);
     }
+    
+    // Draw success animation glow effect for hard mode stone button
+    if (successAnimationIntensity > 0 && isStoneColorCorrect) {
+        push();
+        noFill();
+        stroke(76, 175, 80, successAnimationIntensity * 255); // Green glow
+        strokeWeight(buttonStrokeWeight * 3 * successAnimationIntensity);
+        circle(0, 0, stoneRadius + buttonStrokeWeight);
+        pop();
+    }
+    
     pop();
     
     // Score difference buttons (arranged in a horizontal row)
@@ -2816,6 +2864,17 @@ function drawHardModeUI() {
             
             text(score.toString(), 0, 0);
             textStyle(NORMAL); // Reset style
+            
+            // Draw success animation glow effect for correct score button
+            if (successAnimationIntensity > 0 && isCorrectScore) {
+                push();
+                noFill();
+                stroke(76, 175, 80, successAnimationIntensity * 255); // Green glow
+                strokeWeight(buttonStrokeWeight * 3 * successAnimationIntensity);
+                circle(0, 0, buttonRadius + buttonStrokeWeight);
+                pop();
+            }
+            
             pop();
             
             // Store button positions for click detection
@@ -2889,40 +2948,45 @@ function submitNormalModeAnswer(guess) {
         if (response.success) {
             // Handle answer like in single player
             if (isCorrect) {
+                // Trigger success animation
+                successAnimationIntensity = 1.0;
+                
                 score++;
                 //maxTime -= 1000; // Progressive difficulty
                 gameState.currentBoard++;
                 
-                // Check if there are more boards to play
-                if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
-                    loadMultiplayerBoard(gameState.currentBoard);
-                } else {
-                    // Game finished - player completed all boards
-                    console.log('🎯 Player completed all boards! Current failed state:', failed, 'Current bgColor:', document.bgColor);
-                    
-                    // Set blue color when completing all boards individually (same as timeout)
-                    failed = true;
-                    document.bgColor = 'royalblue'; // Blue for individual completion
-                    console.log('🏁 Player completed all boards individually - set background to royalblue');
-                    
-                    // Enter summary mode instead of finished mode
-                    enterSummaryMode();
-                    
-                    // Mark ourselves as finished locally
-                    const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                    if (ourPlayer) {
-                        ourPlayer.finished = true;
+                // Add a brief delay to show correct answer feedback before next board
+                setTimeout(() => {
+                    // Check if there are more boards to play
+                    if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                        loadMultiplayerBoard(gameState.currentBoard);
+                    } else {
+                        // Game finished - player completed all boards
+                        console.log('🎯 Player completed all boards! Current failed state:', failed, 'Current bgColor:', document.bgColor);
                         
-                        // Note: Lobby countdown will start when server sends game-finished event
+                        // Set blue color when completing all boards individually (same as timeout)
+                        failed = true;
+                        document.bgColor = 'royalblue'; // Blue for individual completion
+                        console.log('🏁 Player completed all boards individually - set background to royalblue');
                         
-                        // Auto-show leaderboard when player finishes
-                        console.log('Player completed all boards - auto-showing leaderboard');
-                        setTimeout(() => {
-                            showLeaderboard();
-                        }, 500);
+                        // Enter summary mode instead of finished mode
+                        enterSummaryMode();
+                        
+                        // Mark ourselves as finished locally
+                        const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+                        if (ourPlayer) {
+                            ourPlayer.finished = true;
+                            
+                            // Note: Lobby countdown will start when server sends game-finished event
+                            
+                            // Auto-show leaderboard when player finishes
+                            console.log('Player completed all boards - auto-showing leaderboard');
+                            setTimeout(() => {
+                                showLeaderboard();
+                            }, 500);
+                        }
                     }
-                    
-                }
+                }, correctAnswerDelay); // delay for correct answer feedback
             } else {
                 // Wrong answer - trigger shake animation immediately
                 console.log('Wrong answer - triggering shake animation');
@@ -3145,36 +3209,42 @@ function submitMultiplayerHardMode(guess, isCorrect) {
             if (isCorrect) {
                 console.log('✅ Correct answer - advancing to next board');
                 
+                // Trigger success animation
+                successAnimationIntensity = 1.0;
+                
                 // Increment score and board index (matching normal mode behavior)
                 score++;
                 gameState.currentBoard++;
                 
-                // Load next board
-                if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
-                    loadMultiplayerBoard(gameState.currentBoard);
-                } else if (!gameState.settings?.unlimited) {
-                    // Game finished - player completed all boards
-                    console.log('🎯 Player completed all boards! Final score:', score);
-                    
-                    // Set blue color for individual completion
-                    failed = true;
-                    document.bgColor = 'royalblue';
-                    console.log('🏁 Player completed all boards individually - set background to royalblue');
-                    
-                    // Enter summary mode instead of finished mode
-                    enterSummaryMode();
-                    
-                    // Mark ourselves as finished locally
-                    const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
-                    if (ourPlayer) {
-                        ourPlayer.finished = true;
+                // Add a brief delay to show correct answer feedback before next board
+                setTimeout(() => {
+                    // Load next board
+                    if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
+                        loadMultiplayerBoard(gameState.currentBoard);
+                    } else if (!gameState.settings?.unlimited) {
+                        // Game finished - player completed all boards
+                        console.log('🎯 Player completed all boards! Final score:', score);
                         
-                        // Auto-show leaderboard when player finishes
-                        setTimeout(() => {
-                            showLeaderboard();
-                        }, 1000);
+                        // Set blue color for individual completion
+                        failed = true;
+                        document.bgColor = 'royalblue';
+                        console.log('🏁 Player completed all boards individually - set background to royalblue');
+                        
+                        // Enter summary mode instead of finished mode
+                        enterSummaryMode();
+                        
+                        // Mark ourselves as finished locally
+                        const ourPlayer = gameState.players.find(p => p.id === gameState.playerId);
+                        if (ourPlayer) {
+                            ourPlayer.finished = true;
+                            
+                            // Auto-show leaderboard when player finishes
+                            setTimeout(() => {
+                                showLeaderboard();
+                            }, 1000);
+                        }
                     }
-                }
+                }, correctAnswerDelay); // delay for correct answer feedback
             } else {
                 // Wrong answer - apply penalty if game is still active and there's more than 1 second left
                 if (gameState.phase !== 'finished' && timer > 1000) {
