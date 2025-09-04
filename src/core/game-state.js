@@ -121,13 +121,19 @@ function updateGameState(serverGameState) {
         const newPhase = serverGameState.gameState === 'waiting' ? 'lobby' : 
                         serverGameState.gameState === 'playing' ? 'playing' : 'finished';
         
-        // Preserve summary phase for players already viewing summaries (user-dependent phase)
+        // Preserve user-controlled phase states (summary and lobby)
         if (userOverridePhase === 'summary') {
             console.log('🔒 User override active: preserving summary phase (server wants:', newPhase, ', keeping: summary)');
             gameState.phase = 'summary'; // Ensure phase matches user override
         } else if (gameState.phase === 'summary') {
             console.log('🔒 Already in summary phase: preserving user summary phase (server wants:', newPhase, ', keeping: summary)');
             userOverridePhase = 'summary'; // Set user override to prevent future server changes
+        } else if (userOverridePhase === 'lobby') {
+            console.log('🔒 User override active: preserving lobby phase (server wants:', newPhase, ', keeping: lobby)');
+            gameState.phase = 'lobby'; // Ensure phase matches user override
+        } else if (gameState.phase === 'lobby' && (newPhase === 'finished' || newPhase === 'playing')) {
+            console.log('🔒 Player in lobby: preserving lobby phase (server wants:', newPhase, ', keeping: lobby)');
+            userOverridePhase = 'lobby'; // Set user override to prevent future server changes
         } else {
             gameState.phase = newPhase;
             console.log('📝 Updated phase to:', newPhase);

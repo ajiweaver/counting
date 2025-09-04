@@ -619,12 +619,12 @@ function returnToLobby() {
 }
 
 function returnToRoomLobby() {
-    // Clear user override phase and summary state
-    userOverridePhase = null;
+    // Set user override to lobby to prevent server from changing phase
+    userOverridePhase = 'lobby';
     gameState.phase = 'lobby';
     viewingSummary = false;
     reviewingBoardIndex = -1;
-    console.log('🔓 Cleared user override phase for room lobby return');
+    console.log('🔒 Set user override phase to lobby to prevent server state changes');
     
     // Clear the canvas and reset background
     if (typeof clear === 'function') {
@@ -729,7 +729,9 @@ function draw() {
     timerY = displayTextY + R;
     boardY = timerY + 2*R;
     boardX = D;
-    drawGoBoard(board, boardX, boardY, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+    if (gameState.phase !== 'finished') {
+        drawGoBoard(board, boardX, boardY, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+    }
 
     // Draw UI elements
     push();
@@ -1418,9 +1420,9 @@ function loadMultiplayerBoard(boardIndex) {
     failed = false;
     
     // Don't override completion colors - only set green for active gameplay
-    if (gameState.phase !== 'finished') {
-        document.bgColor = 'seagreen';
-    }
+    //if (gameState.phase !== 'finished') {
+    document.bgColor = 'seagreen';
+    //}
     
     // Always use the base time from settings (don't accumulate progressive difficulty)
     if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
@@ -2656,7 +2658,17 @@ function drawHardModeUI() {
     // Draw toggle stone button (changes between black and white) with shake offset
     push();
     translate(stoneX + stoneShakeOffsetX, stoneY + stoneShakeOffsetY);
-    scale(stoneScale);
+    
+    // Handle hover effect for stone button
+    if (dist(mouseX, mouseY, stoneX, stoneY) < stoneRadius) {
+        if (mouseIsPressed) {
+            scale(stoneScale * 1.1); // Bigger when pressed
+        } else {
+            scale(stoneScale * 1.05); // Slightly bigger on hover
+        }
+    } else {
+        scale(stoneScale);
+    }
     
     // Match board stone styling - use board's stroke weight and proportions
     const buttonStrokeWeight = halfStrokeWeight * 2;
@@ -2743,7 +2755,17 @@ function drawHardModeUI() {
             // Use board stone styling approach with shake offset
             push();
             translate(buttonX + shakeOffsetX, buttonY + shakeOffsetY);
-            scale(buttonScale);
+            
+            // Handle hover effect for score buttons
+            if (dist(mouseX, mouseY, buttonX, buttonY) < buttonRadius) {
+                if (mouseIsPressed) {
+                    scale(buttonScale * 1.1); // Bigger when pressed
+                } else {
+                    scale(buttonScale * 1.05); // Slightly bigger on hover
+                }
+            } else {
+                scale(buttonScale);
+            }
             
             // Determine colors based on error state, correctness, and selection
             let fillColor, strokeColor, strokeWeight_val, textColor;
