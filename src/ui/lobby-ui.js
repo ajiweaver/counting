@@ -1847,7 +1847,7 @@ function drawBoardReview() {
         textFont('Arial');
         textStyle(BOLD);
         fill(255);
-        titleY = 0.2*height;
+        titleY = D;
         text(`Board #${boardId}`, width/2, titleY);
         
         // Show answer details - larger, bold, and positioned between title and board
