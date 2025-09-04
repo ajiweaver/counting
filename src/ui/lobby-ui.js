@@ -2458,6 +2458,9 @@ function drawNormalModeUI() {
 
 
 function drawNormalModeStoneUI() {
+    // Responsive sizing factor for all buttons in normal mode
+    const screenSizeFactor = Math.min(window.innerWidth, window.innerHeight) < 768 ? 1.0 : 1.2;
+    
     // Update bounce animations
     blackStoneBounce *= bounceDecay;
     whiteStoneBounce *= bounceDecay;
@@ -2592,6 +2595,9 @@ function drawNormalModeStoneUI() {
 
 
 function drawHardModeUI() {
+    // Responsive sizing factor for all buttons in hard mode
+    const screenSizeFactor = Math.min(window.innerWidth, window.innerHeight) < 768 ? 1.0 : 1.2;
+    
     // Update bounce animations
     stoneButtonBounce *= bounceDecay;
     for (let i = 0; i < scoreButtonBounces.length; i++) {
@@ -2743,11 +2749,19 @@ function drawHardModeUI() {
                 strokeWeight_val = buttonStrokeWeight * 1.5;
                 textColor = '#000000';
             } else if (isSelected) {
-                // Selected state - golden highlight
-                fillColor = '#FFD700';
-                strokeColor = '#FF8C00';
+                // Selected state - use theme colors
                 strokeWeight_val = buttonStrokeWeight * 1.5;
-                textColor = '#000000';
+                if (selectedColorValue === 1) {
+                    // Black stone theme - use consistent black
+                    fillColor = 0; // Pure black like board stones
+                    strokeColor = 0;
+                    textColor = 255; // White text
+                } else {
+                    // White stone theme - pure white buttons to match white stones
+                    fillColor = 255; // Pure white like board stones
+                    strokeColor = '#000000';
+                    textColor = 0; // Black text for better contrast on white
+                }
             } else {
                 // Match the current stone color theme
                 if (selectedColorValue === 1) {
@@ -3495,12 +3509,13 @@ async function loadLeaderboardHistory(isRetry = false, forceLoad = false) {
     console.log('🔍 Current gameState.phase:', gameState.phase);
     console.log('🔍 UI overlay visible:', document.getElementById('ui-overlay').style.display !== 'none');
     
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) {
+        console.warn('⚠️ History content element not found');
+        return; // Element doesn't exist yet
+    }
+
     try {
-        const historyContent = document.getElementById('history-content');
-        if (!historyContent) {
-            console.warn('⚠️ History content element not found');
-            return; // Element doesn't exist yet
-        }
         
         // Only load if we're in a room
         if (!gameState.roomId) {

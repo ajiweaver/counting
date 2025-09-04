@@ -395,6 +395,16 @@ window.defaultTimePerBoard = defaultTimePerBoard;
 window.defaultTotalBoards = defaultTotalBoards;
 window.blackStoneBounce = blackStoneBounce;
 window.whiteStoneBounce = whiteStoneBounce;
+
+// Debug function availability
+window.debugFunctionAvailability = function() {
+    console.log('Function availability check:');
+    console.log('- showMainMenu:', typeof showMainMenu);
+    console.log('- showRoomLobby:', typeof showRoomLobby);
+    console.log('- createRoom:', typeof createRoom);
+    console.log('- setup:', typeof setup);
+    console.log('- draw:', typeof draw);
+};
 window.stoneButtonBounce = stoneButtonBounce;
 window.bounceStrength = bounceStrength;
 window.R = R;
