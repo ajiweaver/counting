@@ -2455,8 +2455,8 @@ function drawNormalModeUI() {
         scaleFactor += portraitBonus;
     }
     
-    // Clamp the scale factor
-    scaleFactor = Math.min(2.5, Math.max(1, scaleFactor));
+    // Clamp the scale factor to prevent buttons from becoming too large
+    scaleFactor = Math.min(1.8, Math.max(1, scaleFactor));
     const stoneRadius = R * 1.25 * scaleFactor; // Responsive sizing
     const buttonStrokeWeight = halfStrokeWeight * 2;
     
@@ -2611,8 +2611,8 @@ function drawHardModeUI() {
         scaleFactor += portraitBonus;
     }
     
-    // Clamp the scale factor
-    scaleFactor = Math.min(2.5, Math.max(1, scaleFactor));
+    // Clamp the scale factor to prevent buttons from becoming too large
+    scaleFactor = Math.min(1.8, Math.max(1, scaleFactor));
     const stoneRadius = R * 1.25 * scaleFactor; // Responsive sizing
     const stoneX = width * 0.15;
     const stoneY = height - 3*R; // Use fixed positioning like normal mode
