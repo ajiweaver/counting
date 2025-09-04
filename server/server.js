@@ -10,8 +10,9 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: [
-      "http://localhost:8000", 
-      "https://count.ajiweaver.com", 
+      "http://localhost:8000",
+      "https://count.ajiweaver.com",
+      "https://counting-battle.ajiweaver.com",
       "https://ajiweaver.github.io",
       /\.netlify\.app$/,  // Allow any Netlify subdomain
       /\.vercel\.app$/,   // Allow any Vercel subdomain (backup option)
@@ -36,7 +37,7 @@ function generateRoomId() {
 
 // Generate random board sequence for a game
 function generateBoardSequence(totalBoards = 10) {
-  
+
   const sequence = [];
   for (let i = 0; i < totalBoards; i++) {
     sequence.push(Math.floor(Math.random() * 100)); // 100 boards available
@@ -69,7 +70,7 @@ class GameRoom {
     if (this.gameState !== 'waiting') {
       throw new Error('Cannot update settings while game is in progress');
     }
-    
+
     // Update only provided settings, keep existing ones
     if (newSettings.timePerBoard !== undefined) {
       this.settings.timePerBoard = newSettings.timePerBoard;
@@ -83,7 +84,7 @@ class GameRoom {
     if (newSettings.hardMode !== undefined) {
       this.settings.hardMode = newSettings.hardMode;
     }
-    
+
     console.log(`Room ${this.roomId}: Settings updated:`, this.settings);
   }
 
@@ -93,19 +94,19 @@ class GameRoom {
       this.gameState = 'finished';
       console.log(`Room ${this.roomId}: Marked game as finished since all players are done (for new player join)`);
     }
-    
+
     // If game is finished, reset to waiting to allow new players
     if (this.gameState === 'finished') {
       this.returnToLobby();
       console.log(`Room ${this.roomId}: Reset finished game to waiting state for new player`);
     }
-    
+
     if (this.gameState !== 'waiting') {
       throw new Error('Game already in progress');
     }
-    
+
     const actualName = playerName || `Player ${this.players.size + 1}`;
-    
+
     // Check if player with same UUID already exists and remove them (handles reconnection)
     if (playerUUID) {
       for (let [existingId, existingPlayer] of this.players.entries()) {
@@ -116,23 +117,23 @@ class GameRoom {
         }
       }
     }
-    
+
     // First player with UUID becomes the creator
     if (this.players.size === 0 && !this.creatorUUID && playerUUID) {
       this.creatorUUID = playerUUID;
       console.log(`Room ${this.roomId}: Creator UUID set to ${playerUUID}`);
     }
-    
+
     // Check if this player is the creator (by UUID)
     const isCreator = playerUUID && playerUUID === this.creatorUUID;
-    
+
     // If creator is reconnecting, clear the reconnection timeout
     if (isCreator && this.creatorReconnectTimeout) {
       console.log(`Creator ${actualName} reconnected, clearing timeout`);
       clearTimeout(this.creatorReconnectTimeout);
       this.creatorReconnectTimeout = null;
     }
-    
+
     this.players.set(playerId, {
       id: playerId,
       name: actualName,
@@ -143,11 +144,11 @@ class GameRoom {
       isCreator: isCreator,
       isDevMode: isDevMode
     });
-    
+
     if (isCreator) {
       console.log(`Room ${this.roomId}: Creator ${actualName} (${playerUUID}) ${this.players.size === 1 ? 'joined' : 'reconnected'}`);
     }
-    
+
     return this.players.get(playerId);
   }
 
@@ -155,14 +156,14 @@ class GameRoom {
     const player = this.players.get(playerId);
     const wasCreator = player?.isCreator;
     const leavingPlayerName = player?.name;
-    
+
     this.players.delete(playerId);
-    
+
     // If creator left (disconnected), keep their UUID for potential reconnection
     // Only reassign if game hasn't started and they don't reconnect
     if (wasCreator && this.gameState === 'waiting') {
       console.log(`Creator ${leavingPlayerName} disconnected. Keeping room alive for reconnection.`);
-      
+
       // Set a timeout to allow creator reconnection (5 minutes)
       if (!this.creatorReconnectTimeout) {
         this.creatorReconnectTimeout = setTimeout(() => {
@@ -172,7 +173,7 @@ class GameRoom {
         }, 5 * 60 * 1000); // 5 minutes
       }
     }
-    
+
     // Don't immediately remove empty rooms if creator just disconnected
     // This allows for page refreshes and reconnections
     const isEmpty = this.players.size === 0;
@@ -180,7 +181,7 @@ class GameRoom {
       // Keep room alive for creator reconnection
       return false;
     }
-    
+
     return isEmpty;
   }
 
@@ -188,12 +189,12 @@ class GameRoom {
     if (this.gameState !== 'waiting') {
       throw new Error('Game already started');
     }
-    
+
     this.gameState = 'playing';
     this.boardSequence = generateBoardSequence(this.settings.totalBoards);
     this.currentBoard = 0;
     this.startTime = Date.now();
-    
+
     // Reset all players
     for (let player of this.players.values()) {
       player.score = 0;
@@ -207,10 +208,10 @@ class GameRoom {
     this.boardSequence = [];
     this.currentBoard = 0;
     this.startTime = null;
-    
+
     // Clear player responses from previous game
     this.playerResponses.clear();
-    
+
     // Reset all players
     for (let player of this.players.values()) {
       player.score = 0;
@@ -224,15 +225,15 @@ class GameRoom {
     if (!player || this.gameState !== 'playing') {
       return false;
     }
-    
+
     player.currentAnswer = answer;
-    
+
     // Track player response for game summary (except for special actions)
     if (answer !== 'resign' && answer !== 'timeout') {
       if (!this.playerResponses.has(playerId)) {
         this.playerResponses.set(playerId, []);
       }
-      
+
       const boardId = this.boardSequence[currentBoardIndex] || currentBoardIndex;
       this.playerResponses.get(playerId).push({
         boardIndex: currentBoardIndex,
@@ -243,10 +244,10 @@ class GameRoom {
         playerName: player.name, // Store player name for easier identification later
         transforms: transforms // Store board transformations for summary display
       });
-      
+
       console.log(`📝 Tracked response for player ${player.name}: Board ${currentBoardIndex}, Answer: ${answer}, Correct: ${isCorrect}`);
     }
-    
+
     // Handle resignation - only finish this player, not all players
     if (answer === 'resign') {
       player.finished = true;
@@ -258,7 +259,7 @@ class GameRoom {
       }
       return true;
     }
-    
+
     // Handle timeout - only finish this player, not all players
     if (answer === 'timeout') {
       player.finished = true;
@@ -270,22 +271,22 @@ class GameRoom {
       }
       return true;
     }
-    
+
     if (isCorrect) {
       player.score++;
     }
-    
+
     // Only mark player as finished when they've completed all boards (regardless of right/wrong answers)
     if (currentBoardIndex >= this.settings.totalBoards - 1) {
       player.finished = true;
-      
+
       // Check if we should end the game early
       if (this.shouldEndGameEarly()) {
         this.finishAllPlayers();
         return 'game-finished'; // Return special flag to indicate game finished
       }
     }
-    
+
     return true;
   }
 
@@ -293,40 +294,40 @@ class GameRoom {
     const allPlayers = Array.from(this.players.values());
     const finishedPlayers = allPlayers.filter(p => p.finished);
     const activePlayers = allPlayers.filter(p => !p.finished);
-    
+
     // If no one has finished yet, don't end the game
     if (finishedPlayers.length === 0) {
       return false;
     }
-    
+
     // Find the highest score among finished players
     const highestScore = Math.max(...finishedPlayers.map(p => p.score));
-    
+
     // Check if anyone achieved a perfect score (all boards correct)
     const perfectScore = this.settings.totalBoards;
     const hasPerfectScore = finishedPlayers.some(p => p.score === perfectScore);
-    
+
     if (hasPerfectScore) {
       console.log(`Game ending early: Player achieved perfect score of ${perfectScore}`);
       return true;
     }
-    
+
     // If there are still active players, check if they can mathematically catch up
     if (activePlayers.length > 0) {
       // The maximum score any player can achieve is the total number of boards
       const maxPossibleScore = this.settings.totalBoards;
-      
+
       // If any active player could theoretically beat or tie the current leader's score,
       // continue the game
       if (maxPossibleScore >= highestScore) {
         console.log(`Game continues: Active players could potentially score up to ${maxPossibleScore} (leader has ${highestScore})`);
         return false;
       }
-      
+
       console.log(`Game ending early: Maximum possible score (${maxPossibleScore}) cannot beat leader's score of ${highestScore}`);
       return true;
     }
-    
+
     // All players are finished
     console.log('Game ending: All players have finished');
     return true;
@@ -337,7 +338,7 @@ class GameRoom {
     for (let player of this.players.values()) {
       player.finished = true;
     }
-    
+
     // The game should now be finished, return true to indicate this
     return true;
   }
@@ -346,7 +347,7 @@ class GameRoom {
   emitGameFinished(io) {
     if (this.areAllPlayersFinished()) {
       this.saveCompletedGame();
-      
+
       // Broadcast game finished event to all players in the room
       io.to(this.roomId).emit('game-finished', {
         gameState: this.getGameState(),
@@ -356,7 +357,7 @@ class GameRoom {
         }
       });
       console.log('Game finished event sent to all players in room:', this.roomId);
-      
+
       return true; // Game was finished
     }
     return false; // Game was not finished
@@ -366,7 +367,7 @@ class GameRoom {
   updatePlayerScore(playerId, newScore, finished = false) {
     const player = this.players.get(playerId);
     if (!player) return false;
-    
+
     player.score = newScore;
     player.finished = finished;
     return true;
@@ -378,18 +379,18 @@ class GameRoom {
       this.gameState = 'finished';
       return false;
     }
-    
+
     // Reset current answers
     for (let player of this.players.values()) {
       player.currentAnswer = null;
     }
-    
+
     return true;
   }
 
   areAllPlayersFinished() {
     if (this.players.size === 0) return false;
-    
+
     for (let player of this.players.values()) {
       if (!player.finished) {
         return false;
@@ -400,7 +401,7 @@ class GameRoom {
 
   saveCompletedGame() {
     console.log(`Checking if game ${this.roomId} should be saved. State: ${this.gameState}, All finished: ${this.areAllPlayersFinished()}`);
-    
+
     if (this.gameState === 'playing' && this.areAllPlayersFinished()) {
       const gameResult = {
         id: `${this.roomId}-${Date.now()}`, // Unique game ID for historical viewing
@@ -421,11 +422,11 @@ class GameRoom {
         boardSequence: this.boardSequence.slice(), // Store copy of board sequence for historical viewing
         playerResponses: Object.fromEntries(this.playerResponses) // Store individual player responses: {playerId: [{boardIndex, boardId, answer, isCorrect, timestamp}]}
       };
-      
+
       completedGames.unshift(gameResult); // Add to beginning of array
       console.log(`Game ${this.roomId} saved! Total completed games: ${completedGames.length}`);
       console.log('Game result:', gameResult);
-      
+
       // Keep only last 50 games to prevent memory issues
       if (completedGames.length > 50) {
         completedGames.splice(50);
@@ -461,7 +462,7 @@ io.on('connection', (socket) => {
       const roomId = generateRoomId();
       const room = new GameRoom(roomId, data.settings);
       rooms.set(roomId, room);
-      
+
       callback({ success: true, roomId });
     } catch (error) {
       callback({ success: false, error: error.message });
@@ -473,31 +474,31 @@ io.on('connection', (socket) => {
     try {
       const { roomId, playerName, playerUUID, isDevMode } = data;
       console.log(`🔵 JOIN-ROOM request: ${socket.id} trying to join ${roomId} as "${playerName}" (UUID: ${playerUUID})`);
-      
+
       const room = rooms.get(roomId);
-      
+
       if (!room) {
         console.log(`❌ Room ${roomId} not found for player ${socket.id}`);
         callback({ success: false, error: 'Room not found' });
         return;
       }
-      
+
       console.log(`📋 Room ${roomId} current players before add: ${Array.from(room.players.values()).map(p => `${p.name}(${p.id})`).join(', ')}`);
-      
+
       const player = room.addPlayer(socket.id, playerName, playerUUID, isDevMode);
       playerRooms.set(socket.id, roomId);
-      
+
       socket.join(roomId);
-      
+
       console.log(`✅ Player ${playerName} (${socket.id}) successfully joined room ${roomId}`);
       console.log(`📋 Room ${roomId} players after add: ${Array.from(room.players.values()).map(p => `${p.name}(${p.id})`).join(', ')}`);
-      
+
       // Notify all players in room
       io.to(roomId).emit('player-joined', {
         player,
         gameState: room.getGameState()
       });
-      
+
       callback({ success: true, player, gameState: room.getGameState() });
     } catch (error) {
       console.error(`❌ Error in join-room for ${socket.id}:`, error);
@@ -510,45 +511,45 @@ io.on('connection', (socket) => {
     try {
       const roomId = playerRooms.get(socket.id);
       const room = rooms.get(roomId);
-      
+
       if (!room) {
         callback({ success: false, error: 'Room not found' });
         return;
       }
-      
+
       const player = room.players.get(socket.id);
       if (!player?.isCreator) {
         callback({ success: false, error: 'Only room creator can update settings' });
         return;
       }
-      
+
       console.log(`Room ${roomId}: Current game state for settings update: ${room.gameState}`);
-      
+
       // If game is in playing state and all players are finished, mark as finished first
       if (room.gameState === 'playing' && room.areAllPlayersFinished()) {
         room.gameState = 'finished';
         console.log(`Room ${roomId}: Marked game as finished since all players are done (for settings update)`);
       }
-      
+
       // If game is finished or playing, reset to waiting state first to allow settings update
       if (room.gameState === 'finished' || room.gameState === 'playing') {
         room.returnToLobby();
         console.log(`Room ${roomId}: Reset ${room.gameState} game to waiting state for settings update`);
       }
-      
+
       console.log(`Room ${roomId}: Game state after reset: ${room.gameState}`);
-      
+
       // Update room settings
       if (data && data.settings) {
         console.log(`Room ${roomId}: Updating settings:`, data.settings);
         room.updateSettings(data.settings);
-        
+
         // Notify all players in room of updated settings
         io.to(roomId).emit('room-settings-updated', {
           settings: room.settings,
           gameState: room.getGameState()
         });
-        
+
         callback({ success: true, settings: room.settings });
       } else {
         callback({ success: false, error: 'No settings provided' });
@@ -564,50 +565,50 @@ io.on('connection', (socket) => {
     try {
       const roomId = playerRooms.get(socket.id);
       const room = rooms.get(roomId);
-      
+
       if (!room) {
         callback({ success: false, error: 'Room not found' });
         return;
       }
-      
+
       const player = room.players.get(socket.id);
       if (!player?.isCreator) {
         callback({ success: false, error: 'Only room creator can start game' });
         return;
       }
-      
+
       console.log(`Room ${roomId}: Current game state: ${room.gameState}`);
-      
+
       // If game is in playing state, check if it should be marked as finished first
       if (room.gameState === 'playing' && room.areAllPlayersFinished()) {
         room.gameState = 'finished';
         console.log(`Room ${roomId}: Marked game as finished since all players are done`);
       }
-      
+
       // Don't allow starting a new game if players are still playing
       if (room.gameState === 'playing' && !room.areAllPlayersFinished()) {
         callback({ success: false, error: 'Cannot start a new game while other players are still playing' });
         return;
       }
-      
+
       // If game is finished, reset to waiting state first
       if (room.gameState === 'finished') {
         room.returnToLobby();
         console.log(`Room ${roomId}: Reset finished game to waiting state for new game`);
       }
-      
+
       console.log(`Room ${roomId}: Game state after reset: ${room.gameState}`);
-      
+
       // Update room settings if provided
       if (data && data.settings) {
         room.updateSettings(data.settings);
       }
-      
+
       room.startGame();
-      
+
       // Notify all players
       io.to(roomId).emit('game-started', room.getGameState());
-      
+
       callback({ success: true });
     } catch (error) {
       callback({ success: false, error: error.message });
@@ -619,16 +620,16 @@ io.on('connection', (socket) => {
     try {
       const roomId = playerRooms.get(socket.id);
       const room = rooms.get(roomId);
-      
+
       if (!room) {
         callback({ success: false, error: 'Room not found' });
         return;
       }
-      
+
       const result = room.submitAnswer(socket.id, data.answer, data.isCorrect, data.currentBoardIndex, data.transforms);
       if (result) {
         const player = room.players.get(socket.id);
-        
+
         // Broadcast answer and score update to all players
         io.to(roomId).emit('player-answered', {
           playerId: socket.id,
@@ -638,17 +639,17 @@ io.on('connection', (socket) => {
           newScore: player.score,
           finished: player.finished
         });
-        
+
         // Broadcast updated game state to sync leaderboards
         io.to(roomId).emit('score-updated', {
           players: Array.from(room.players.values())
         });
-        
+
         // Check if the game finished due to early ending (timeout/resign)
         if (result === 'game-finished') {
           // Use the new helper method to emit game-finished event
           room.emitGameFinished(io);
-          
+
           // Broadcast leaderboard update to all connected clients
           io.emit('leaderboard-updated', {
             games: completedGames.slice(0, 20)
@@ -657,7 +658,7 @@ io.on('connection', (socket) => {
         } else if (room.areAllPlayersFinished()) {
           // Normal flow - save game if all players are finished
           room.saveCompletedGame();
-          
+
           // Broadcast game finished event to all players in the room
           io.to(roomId).emit('game-finished', {
             gameState: room.getGameState(),
@@ -667,14 +668,14 @@ io.on('connection', (socket) => {
             }
           });
           console.log('Game finished event sent to all players in room:', room.roomId);
-          
+
           // Broadcast leaderboard update to all connected clients
           io.emit('leaderboard-updated', {
             games: completedGames.slice(0, 20)
           });
           console.log('Game completed and leaderboard updated:', room.roomId);
         }
-        
+
         callback({ success: true });
       } else {
         callback({ success: false, error: 'Could not submit answer' });
@@ -689,23 +690,23 @@ io.on('connection', (socket) => {
     try {
       const roomId = playerRooms.get(socket.id);
       const room = rooms.get(roomId);
-      
+
       if (!room) {
         callback({ success: false, error: 'Room not found' });
         return;
       }
-      
+
       const player = room.players.get(socket.id);
       if (!player) {
         callback({ success: false, error: 'Player not found in room' });
         return;
       }
-      
+
       room.returnToLobby();
-      
+
       // Notify all players
       io.to(roomId).emit('returned-to-lobby', room.getGameState());
-      
+
       callback({ success: true });
     } catch (error) {
       callback({ success: false, error: error.message });
@@ -715,13 +716,13 @@ io.on('connection', (socket) => {
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('Player disconnected:', socket.id);
-    
+
     const roomId = playerRooms.get(socket.id);
     if (roomId) {
       const room = rooms.get(roomId);
       if (room) {
         const isEmpty = room.removePlayer(socket.id);
-        
+
         if (isEmpty) {
           rooms.delete(roomId);
         } else {
@@ -732,7 +733,7 @@ io.on('connection', (socket) => {
           });
         }
       }
-      
+
       playerRooms.delete(socket.id);
     }
   });
@@ -750,32 +751,32 @@ io.on('connection', (socket) => {
   // Find existing room by creator UUID
   socket.on('find-creator-room', (data, callback) => {
     const { creatorUUID } = data;
-    
+
     if (!creatorUUID) {
       callback({ success: false, error: 'No creator UUID provided' });
       return;
     }
-    
+
     // Search for room with matching creator UUID in waiting state
     for (let [roomId, room] of rooms.entries()) {
       if (room.creatorUUID === creatorUUID && room.gameState === 'waiting') {
         console.log(`Found existing room ${roomId} for creator ${creatorUUID}`);
-        callback({ 
-          success: true, 
+        callback({
+          success: true,
           roomId: roomId,
           gameState: room.getGameState()
         });
         return;
       }
     }
-    
+
     callback({ success: false, error: 'No existing room found' });
   });
 });
 
 // REST API endpoints
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Counting Battle! Multiplayer Server',
     status: 'running',
     version: '1.0.0',
@@ -795,8 +796,8 @@ app.get('/rooms/:roomId', (req, res) => {
 
 app.get('/leaderboard', (req, res) => {
   console.log(`Leaderboard API called. Total games: ${completedGames.length}`);
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     games: completedGames.slice(0, 20), // Return last 20 games
     totalGames: completedGames.length
   });
@@ -806,25 +807,25 @@ app.get('/leaderboard', (req, res) => {
 app.get('/game/:gameId', (req, res) => {
   const gameId = req.params.gameId;
   console.log(`Game data API called for game: ${gameId}`);
-  
+
   const game = completedGames.find(g => g.id === gameId);
   if (game) {
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       game: game
     });
   } else {
-    res.status(404).json({ 
-      success: false, 
-      error: 'Game not found' 
+    res.status(404).json({
+      success: false,
+      error: 'Game not found'
     });
   }
 });
 
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    rooms: rooms.size, 
+  res.json({
+    status: 'ok',
+    rooms: rooms.size,
     connections: io.engine.clientsCount,
     completedGames: completedGames.length
   });
@@ -840,7 +841,7 @@ server.listen(PORT, () => {
 setInterval(() => {
   const now = Date.now();
   const ROOM_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
-  
+
   for (let [roomId, room] of rooms.entries()) {
     if (now - room.createdAt > ROOM_TIMEOUT && room.players.size === 0) {
       // Clean up any pending reconnection timeout

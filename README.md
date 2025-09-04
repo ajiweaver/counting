@@ -2,7 +2,7 @@
 
 A real-time multiplayer Go territory counting game where players compete to correctly identify which side controls more territory in various Go positions.
 
-**🎮 [Play Now at count.ajiweaver.com](https://count.ajiweaver.com)**
+**🎮 [Play Now at counting-battle.ajiweaver.com](https://counting-battle.ajiweaver.com)**
 
 ## 🎮 Game Overview
 
