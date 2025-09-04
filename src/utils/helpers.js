@@ -4,7 +4,7 @@
 // Auto-detect server URL based on environment
 const SERVER_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
     ? 'http://localhost:3000' 
-    : 'https://counting-production.up.railway.app';
+    : 'https://counting-battle-server.up.railway.app';
 
 // Development mode detection
 const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
