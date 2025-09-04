@@ -727,7 +727,7 @@ function draw() {
     // Draw board using the reusable function
     displayTextY = 0.1*width;
     timerY = displayTextY + R;
-    boardY = timerY + 2*R;
+    boardY = timerY + 1.5*R;
     boardX = D;
     if (gameState.phase !== 'finished') {
         drawGoBoard(board, boardX, boardY, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
@@ -780,7 +780,7 @@ function draw() {
                 drawHardModeUI();
             } else {
                 // Normal mode: Show stone buttons (like hard mode but simpler)
-                drawNormalModeStoneUI();
+                drawNormalModeUI();
             }
         }
         
@@ -879,10 +879,10 @@ function windowResized() {
     sx = width/2;
     sy = 1.5*R;
     
-    bx = width/2 - D;
-    by = height - 2.5*R;
-    wx = width/2 + D;
-    wy = height - 2.5*R;
+    bx = width/2 - 1.1*D;
+    by = height - 2.8*R;
+    wx = width/2 + 1.1*D;
+    wy = height - 2.8*R;
     
     resizeCanvas(width, height);
     
@@ -1413,9 +1413,11 @@ function loadMultiplayerBoard(boardIndex) {
     blackStoneBounce = 0;
     whiteStoneBounce = 0;
     
-    // Reset error shake animation when loading new board
-    errorShakeIntensity = 0;
-    errorShakeTime = 0;
+    // Only reset error shake animation if we're not in penalty mode
+    if (!penaltyMode) {
+        errorShakeIntensity = 0;
+        errorShakeTime = 0;
+    }
     
     failed = false;
     
@@ -2420,58 +2422,6 @@ function updateBoardNumberIndicator() {
 
 
 function drawNormalModeUI() {
-    fill('black');
-    if (keyIsDown(LEFT_ARROW)) {
-        textSize(D + 12);
-    } else if (dist(mouseX, mouseY, bx, by) < D) {
-        if (mouseIsPressed) textSize(D + 12);
-        else textSize(D + 6);
-    } else {
-        textSize(D);
-    }
-    
-    // Show different text based on game state and dev mode
-    let blackText = 'black';
-    if (penaltyMode) {
-        blackText = 'black';
-    } else if (IS_DEV_MODE && correct === 'black') {
-        blackText = '✓ BLACK';
-        textStyle(BOLD);
-    } else if (IS_DEV_MODE && correct === 'white') {
-        blackText = 'black';
-        textStyle(NORMAL);
-    }
-    
-    text(blackText, bx, by);
-    textStyle(NORMAL);
-
-    fill('white');
-    if (keyIsDown(RIGHT_ARROW)) {
-        textSize(D + 12);
-    } else if (dist(mouseX, mouseY, wx, wy) < D) {
-        if (mouseIsPressed) textSize(D + 12);
-        else textSize(D + 6);
-    } else {
-        textSize(D);
-    }
-    
-    let whiteText = 'white';
-    if (penaltyMode) {
-        whiteText = 'white';
-    } else if (IS_DEV_MODE && correct === 'white') {
-        whiteText = '✓ WHITE';
-        textStyle(BOLD);
-    } else if (IS_DEV_MODE && correct === 'black') {
-        whiteText = 'white';
-        textStyle(NORMAL);
-    }
-    
-    text(whiteText, wx, wy);
-    textStyle(NORMAL);
-}
-
-
-function drawNormalModeStoneUI() {
     // Responsive sizing factor for all buttons in normal mode
     const screenSizeFactor = Math.min(window.innerWidth, window.innerHeight) < 768 ? 1.0 : 1.2;
     
@@ -2491,7 +2441,23 @@ function drawNormalModeStoneUI() {
     }
     
     // Stone button properties (same as hard mode)
-    const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
+    // Calculate responsive scaling factor based on screen size and aspect ratio
+    const screenArea = width * height;
+    const baseArea = 800 * 600; // Base reference size
+    const aspectRatio = height / width;
+    
+    // Base scaling from screen area
+    let scaleFactor = Math.sqrt(screenArea / baseArea);
+    
+    // Additional scaling for portrait orientation (more vertical space)
+    if (aspectRatio > 1.2) { // Portrait mode with significant vertical space
+        const portraitBonus = Math.min(0.5, (aspectRatio - 1.2) * 0.8);
+        scaleFactor += portraitBonus;
+    }
+    
+    // Clamp the scale factor
+    scaleFactor = Math.min(2.5, Math.max(1, scaleFactor));
+    const stoneRadius = R * 1.25 * scaleFactor; // Responsive sizing
     const buttonStrokeWeight = halfStrokeWeight * 2;
     
     // Black stone button (left position)
@@ -2602,7 +2568,7 @@ function drawNormalModeStoneUI() {
     
     pop();
     
-    // Store stone positions for click detection
+    // Store stone positions for click detection (using scaled radius)
     normalModeBlackStone = { x: bx, y: by, radius: stoneRadius };
     normalModeWhiteStone = { x: wx, y: wy, radius: stoneRadius };
 }
@@ -2631,9 +2597,25 @@ function drawHardModeUI() {
     
     // Single stone toggle button (left side, higher position to avoid clipping)
     // Use board stone proportions: R is the board stone radius
-    const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
+    // Calculate responsive scaling factor based on screen size and aspect ratio
+    const screenArea = width * height;
+    const baseArea = 800 * 600; // Base reference size
+    const aspectRatio = height / width;
+    
+    // Base scaling from screen area
+    let scaleFactor = Math.sqrt(screenArea / baseArea);
+    
+    // Additional scaling for portrait orientation (more vertical space)
+    if (aspectRatio > 1.2) { // Portrait mode with significant vertical space
+        const portraitBonus = Math.min(0.5, (aspectRatio - 1.2) * 0.8);
+        scaleFactor += portraitBonus;
+    }
+    
+    // Clamp the scale factor
+    scaleFactor = Math.min(2.5, Math.max(1, scaleFactor));
+    const stoneRadius = R * 1.25 * scaleFactor; // Responsive sizing
     const stoneX = width * 0.15;
-    const stoneY = height - 2*stoneRadius;
+    const stoneY = height - 3*R; // Use fixed positioning like normal mode
     
     // Calculate bounce scale for stone button
     const stoneScale = 1 + stoneButtonBounce * bounceStrength;
@@ -2717,8 +2699,13 @@ function drawHardModeUI() {
     // Score difference buttons (arranged in a horizontal row)
     if (scoreChoices.length === 4) {
         // Use similar proportions to board stones for consistency
-        const buttonRadius = R * 1.2; // Slightly smaller than the stone button
-        const totalWidth = width * 0.5; // Total width for all 4 buttons
+        // Apply same responsive scaling as stone buttons
+        const buttonRadius = R * 1.2 * scaleFactor; // Responsive sizing
+        // Adjust total width based on button size to prevent overlap
+        const baseWidth = width * 0.5;
+        const minButtonSpacing = buttonRadius * 2.5; // Ensure minimum spacing
+        const calculatedWidth = Math.max(baseWidth, minButtonSpacing * 3); // 3 gaps between 4 buttons
+        const totalWidth = Math.min(calculatedWidth, width * 0.7); // Don't exceed 70% of screen
         const buttonY = stoneY; // Same height as stone button
         const spacing = totalWidth / 3; // Space between centers of 4 buttons
         const startX = width * 0.60 - totalWidth / 2; // Center the group of buttons
@@ -2937,13 +2924,14 @@ function submitNormalModeAnswer(guess) {
                     
                 }
             } else {
+                // Wrong answer - trigger shake animation immediately
+                console.log('Wrong answer - triggering shake animation');
+                errorShakeIntensity = 1.0; // Start with full shake intensity
+                errorShakeTime = 0; // Reset time counter
+                
                 // Wrong answer - only apply penalty if game is still active and there's more than 1 second left
                 if (gameState.phase !== 'finished' && timer > 1000) {
                     console.log('Wrong answer - applying 1 second penalty');
-                    
-                    // Trigger shake animation for wrong answer (same as hard mode)
-                    errorShakeIntensity = 1.0; // Start with full shake intensity
-                    errorShakeTime = 0; // Reset time counter
                     
                     // Enter penalty mode to prevent input
                     penaltyMode = true;
