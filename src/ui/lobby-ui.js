@@ -725,31 +725,35 @@ function draw() {
     clear();
     
     // Draw board using the reusable function
-    drawGoBoard(board, D, 2*D, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+    displayTextY = 0.1*width;
+    timerY = displayTextY + R;
+    boardY = timerY + 2*R;
+    boardX = D;
+    drawGoBoard(board, boardX, boardY, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
 
     // Draw UI elements
     push();
     textSize(R);
     fill('white');
     textFont('Arial'); // Changed from courier to Arial
-    
+
     // Show board number and remaining time
     let boardText;
-    
+
     // For finished state, show the actual boards completed
     let displayBoardNumber = gameState.currentBoard + 1;
     if (gameState.phase === 'finished') {
         // For finished games, show the player's actual score (boards completed correctly)
         displayBoardNumber = score;
     }
-    
+
     boardText = `${displayBoardNumber}/${gameState.settings?.totalBoards || gameState.boardSequence.length}`;
-    
+
     // Add remaining time in seconds
     const remainingSeconds = Math.max(0, Math.ceil(timer / 1000));
     const displayText = `${boardText} - ${remainingSeconds}s`;
-    
-    text(displayText, width/2, R);
+
+    text(displayText, width/2, displayTextY);
     pop();
 
     // Timer bar (only show when game is active)
@@ -759,7 +763,7 @@ function draw() {
         fill(255);
         stroke('white');
         strokeCap(ROUND);
-        if (timer > 0) line(width/2 - dx, D, width/2 + dx, D);
+        if (timer > 0) line(width/2 - dx, timerY, width/2 + dx, timerY);
         pop();
     }
 
@@ -857,9 +861,9 @@ function windowResized() {
             height = Math.max(window.innerHeight * 0.6, 400); // Default minimum height
         }
     } else {
-        // Default dimensions for gameplay and individual board review
+        // Default dimensions for gameplay and individual board review - increased for button animations
         width = 10 * D;
-        height = 12 * D;
+        height = 13 * D;
         
         //// Add extra height for territory information in detailed summary view
         //if (gameState.phase === 'summary' && viewingSummary && reviewingBoardIndex !== -1) {
@@ -874,9 +878,9 @@ function windowResized() {
     sy = 1.5*R;
     
     bx = width/2 - D;
-    by = height - 1.5*R;
+    by = height - 2.5*R;
     wx = width/2 + D;
-    wy = height - 1.5*R;
+    wy = height - 2.5*R;
     
     resizeCanvas(width, height);
     
@@ -965,6 +969,13 @@ function keyPressed() {
             startGame();
             console.log('⌨️ Enter pressed - starting game from lobby');
         }
+        return;
+    }
+    
+    // Handle G key to toggle game mode (hard mode on/off) - only in lobby and if creator
+    if ((key === 'g' || key === 'G') && gameState.phase === 'lobby') {
+        toggleRoomHardMode();
+        console.log('⌨️ G key pressed - toggling game mode');
         return;
     }
     
@@ -1553,6 +1564,7 @@ window.loadMultiplayerBoard = loadMultiplayerBoard;
 window.toggleLeaderboard = toggleLeaderboard;
 window.displayLeaderboardHistory = displayLeaderboardHistory;
 window.checkLeaderboardOverlap = checkLeaderboardOverlap;
+window.toggleRoomHardMode = toggleRoomHardMode;
 
 function drawSummaryScreen() {
     // Since we no longer have history-summary mode, determine if it's historical from other indicators
@@ -1833,7 +1845,7 @@ function drawBoardReview() {
         textFont('Arial');
         textStyle(BOLD);
         fill(255);
-        titleY = R;
+        titleY = 0.2*height;
         text(`Board #${boardId}`, width/2, titleY);
         
         // Show answer details - larger, bold, and positioned between title and board
@@ -2619,7 +2631,7 @@ function drawHardModeUI() {
     // Use board stone proportions: R is the board stone radius
     const stoneRadius = R * 1.25; // Slightly larger than board stones for better visibility
     const stoneX = width * 0.15;
-    const stoneY = height - stoneRadius;
+    const stoneY = height - 2*stoneRadius;
     
     // Calculate bounce scale for stone button
     const stoneScale = 1 + stoneButtonBounce * bounceStrength;

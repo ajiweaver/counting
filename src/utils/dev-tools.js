@@ -479,6 +479,168 @@ window.testCurrentBoard = function() {
     return testBoard(currentBoardNumber, transforms.flipX, transforms.flipY, transforms.transpose, transforms.invert);
 };
 
+/**
+ * Test function to simulate playing a board as if in game mode
+ * Usage: testPlayBoard(42) - shows board 42 in playing mode
+ * Usage: testPlayBoard(42, true) - shows board 42 in hard mode
+ * Usage: testPlayBoard(42, false, 30) - shows board 42 in normal mode with 30 second timer
+ */
+window.testPlayBoard = function(boardNumber = 0, hardMode = false, timePerBoard = 60) {
+    console.log(`🎮 === TESTING PLAY MODE ===`);
+    console.log(`🎲 Board: ${boardNumber}`);
+    console.log(`🔥 Hard Mode: ${hardMode}`);
+    console.log(`⏰ Timer: ${timePerBoard} seconds`);
+    
+    try {
+        // Get the boards
+        const currentBoards = hardMode ? (window.boardsHard || boards) : boards;
+        const currentDeadStones = hardMode ? (window.deadStonesHard || window.deadStones) : window.deadStones;
+        
+        if (boardNumber >= currentBoards.length) {
+            console.error(`❌ Board ${boardNumber} doesn't exist! Max board: ${currentBoards.length - 1}`);
+            return;
+        }
+        
+        // Set up game state for playing
+        gameState.phase = 'playing';
+        gameState.currentBoard = 0;
+        gameState.boardSequence = [boardNumber];
+        gameState.settings = {
+            hardMode: hardMode,
+            timePerBoard: timePerBoard,
+            totalBoards: 1
+        };
+        
+        // Initialize game variables (same as startMultiplayerGame)
+        window.score = 0;
+        window.started = true;
+        window.failed = false;
+        window.penaltyMode = false;
+        window.currentBoardNumber = boardNumber;
+        
+        // Reset background and layout
+        document.body.style.backgroundColor = '';
+        document.body.style.alignItems = 'center';
+        document.body.style.paddingTop = '';
+        document.body.style.height = '100%';
+        document.body.style.minHeight = '';
+        document.body.style.overflowY = '';
+        document.body.style.webkitOverflowScrolling = '';
+        
+        // Hide UI overlay and show game elements
+        document.getElementById('ui-overlay').style.display = 'none';
+        document.getElementById('leaderboard-toggle').style.display = 'block';
+        document.getElementById('resign-button').style.display = 'block';
+        
+        // Show board number indicator
+        if (typeof showBoardNumberIndicator === 'function') {
+            showBoardNumberIndicator();
+        }
+        
+        // Ensure canvas is properly sized for gameplay
+        windowResized();
+        
+        // Initialize timer correctly
+        if (gameState.settings && gameState.settings.timePerBoard && gameState.settings.timePerBoard > 0) {
+            window.timer = gameState.settings.timePerBoard * 1000;
+        } else {
+            window.timer = timePerBoard * 1000;
+            window.maxTime = timePerBoard * 1000; // maxTime should also be in milliseconds
+        }
+        
+        // Set up hard mode variables if needed
+        if (hardMode) {
+            window.selectedColor = 1; // Start with black
+            window.selectedScoreIndex = 0;
+            window.selectedDifference = null;
+            
+            // Calculate correct answer for reference
+            const score = calculateTerritoryScore(currentBoards[boardNumber], currentDeadStones[boardNumber]);
+            console.log(`🎯 Correct answer: ${score.winningColor === 'black' ? 'B' : 'W'}+${score.scoreMagnitude}`);
+            window.currentTerritoryScore = score;
+        } else {
+            // Calculate correct answer for normal mode
+            const score = calculateTerritoryScore(currentBoards[boardNumber], currentDeadStones[boardNumber]);
+            console.log(`🎯 Correct answer: ${score.winningColor}`);
+            window.correctColor = score.winningColor;
+            window.currentTerritoryScore = score;
+        }
+        
+        // Load and display the board (use index 0 since we have 1 board in sequence)
+        loadMultiplayerBoard(0);
+        
+        console.log(`✅ Playing mode test set up for board ${boardNumber}`);
+        console.log(`📋 Use normal controls to play:`);
+        if (hardMode) {
+            console.log(`   - C key: Toggle color selection`);
+            console.log(`   - 1-4 keys: Select score difference`);
+            console.log(`   - Click stone button or score buttons`);
+        } else {
+            console.log(`   - Left/Right arrow keys: Select black/white`);
+            console.log(`   - Click black/white stone buttons`);
+        }
+        console.log(`   - ESC key: Resign/quit`);
+        console.log(`⏰ Timer: ${timePerBoard} seconds`);
+        
+        return {
+            boardNumber: boardNumber,
+            hardMode: hardMode,
+            timePerBoard: timePerBoard,
+            correctAnswer: window.currentTerritoryScore
+        };
+        
+    } catch (error) {
+        console.error(`❌ Error setting up play test for board ${boardNumber}:`, error);
+        console.error(error.stack);
+        return null;
+    }
+};
+
+/**
+ * Stop test play mode and return to menu
+ * Usage: stopTestPlay()
+ */
+window.stopTestPlay = function() {
+    console.log('🛑 Stopping test play mode');
+    
+    // Reset game state
+    gameState.phase = 'menu';
+    gameState.currentBoard = 0;
+    gameState.boardSequence = [];
+    gameState.settings = null;
+    
+    // Reset game variables
+    window.timer = 0;
+    window.maxTime = defaultTimePerBoard * 1000;
+    window.started = false;
+    window.failed = false;
+    window.penaltyMode = false;
+    window.score = 0;
+    window.currentBoardNumber = null;
+    window.correctColor = null;
+    window.currentTerritoryScore = null;
+    
+    // Reset hard mode variables
+    window.selectedColor = 1;
+    window.selectedScoreIndex = 0;
+    window.selectedDifference = null;
+    
+    // Hide game elements and show main menu
+    document.getElementById('ui-overlay').style.display = 'flex';
+    document.getElementById('leaderboard-toggle').style.display = 'none';
+    document.getElementById('resign-button').style.display = 'none';
+    
+    // Hide board number indicator
+    if (typeof hideBoardNumberIndicator === 'function') {
+        hideBoardNumberIndicator();
+    }
+    
+    // Clear canvas
+    clear();
+    
+    console.log('✅ Returned to main menu');
+};
+
 // Query leaderboard function for development
 window.queryLeaderboard = async function(roomId = null) {
     console.log('📊 Querying leaderboard data...');
