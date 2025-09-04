@@ -2460,12 +2460,12 @@ function drawNormalModeUI() {
     
     // Additional scaling for portrait orientation (more vertical space)
     if (aspectRatio > 1.2) { // Portrait mode with significant vertical space
-        const portraitBonus = Math.min(0.5, (aspectRatio - 1.2) * 0.8);
+        const portraitBonus = Math.min(0.3, (aspectRatio - 1.2) * 0.5); // Reduced for normal mode
         scaleFactor += portraitBonus;
     }
     
     // Clamp the scale factor to prevent buttons from becoming too large
-    scaleFactor = Math.min(1.8, Math.max(1, scaleFactor));
+    scaleFactor = Math.min(1.4, Math.max(1, scaleFactor));
     const stoneRadius = R * 1.25 * scaleFactor; // Responsive sizing
     const buttonStrokeWeight = halfStrokeWeight * 2;
     
