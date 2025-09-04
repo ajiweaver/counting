@@ -1,4 +1,4 @@
-// Board Editor for Count Battle - Localhost Only
+// Board Editor for Counting Battle - Localhost Only
 // This editor allows visual editing of boards.js Go positions
 
 // Check if running on localhost

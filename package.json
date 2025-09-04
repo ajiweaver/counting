@@ -1,5 +1,5 @@
 {
-  "name": "count-battle",
+  "name": "counting-battle",
   "version": "1.0.0",
   "description": "Multiplayer Go territory counting game",
   "main": "server/server.js",
