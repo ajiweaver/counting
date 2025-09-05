@@ -1,9 +1,38 @@
-// Board Editor for Counting Battle - Localhost Only
+// Board Editor for Count Battle - Localhost Only
 // This editor allows visual editing of boards.js Go positions
 
-// Check if running on localhost
-if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    console.log('Board editor is only available on localhost');
+// Check if running on localhost (more comprehensive check)
+function isLocalhost() {
+    const hostname = window.location.hostname;
+    const localhostPatterns = [
+        'localhost',
+        '127.0.0.1',
+        '::1',
+        '0.0.0.0'
+    ];
+    
+    // Check exact matches
+    if (localhostPatterns.includes(hostname)) {
+        return true;
+    }
+    
+    // Check for local IP ranges (192.168.x.x, 10.x.x.x, etc.)
+    if (hostname.startsWith('192.168.') || 
+        hostname.startsWith('10.') || 
+        hostname.startsWith('172.')) {
+        return true;
+    }
+    
+    // Check for file:// protocol (local file access)
+    if (window.location.protocol === 'file:') {
+        return true;
+    }
+    
+    return false;
+}
+
+if (!isLocalhost()) {
+    console.log('Board editor is only available on localhost. Current hostname:', window.location.hostname);
     setTimeout(() => {
         window.location.href = 'index.html';
     }, 3000);
@@ -22,9 +51,6 @@ let modifiedBoards = new Set();
 let deadStonePositions = {}; // Maps board index to set of dead positions "x,y"
 let undoStack = [];
 let redoStack = [];
-
-// Drawing variables
-let R, D, halfStrokeWeight;
 let canvas;
 let boardSize = 400;
 let cellSize;
@@ -41,8 +67,8 @@ function initializeEditor() {
     console.log('🎨 Initializing Board Editor...');
     
     // Parse boards.js data
-    if (typeof window.boards !== 'undefined') {
-        originalBoardsData = [...window.boards].filter(board => board.trim());
+    if (typeof boards !== 'undefined') {
+        originalBoardsData = [...boards].filter(board => board.trim());
         console.log(`📋 Loaded ${originalBoardsData.length} normal boards`);
     } else {
         console.error('❌ boards.js not loaded');
@@ -50,8 +76,8 @@ function initializeEditor() {
     }
     
     // Parse boards_hard.js data if available
-    if (typeof window.boardsHard !== 'undefined') {
-        originalBoardsHardData = [...window.boardsHard].filter(board => board.trim());
+    if (typeof boardsHard !== 'undefined') {
+        originalBoardsHardData = [...boardsHard].filter(board => board.trim());
         console.log(`📋 Loaded ${originalBoardsHardData.length} hard boards`);
     } else {
         console.warn('⚠️ boards_hard.js not loaded');
@@ -59,14 +85,14 @@ function initializeEditor() {
     }
     
     // Parse deadstones.js data if available
-    if (typeof window.deadStones !== 'undefined') {
-        originalDeadStonesData = [...window.deadStones].filter(stones => stones.trim());
+    if (typeof deadStones !== 'undefined') {
+        originalDeadStonesData = [...deadStones].filter(stones => stones.trim());
         console.log(`🪦 Loaded ${originalDeadStonesData.length} normal dead stone patterns`);
     }
     
     // Parse deadstones_hard.js data if available
-    if (typeof window.deadStonesHard !== 'undefined') {
-        originalDeadStonesHardData = [...window.deadStonesHard].filter(stones => stones.trim());
+    if (typeof deadStonesHard !== 'undefined') {
+        originalDeadStonesHardData = [...deadStonesHard].filter(stones => stones.trim());
         console.log(`🪦 Loaded ${originalDeadStonesHardData.length} hard dead stone patterns`);
     } else {
         console.warn('⚠️ deadstones_hard.js not loaded');
@@ -716,66 +742,116 @@ function setupKeyboardShortcuts() {
 
 // p5.js setup function
 function setup() {
-    createCanvas();
-    windowResized();
+    // Create canvas in the board container
+    const container = document.getElementById('board-canvas');
+    canvas = createCanvas(boardSize, boardSize);
+    canvas.parent(container);
     
-    ellipseMode(RADIUS);
-    strokeCap(PROJECT);
-    noStroke();
+    // Calculate cell size for 9x9 board
+    cellSize = boardSize / 9;
     
-    // Don't start game automatically - wait for multiplayer lobby
-}
-
-// Handle window resize for board editor
-function windowResized() {
-    // Calculate basic drawing dimensions like main game
-    R = floor(min(window.innerWidth/10, window.innerHeight/12)/2)-1;
-    D = 2 * R;
-    halfStrokeWeight = 1; // Basic stroke weight for board editor
-    
-    // Simple canvas sizing for board editor
-    const canvasSize = min(window.innerWidth - 40, window.innerHeight - 200);
-    resizeCanvas(canvasSize, canvasSize);
+    console.log('🎨 p5.js canvas created');
 }
 
 // p5.js draw function
 function draw() {
-    // Clear the canvas
-    clear();
+    background(220, 179, 92); // Go board color
     
-    // Only draw if we have a valid board to display
-    if (currentBoardIndex >= 0 && currentBoardIndex < boardsArray.length) {
-        // Draw the current board being edited
-        drawGoBoard(boardsArray[currentBoardIndex], D, 2*D, D, R - halfStrokeWeight, 2*halfStrokeWeight, false);
+    // Draw board lines
+    stroke(0);
+    strokeWeight(1);
+    
+    for (let i = 0; i < 9; i++) {
+        // Vertical lines
+        line(cellSize * i + cellSize/2, cellSize/2, cellSize * i + cellSize/2, height - cellSize/2);
+        // Horizontal lines
+        line(cellSize/2, cellSize * i + cellSize/2, width - cellSize/2, cellSize * i + cellSize/2);
+    }
+    
+    // Draw star points
+    fill(0);
+    noStroke();
+    const starPoints = [[2,2], [2,6], [6,2], [6,6], [4,4]];
+    starPoints.forEach(([x, y]) => {
+        circle(x * cellSize + cellSize/2, y * cellSize + cellSize/2, 6);
+    });
+    
+    // Draw stones
+    if (currentBoardIndex < boardsArray.length) {
+        const board2D = parseBoard(boardsArray[currentBoardIndex]);
+        const deadSet = deadStonePositions[currentBoardIndex] || new Set();
         
-        // Draw UI elements
-        push();
-        textSize(R);
-        fill('white');
-        textAlign(CENTER, CENTER);
-        textFont('Arial');
-        
-        // Show board number
-        const boardText = `Board ${currentBoardIndex + 1} of ${boardsArray.length}`;
-        text(boardText, width/2, R);
-        
-        // Show modifications indicator
-        if (modifications.length > 0) {
-            fill('#ff6b6b');
-            text('Modified', width/2, R + 30);
+        for (let y = 0; y < board2D.length; y++) {
+            for (let x = 0; x < board2D[y].length; x++) {
+                const stone = board2D[y][x];
+                const centerX = x * cellSize + cellSize/2;
+                const centerY = y * cellSize + cellSize/2;
+                const stoneRadius = cellSize * 0.45;
+                const isDead = deadSet.has(`${x},${y}`);
+                
+                if (stone === 'x') {
+                    // Black stone
+                    fill(0);
+                    stroke(isDead ? 200 : 50);
+                    strokeWeight(isDead ? 3 : 1);
+                    circle(centerX, centerY, stoneRadius * 2);
+                    
+                    // Add red X for dead stones
+                    if (isDead) {
+                        stroke(255, 50, 50);
+                        strokeWeight(3);
+                        const crossSize = stoneRadius * 0.6;
+                        line(centerX - crossSize, centerY - crossSize, centerX + crossSize, centerY + crossSize);
+                        line(centerX - crossSize, centerY + crossSize, centerX + crossSize, centerY - crossSize);
+                    }
+                } else if (stone === 'o') {
+                    // White stone
+                    fill(255);
+                    stroke(isDead ? 200 : 0);
+                    strokeWeight(isDead ? 3 : 1);
+                    circle(centerX, centerY, stoneRadius * 2);
+                    
+                    // Add red X for dead stones
+                    if (isDead) {
+                        stroke(255, 50, 50);
+                        strokeWeight(3);
+                        const crossSize = stoneRadius * 0.6;
+                        line(centerX - crossSize, centerY - crossSize, centerX + crossSize, centerY + crossSize);
+                        line(centerX - crossSize, centerY + crossSize, centerX + crossSize, centerY - crossSize);
+                    }
+                }
+            }
         }
-        
-        pop();
     }
 }
 
-// p5.js mouse click handler for board editor
+// p5.js mouse click handler
 function mousePressed() {
-    // Handle board editor specific mouse clicks here if needed
-    // For now, let other handlers process clicks
-    
-    // Don't prevent default behavior - allow other click handlers to work
-    return false; // This allows event to bubble up to other handlers
+    if (mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < height) {
+        const gridX = Math.floor(mouseX / cellSize);
+        const gridY = Math.floor(mouseY / cellSize);
+        
+        if (currentTool === 'dead') {
+            // Handle dead stone marking
+            toggleDeadStone(gridX, gridY);
+        } else {
+            // Determine what to place based on current tool and mouse button
+            let newValue;
+            if (mouseButton === RIGHT) {
+                newValue = '.'; // Right click always removes
+            } else {
+                switch (currentTool) {
+                    case 'black': newValue = 'x'; break;
+                    case 'white': newValue = 'o'; break;
+                    case 'empty': newValue = '.'; break;
+                    default: newValue = '.';
+                }
+            }
+            
+            editStone(gridX, gridY, newValue);
+        }
+        return false; // Prevent context menu
+    }
 }
 
 // Prevent context menu on right click
@@ -785,8 +861,8 @@ function contextMenu(e) {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize if we're on localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // Only initialize if we're on localhost (use the enhanced check)
+    if (isLocalhost()) {
         // Wait for boards.js to load
         setTimeout(initializeEditor, 100);
     }
@@ -795,11 +871,135 @@ document.addEventListener('DOMContentLoaded', () => {
 // Prevent context menu
 document.addEventListener('contextmenu', contextMenu);
 
+// Convert board string representation to goscorer format
+function convertBoardStringToStones(boardString) {
+    const rows = boardString.split("\n").map(row => row.trim()).filter(row => row !== "");
+    const ysize = rows.length;
+    const xsize = rows[0].length;
+
+    const stones = Array.from({length: ysize}, () => Array.from({length: xsize}, () => window.EMPTY));
+
+    for(let y = 0; y < ysize; y++) {
+        for(let x = 0; x < xsize; x++) {
+            let c = rows[y][x];
+            if(c === "x" || c === "X") {
+                stones[y][x] = window.BLACK;
+            } else if(c === "o" || c === "O") {
+                stones[y][x] = window.WHITE;
+            }
+            // '.' remains EMPTY (0)
+        }
+    }
+    return stones;
+}
+
+// Territory scoring using lightvector/goscorer
+function calculateTerritoryScore(board, deadStones) {
+    // Convert our internal board representation to goscorer format
+    let stones;
+
+    if (typeof board === 'string') {
+        // Board is a string representation (from boards.js)
+        stones = convertBoardStringToStones(board);
+    } else {
+        // Board is our internal 2D array format - convert it
+        stones = [];
+        for (let y = 0; y < board.height; y++) {
+            stones[y] = [];
+            for (let x = 0; x < board.width; x++) {
+                if (board[x][y] === 1) {
+                    stones[y][x] = window.BLACK;
+                } else if (board[x][y] === -1) {
+                    stones[y][x] = window.WHITE;
+                } else {
+                    stones[y][x] = window.EMPTY;
+                }
+            }
+        }
+    }
+
+    const ysize = stones.length;
+    const xsize = stones[0].length;
+
+    // Create markedDead array using deadstones.js data
+    const markedDead = markDeadStones(deadStones);
+
+    // Use goscorer's territory scoring
+    const finalScore = window.finalTerritoryScore(stones, markedDead, 0, 0, 0);
+
+    let blackTerritory = finalScore.black;
+    let whiteTerritory = finalScore.white;
+    const difference = blackTerritory - whiteTerritory;
+
+    return {
+        blackTerritory,
+        whiteTerritory,
+        difference, // Positive if black has more territory, negative if white
+        winningColor: difference > 0 ? 'black' : difference < 0 ? 'white' : 'tie',
+        scoreDifference: Math.abs(difference)
+    };
+}
+
+function markDeadStones(deadStones){
+
+    const deadStoneLines = deadStones.split('\n').map(row => row.trim()).filter(row => row !== '');
+
+    const ysize = deadStoneLines.length;
+    const xsize = deadStoneLines[0].length;
+    const markedDead = Array.from({length: ysize}, () => Array.from({length: xsize}, () => false));
+
+    // If we have a board number and dead stones data, use it
+    if (typeof deadStones !== 'undefined' && deadStones) {
+
+        for (let y = 0; y < Math.min(ysize, deadStoneLines.length); y++) {
+            const row = deadStoneLines[y];
+            for (let x = 0; x < Math.min(xsize, row.length); x++) {
+                // 'y' in deadstones.js represents dead stones (both black and white)
+                if (row[x] === 'y') {
+                    markedDead[y][x] = true;
+                }
+            }
+        }
+    }
+
+    return(markedDead)
+}
+
 // Calculate and update score display
 function updateScoreDisplay() {
     if (currentBoardIndex < boardsArray.length && typeof window.territoryScoring !== 'undefined') {
         try {
-            const score = calculateTerritoryScore(boardsArray[currentBoardIndex], deadStonesArray[currentBoardIndex]);
+            const boardString = boardsArray[currentBoardIndex];
+            const deadStonesString = deadStonesArray[currentBoardIndex];
+            const score = calculateTerritoryScore(boardString, deadStonesString);
+            
+            // Calculate stone counts for validation
+            let stones;
+            
+            stones = convertBoardStringToStones(boardString);
+            
+            // Count stones using the provided formulas
+            const blackStones = stones.reduce((x, y) => x + y.reduce((z, value) => value === window.BLACK ? z + 1 : z, 0), 0);
+            const whiteStones = stones.reduce((x, y) => x + y.reduce((z, value) => value === window.WHITE ? z + 1 : z, 0), 0);
+
+            // Count stones in territory for chinese counting
+            const markedDead = markDeadStones(deadStonesString);
+            const non_deadstones = stones.map((row, i) => row.map((val, j) => val * !markedDead[i][j]));
+            const blackStonesInTerritory = non_deadstones.reduce((x, y) => x + y.reduce((z, value) => value === window.BLACK ? z + 1 : z, 0), 0);
+            const whiteStonesInTerritory = non_deadstones.reduce((x, y) => x + y.reduce((z, value) => value === window.WHITE ? z + 1 : z, 0), 0);
+            const scoreWhiteArea = blackStonesInTerritory + score.blackTerritory;
+            const scoreBlackArea = whiteStonesInTerritory + score.whiteTerritory;
+            const scoreAreaDifference = scoreBlackArea - scoreWhiteArea;
+            
+            // Create stone count warning if counts differ
+            const stoneCountWarning = blackStones !== whiteStones ? 
+                `<div style="background: #ff6b6b; color: white; padding: 5px; border-radius: 3px; margin: 5px 0; font-size: 12px;">
+                    ⚠️ Stone Count Warning: Black=${blackStones}, White=${whiteStones} (diff: ${Math.abs(blackStones - whiteStones)})
+                </div>` : '';
+            const scoreMismatchWarning = scoreAreaDifference !== score.difference ? 
+                `<div style="background: #ff6b6b; color: white; padding: 5px; border-radius: 3px; margin: 5px 0; font-size: 12px;">
+                    ⚠️ Score Mismatch  Warning: Area=${scoreAreaDifference}, Territory=${score.difference}
+                </div>` : '';
             
             const scoreContent = document.getElementById('score-content');
             scoreContent.innerHTML = `
@@ -807,9 +1007,21 @@ function updateScoreDisplay() {
                     <span style="color: #000; background: #fff; padding: 2px 6px; border-radius: 3px;">⚪ White: ${score.whiteTerritory}</span>
                     <span style="color: #fff; background: #000; padding: 2px 6px; border-radius: 3px;">⚫ Black: ${score.blackTerritory}</span>
                 </div>
+
+                <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                    <span style="color: #000; background: #fff; padding: 2px 6px; border-radius: 3px;">⚪ White: ${scoreWhiteArea} (area)</span>
+                    <span style="color: #fff; background: #000; padding: 2px 6px; border-radius: 3px;">⚫ Black: ${scoreBlackArea} (area)</span>
+                </div>
+
                 <div style="margin: 5px 0; font-weight: bold; color: ${score.winningColor === 'black' ? '#000' : score.winningColor === 'white' ? '#fff' : '#888'};">
                     ${score.winningColor === 'tie' ? 'Tie Game' : (score.winningColor === 'black' ? '⚫ Black' : '⚪ White') + ' wins by ' + score.scoreDifference}
                 </div>
+
+                <div style="margin: 5px 0; font-weight: bold; color: ${scoreAreaDifference > 0 ? '#000' : scoreAreaDifference < 0 ? '#fff' : '#888'};">
+                    ${scoreAreaDifference === 0 ? 'Tie Game' : (scoreAreaDifference > 0  ? '⚫ Black' : '⚪ White') + ' wins by ' + Math.abs(scoreAreaDifference)} (area)
+                </div>
+                ${stoneCountWarning}
+                ${scoreMismatchWarning}
             `;
         } catch (error) {
             console.error('Error calculating score:', error);
