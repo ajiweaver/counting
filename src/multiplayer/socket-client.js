@@ -79,6 +79,11 @@ function initSocket() {
         }
         
         updateRoomSettingsDisplay();
+        
+        // Update scoring mode indicator during gameplay
+        if (typeof updateScoringModeIndicator === 'function') {
+            updateScoringModeIndicator();
+        }
     });
     
     socket.on('player-answered', (data) => {

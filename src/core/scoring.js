@@ -42,6 +42,72 @@ function calculateTerritoryScore(board_raw, deadstones_raw) {
     };
 }
 
+// Area scoring using stones + territory (Chinese style)
+function calculateAreaScore(board_raw, deadstones_raw) {
+    // First get territory score
+    const territoryScore = calculateTerritoryScore(board_raw, deadstones_raw);
+    
+    // Convert board to goscorer format for stone counting
+    const stones = convertBoardStringToStones(board_raw);
+    const deadstones = convertDeadStoneStringToObject(deadstones_raw);
+    
+    const ysize = stones.length;
+    const xsize = stones[0].length;
+    
+    // Create markedDead array using deadstones.js data
+    const markedDead = Array.from({length: ysize}, () => Array.from({length: xsize}, () => false));
+    
+    // If we have dead stones data, use it
+    if (typeof deadstones !== 'undefined' && deadstones) {
+        for (let y = 0; y < ysize; y++) {
+            const col = deadstones[y];
+            for (let x = 0; x < xsize; x++) {
+                // A 1 in deadstones.js represents dead stones (both black and white)
+                if (col[x] === 1) {
+                    markedDead[x][y] = true;
+                }
+            }
+        }
+    }
+    
+    // Count living stones (not marked dead) using the area scoring formula
+    const non_deadstones = stones.map((row, i) => 
+        row.map((val, j) => val * !markedDead[i][j])
+    );
+    const blackStonesAlive = non_deadstones.reduce((x, y) => 
+        x + y.reduce((z, value) => value === window.BLACK ? z + 1 : z, 0), 0
+    );
+    const whiteStonesAlive = non_deadstones.reduce((x, y) => 
+        x + y.reduce((z, value) => value === window.WHITE ? z + 1 : z, 0), 0
+    );
+    
+    // Area = living stones + territory
+    const blackArea = blackStonesAlive + territoryScore.blackTerritory;
+    const whiteArea = whiteStonesAlive + territoryScore.whiteTerritory;
+    const areaDifference = blackArea - whiteArea;
+    
+    console.log('📊 Area Scoring Calculation:');
+    console.log('   - Black Stones Alive:', blackStonesAlive);
+    console.log('   - White Stones Alive:', whiteStonesAlive);
+    console.log('   - Black Territory:', territoryScore.blackTerritory);
+    console.log('   - White Territory:', territoryScore.whiteTerritory);
+    console.log('   - Black Area Total:', blackArea, '(', blackStonesAlive, 'stones +', territoryScore.blackTerritory, 'territory)');
+    console.log('   - White Area Total:', whiteArea, '(', whiteStonesAlive, 'stones +', territoryScore.whiteTerritory, 'territory)');
+    console.log('   - Area Difference:', areaDifference);
+    
+    return {
+        blackArea,
+        whiteArea,
+        blackStonesAlive,
+        whiteStonesAlive,
+        blackTerritory: territoryScore.blackTerritory,
+        whiteTerritory: territoryScore.whiteTerritory,
+        difference: areaDifference, // Positive if black has more area, negative if white
+        winningColor: areaDifference > 0 ? 'black' : areaDifference < 0 ? 'white' : 'tie',
+        scoreMagnitude: Math.abs(areaDifference)
+    };
+}
+
 
 //function generateScoreChoices(correctScore, winningColor) {
     //// Generate 4 choices: 1 correct + 3 wrong
@@ -105,6 +171,7 @@ function calculateTerritoryScore(board_raw, deadstones_raw) {
 
 // Export functions for global access
 window.calculateTerritoryScore = calculateTerritoryScore;
+window.calculateAreaScore = calculateAreaScore;
 //window.generateScoreChoices = generateScoreChoices;
 //window.formatScoreAnswer = formatScoreAnswer;
 //window.validateHardModeAnswer = validateHardModeAnswer;

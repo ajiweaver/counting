@@ -176,6 +176,15 @@ function updateGameState(serverGameState) {
             console.log('✓ Synced hard mode to localStorage:', serverGameState.settings.hardMode);
         }
         
+        // Always use server's scoring mode setting - this is a room parameter, not user preference
+        if (serverGameState.settings.scoringMode !== undefined) {
+            gameState.settings.scoringMode = serverGameState.settings.scoringMode;
+            console.log('🔄 Syncing scoring mode from server:', serverGameState.settings.scoringMode);
+            // Update localStorage to keep it in sync
+            saveToStorage(STORAGE_KEYS.SCORING_MODE, serverGameState.settings.scoringMode);
+            console.log('✓ Synced scoring mode to localStorage:', serverGameState.settings.scoringMode);
+        }
+        
         // Update maxTime based on server settings
         if (serverGameState.settings.timePerBoard && serverGameState.settings.timePerBoard > 0) {
             maxTime = serverGameState.settings.timePerBoard * 1000; // Convert to milliseconds

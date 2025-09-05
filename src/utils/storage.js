@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
     PLAYER_UUID: 'countbattle_player_uuid', // Unique identifier for host persistence
     TIME_PER_BOARD: 'countbattle_time_per_board',
     TOTAL_BOARDS: 'countbattle_total_boards',
-    HARD_MODE: 'countbattle_hard_mode'
+    HARD_MODE: 'countbattle_hard_mode',
+    SCORING_MODE: 'countbattle_scoring_mode'
 };
 
 function saveToStorage(key, value) {

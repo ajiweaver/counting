@@ -58,7 +58,8 @@ class GameRoom {
       timePerBoard: settings.timePerBoard !== undefined ? settings.timePerBoard : 15,
       totalBoards: settings.totalBoards !== undefined ? settings.totalBoards : 10, // Default 10 boards
       progressiveDifficulty: settings.progressiveDifficulty || true,
-      hardMode: settings.hardMode || false // Exact score counting mode
+      hardMode: settings.hardMode || false, // Exact score counting mode
+      scoringMode: settings.scoringMode || 'territory' // Territory or area scoring
     };
     this.createdAt = Date.now();
     this.creatorUUID = null; // Track creator by UUID for persistent host identity
@@ -83,6 +84,9 @@ class GameRoom {
     }
     if (newSettings.hardMode !== undefined) {
       this.settings.hardMode = newSettings.hardMode;
+    }
+    if (newSettings.scoringMode !== undefined) {
+      this.settings.scoringMode = newSettings.scoringMode;
     }
 
     console.log(`Room ${this.roomId}: Settings updated:`, this.settings);

@@ -162,6 +162,8 @@ function updateRoomSettingsDisplay() {
         const boardsDisplay = settings.totalBoards === -1 ? '∞' : settings.totalBoards;
         const modeDisplay = settings.hardMode ? 'Hard' : 'Normal';
         const modeColor = settings.hardMode ? '#FF6B6B' : '#4CAF50';
+        const scoringDisplay = settings.scoringMode === 'area' ? 'Area' : 'Territory';
+        const scoringColor = settings.scoringMode === 'area' ? '#FF9500' : '#2196F3';
         const isCreator = gameState.isCreator && gameState.phase === 'lobby';
         
         if (isCreator) {
@@ -177,18 +179,22 @@ function updateRoomSettingsDisplay() {
             
             // Interactive controls for room creator
             roomSettingsEl.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER [s]</div>
-                        <input type="number" id="room-time-input" min="5" max="600" step="10" value="${timeValue}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; text-align: center;">
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">TIMER [s]</div>
+                        <input type="number" id="room-time-input" min="5" max="600" step="5" value="${timeValue}" onchange="updateRoomTimeFromInput()" style="width: 60px; padding: 4px; border: none; border-radius: 3px; text-align: center; font-size: 13px; font-weight: bold; background: #666; color: white;">
                     </div>
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <input type="number" id="room-boards-input" min="5" max="50" step="5" value="${boardsValue}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 6px; border: none; border-radius: 3px; text-align: center; font-size: 14px; font-weight: bold; background: #666; color: white;">
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">BOARDS</div>
+                        <input type="number" id="room-boards-input" min="5" max="50" step="5" value="${boardsValue}" onchange="updateRoomBoardsFromInput()" style="width: 60px; padding: 4px; border: none; border-radius: 3px; text-align: center; font-size: 13px; font-weight: bold; background: #666; color: white;">
                     </div>
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
-                        <div onclick="toggleRoomHardMode()" style="color: ${modeColor}; font-weight: bold; font-size: 14px; cursor: pointer; padding: 6px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;" title="Click to toggle">${modeDisplay}</div>
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">DIFFICULTY</div>
+                        <div onclick="toggleRoomHardMode()" style="color: ${modeColor}; font-weight: bold; font-size: 13px; cursor: pointer; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;" title="Click to toggle">${modeDisplay}</div>
+                    </div>
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">SCORING</div>
+                        <div onclick="toggleRoomScoringMode()" style="color: ${scoringColor}; font-weight: bold; font-size: 13px; cursor: pointer; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;" title="Click to toggle">${scoringDisplay}</div>
                     </div>
                 </div>
             `;
@@ -237,18 +243,22 @@ function updateRoomSettingsDisplay() {
         } else {
             // Read-only display for non-creators
             roomSettingsEl.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">TIMER [s]</div>
-                        <div style="color: #fff; font-weight: bold; font-size: 14px; padding: 6px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;">${timeDisplay}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; text-align: center;">
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">TIMER [s]</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 13px; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;">${timeDisplay}</div>
                     </div>
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">BOARDS</div>
-                        <div style="color: #fff; font-weight: bold; font-size: 14px; padding: 6px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;">${boardsDisplay}</div>
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">BOARDS</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 13px; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;">${boardsDisplay}</div>
                     </div>
-                    <div style="padding: 8px; background: #555; border-radius: 4px;">
-                        <div style="color: #ccc; font-size: 12px; margin-bottom: 4px;">GAME MODE</div>
-                        <div style="color: ${modeColor}; font-weight: bold; font-size: 14px; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 8px;">${modeDisplay}</div>
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">DIFFICULTY</div>
+                        <div style="color: ${modeColor}; font-weight: bold; font-size: 13px; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;">${modeDisplay}</div>
+                    </div>
+                    <div style="padding: 6px; background: #555; border-radius: 4px;">
+                        <div style="color: #ccc; font-size: 11px; margin-bottom: 3px;">SCORING</div>
+                        <div style="color: ${scoringColor}; font-weight: bold; font-size: 13px; padding: 4px; border-radius: 3px; background: #666; width: 60px; text-align: center; display: inline-block; margin-top: 6px;">${scoringDisplay}</div>
                     </div>
                 </div>
             `;
@@ -982,6 +992,13 @@ function keyPressed() {
         return;
     }
     
+    // Handle S key to toggle scoring mode (territory/area) - only in lobby and if creator
+    if ((key === 's' || key === 'S') && gameState.phase === 'lobby') {
+        toggleRoomScoringMode();
+        console.log('⌨️ S key pressed - toggling scoring mode');
+        return;
+    }
+    
     // No longer needed - removed automatic lobby countdown
     
     if (gameState.phase !== 'playing' || timer <= 0 || penaltyMode || failed) return;
@@ -1107,6 +1124,7 @@ function enterSummaryMode() {
     
     // Hide game elements
     hideBoardNumberIndicator();
+    hideScoringModeIndicator();
     document.getElementById('resign-button').style.display = 'none';
     
     // Hide leaderboard in summary mode
@@ -1164,6 +1182,7 @@ async function returnToLobbyUI() {
     if (prevBoardBtn) prevBoardBtn.style.display = 'none';
     if (nextBoardBtn) nextBoardBtn.style.display = 'none';
     hideBoardNumberIndicator();
+    hideScoringModeIndicator();
     
     // Reset leaderboard visibility flag
     leaderboardVisible = false;
@@ -1186,6 +1205,10 @@ function startMultiplayerGame() {
     
     // Show board number indicator for bug reporting
     showBoardNumberIndicator();
+    
+    // Show scoring mode indicator during gameplay
+    showScoringModeIndicator();
+    updateScoringModeIndicator();
     
     // Hide summary back buttons during gameplay
     const backToSummaryBtn = document.getElementById('back-to-summary-button');
@@ -1287,21 +1310,46 @@ function loadMultiplayerBoard(boardIndex) {
     // Use the processed board that matches what the player sees, and pass the board number for dead stones
     boardString = applyBoardTransformations(boardString, currentBoardTransforms);
     deadStonesString = applyBoardTransformations(deadStonesString, currentBoardTransforms);
+    
+    // Calculate both territory and area scores for comparison
     const territoryScore = calculateTerritoryScore(boardString, deadStonesString);
-
+    const areaScore = calculateAreaScore(boardString, deadStonesString);
+    
     // Update board variable
-    board = getBoard(boardString)
+    board = getBoard(boardString);
 
-    // Show correct answer in dev mode console
-    correctColor = territoryScore.winningColor
-    const scoreMagnitude = territoryScore.scoreMagnitude;
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Correct answer is ${correctColor.toUpperCase()}`);
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Difference is ${territoryScore.difference}`);
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - Black territory is ${territoryScore.blackTerritory}`);
-    console.log(`🚀 DEV MODE: Board ${boardIndex + 1} - White territory is ${territoryScore.whiteTerritory}`);
+    // Comprehensive scoring logging
+    console.log('📊 === SCORING CALCULATION ===');
+    console.log('📊 Current Mode:', gameState.settings?.scoringMode || 'territory (default)');
+    console.log('📊 Territory Scoring:');
+    console.log('   - Black Territory:', territoryScore.blackTerritory);
+    console.log('   - White Territory:', territoryScore.whiteTerritory);
+    console.log('   - Difference:', territoryScore.difference);
+    console.log('   - Winner:', territoryScore.winningColor, 'by', Math.abs(territoryScore.difference));
+    console.log('📊 Area Scoring:');
+    console.log('   - Black Stones Alive:', areaScore.blackStonesAlive);
+    console.log('   - White Stones Alive:', areaScore.whiteStonesAlive);
+    console.log('   - Black Area:', areaScore.blackArea, '(', areaScore.blackStonesAlive, 'stones +', areaScore.blackTerritory, 'territory)');
+    console.log('   - White Area:', areaScore.whiteArea, '(', areaScore.whiteStonesAlive, 'stones +', areaScore.whiteTerritory, 'territory)');
+    console.log('   - Area Difference:', areaScore.difference);
+    console.log('   - Winner:', areaScore.winningColor, 'by', Math.abs(areaScore.difference));
+    
+    // Determine which scoring method to use
+    const usingAreaScoring = gameState.settings?.scoringMode === 'area';
+    const activeScore = usingAreaScoring ? areaScore : territoryScore;
+    
+    console.log('📊 CORRECT ANSWER:', usingAreaScoring ? 
+        `Area mode: ${areaScore.winningColor} by ${Math.abs(areaScore.difference)}` : 
+        `Territory mode: ${territoryScore.winningColor} by ${Math.abs(territoryScore.difference)}`);
+    console.log('📊 === END SCORING ===');
 
-    // Store the territory info for answer validation
+    // Set correct answer based on active scoring mode
+    correctColor = activeScore.winningColor;
+    const scoreMagnitude = activeScore.scoreMagnitude;
+    
+    // Store both scores for answer validation
     window.currentTerritoryScore = territoryScore;
+    window.currentAreaScore = areaScore;
     
     // Calculate territory score for hard mode
     if (gameState.settings && gameState.settings.hardMode) {
@@ -1351,21 +1399,21 @@ function loadMultiplayerBoard(boardIndex) {
             }
             
             if (useNegativeOffset) {
-                choice = Math.max(1, scoreMagnitude - offset); // Prevent zero as wrong answer
+                choice = Math.max(0, scoreMagnitude - offset); // Allow zero - ties are possible
             } else {
                 choice = scoreMagnitude + offset;
             }
             
-            // Don't add zero as a wrong answer (only allow if it's the correct answer)
-            if (choice === 0 && scoreMagnitude !== 0) {
-                continue;
-            }
+            // Zero is now a valid choice since ties can happen
             
             uniqueChoices.add(choice);
         }
         
         // Convert Set to array and sort in increasing order
         scoreChoices = Array.from(uniqueChoices).sort((a, b) => a - b);
+        
+        console.log('🎲 Generated score choices:', scoreChoices);
+        console.log('🎲 Correct score:', scoreMagnitude, 'using', usingAreaScoring ? 'area' : 'territory', 'scoring');
         
         // Ensure we have exactly 4 choices (fallback protection)
         if (scoreChoices.length < 4) {
@@ -1384,9 +1432,9 @@ function loadMultiplayerBoard(boardIndex) {
                         break;
                     }
                     
-                    // Try negative offset (ensuring minimum of 1)
-                    const negChoice = Math.max(1, scoreMagnitude - offset);
-                    if (!currentChoices.includes(negChoice) && !(negChoice === 0 && scoreMagnitude !== 0)) {
+                    // Try negative offset (allowing zero since ties are possible)
+                    const negChoice = Math.max(0, scoreMagnitude - offset);
+                    if (!currentChoices.includes(negChoice)) {
                         fallbackChoice = negChoice;
                         break;
                     }
@@ -1570,6 +1618,7 @@ window.toggleLeaderboard = toggleLeaderboard;
 window.displayLeaderboardHistory = displayLeaderboardHistory;
 window.checkLeaderboardOverlap = checkLeaderboardOverlap;
 window.toggleRoomHardMode = toggleRoomHardMode;
+window.toggleRoomScoringMode = toggleRoomScoringMode;
 
 function drawSummaryScreen() {
     // Since we no longer have history-summary mode, determine if it's historical from other indicators
@@ -2359,6 +2408,22 @@ function toggleRoomHardMode() {
     updateRoomSettings({ hardMode: newHardMode });
 }
 
+function toggleRoomScoringMode() {
+    if (!gameState.isCreator) {
+        console.log('❌ Only room creator can update settings');
+        return;
+    }
+    
+    if (!gameState.settings) {
+        console.log('❌ No room settings available');
+        return;
+    }
+    
+    const newScoringMode = gameState.settings.scoringMode === 'territory' ? 'area' : 'territory';
+    console.log('🎯 Toggling scoring mode from', gameState.settings.scoringMode, 'to', newScoringMode);
+    updateRoomSettings({ scoringMode: newScoringMode });
+}
+
 
 function updateRoomSettings(partialSettings) {
     const currentSettings = gameState.settings;
@@ -2418,6 +2483,39 @@ function updateBoardNumberIndicator() {
         // Show the actual board ID from the sequence
         const actualBoardId = gameState.boardSequence[gameState.currentBoard];
         valueElement.textContent = actualBoardId;
+    }
+}
+
+
+function showScoringModeIndicator() {
+    const indicator = document.getElementById('scoring-mode-indicator');
+    if (indicator) {
+        indicator.style.display = 'block';
+    }
+}
+
+
+function hideScoringModeIndicator() {
+    const indicator = document.getElementById('scoring-mode-indicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+}
+
+
+function updateScoringModeIndicator() {
+    const valueElement = document.getElementById('scoring-mode-value');
+    if (valueElement && gameState.settings) {
+        const scoringMode = gameState.settings.scoringMode || 'territory';
+        const displayMode = scoringMode === 'area' ? 'Area' : 'Territory';
+        valueElement.textContent = displayMode;
+        
+        // Update color based on mode (same as lobby UI)
+        const indicator = document.getElementById('scoring-mode-indicator');
+        if (indicator) {
+            const color = scoringMode === 'area' ? '#FF9500' : '#2196F3';
+            valueElement.style.color = color;
+        }
     }
 }
 
@@ -2766,11 +2864,15 @@ function drawHardModeUI() {
             const buttonScale = 1 + scoreButtonBounces[i] * bounceStrength;
             
             // Check if this is the correct score AND the correct color is selected
-            const hasCorrectColor = window.currentTerritoryScore && 
-                                  ((selectedColorValue === 1 && window.currentTerritoryScore.winningColor === 'black') ||
-                                   (selectedColorValue === -1 && window.currentTerritoryScore.winningColor === 'white'));
-            const isCorrectScore = hasCorrectColor && window.currentTerritoryScore && 
-                                 score === window.currentTerritoryScore.scoreMagnitude;
+            // Use the active scoring mode to determine correct answer
+            const usingAreaScoring = gameState.settings?.scoringMode === 'area';
+            const activeScore = usingAreaScoring ? window.currentAreaScore : window.currentTerritoryScore;
+            
+            const hasCorrectColor = activeScore && 
+                                  ((selectedColorValue === 1 && activeScore.winningColor === 'black') ||
+                                   (selectedColorValue === -1 && activeScore.winningColor === 'white'));
+            const isCorrectScore = hasCorrectColor && activeScore && 
+                                 score === activeScore.scoreMagnitude;
             
             // Check if this button is currently selected
             const isSelected = selectedDifference === score;
@@ -2892,6 +2994,17 @@ function submitNormalModeAnswer(guess) {
     if (gameState.phase !== 'playing' || penaltyMode) return;
 
     const isCorrect = guess === correctColor;
+    
+    // Comprehensive logging for normal mode
+    console.log('🎮 === NORMAL MODE ANSWER SUBMISSION ===');
+    console.log('🎮 Player Answer:', guess);
+    console.log('🎮 Scoring Mode:', gameState.settings?.scoringMode || 'territory (default)');
+    if (window.currentTerritoryScore && window.currentAreaScore) {
+        console.log('🎮 Territory Winner:', window.currentTerritoryScore.winningColor);
+        console.log('🎮 Area Winner:', window.currentAreaScore.winningColor);
+    }
+    console.log('🎮 Correct Answer:', correctColor, 'using', gameState.settings?.scoringMode || 'territory', 'scoring');
+    console.log('🎮 Result:', isCorrect ? '✅ CORRECT' : '❌ WRONG');
     
     // Track board result for summary screen
     if (gameState.boardSequence && gameState.currentBoard < gameState.boardSequence.length) {
@@ -3128,21 +3241,27 @@ function handleNormalModeClick() {
 function submitHardModeAnswer(colorValue, scoreDiff) {
     // Calculate the signed score (positive for black, negative for white)
     const signedScore = colorValue * scoreDiff;
-    console.log(`🎯 Hard mode calculation:`);
-    console.log(`   Color value: ${colorValue} (${colorValue === 1 ? 'black' : 'white'})`);
-    console.log(`   Score difference: ${scoreDiff}`);
-    console.log(`   Final signed score: ${colorValue} × ${scoreDiff} = ${signedScore}`);
     
-    // Validate hard mode answer using territory score
-    if (window.currentTerritoryScore) {
-        const territoryScore = window.currentTerritoryScore;
-        const correctSignedScore = territoryScore.difference;
+    // Comprehensive logging for hard mode
+    console.log('🎯 === HARD MODE ANSWER SUBMISSION ===');
+    console.log('🎯 Player Answer:', colorValue === 1 ? 'Black' : 'White', 'by', scoreDiff);
+    console.log('🎯 Signed Score:', signedScore);
+    console.log('🎯 Scoring Mode:', gameState.settings?.scoringMode || 'territory (default)');
+    
+    // Check if scores are available for validation
+    if (window.currentTerritoryScore && window.currentAreaScore) {
+        // Determine which score to use for validation
+        const usingAreaScoring = gameState.settings?.scoringMode === 'area';
+        const activeScore = usingAreaScoring ? window.currentAreaScore : window.currentTerritoryScore;
+        const correctSignedScore = activeScore.difference;
         
-        console.log(`🎯 Correct answer: ${territoryScore.winningColor} by ${territoryScore.scoreMagnitude} = ${correctSignedScore}`);
+        console.log('🎯 Territory Score:', window.currentTerritoryScore.difference, '(', window.currentTerritoryScore.winningColor, 'by', Math.abs(window.currentTerritoryScore.difference), ')');
+        console.log('🎯 Area Score:', window.currentAreaScore.difference, '(', window.currentAreaScore.winningColor, 'by', Math.abs(window.currentAreaScore.difference), ')');
+        console.log('🎯 Correct Answer:', correctSignedScore, 'using', usingAreaScoring ? 'area' : 'territory', 'scoring');
         
         const isCorrect = signedScore === correctSignedScore;
-        console.log(`✅ Answer is ${isCorrect ? 'CORRECT' : 'WRONG'}`);
-        
+        console.log('🎯 Result:', isCorrect ? '✅ CORRECT' : '❌ WRONG');
+            
         // Trigger shake animation for incorrect answers
         if (!isCorrect) {
             errorShakeIntensity = 1.0; // Start with full shake intensity

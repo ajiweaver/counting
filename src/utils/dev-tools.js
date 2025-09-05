@@ -713,3 +713,74 @@ function resetLeaderboardStats() {
     historyLoadInProgress = false;
     console.log('✅ Leaderboard stats reset');
 }
+
+/**
+ * Show current scoring mode and calculated scores
+ * Usage: showScoring()
+ */
+window.showScoring = function() {
+    console.log('=== CURRENT SCORING INFO ===');
+    console.log('Scoring Mode:', gameState.settings?.scoringMode || 'territory (default)');
+    console.log('Room Creator:', gameState.isCreator ? 'Yes (can change)' : 'No (read-only)');
+    
+    if (window.currentTerritoryScore) {
+        console.log('Territory Score:');
+        console.log('  - Black Territory:', window.currentTerritoryScore.blackTerritory);
+        console.log('  - White Territory:', window.currentTerritoryScore.whiteTerritory);
+        console.log('  - Difference:', window.currentTerritoryScore.difference);
+        console.log('  - Winner:', window.currentTerritoryScore.winningColor, 'by', Math.abs(window.currentTerritoryScore.difference));
+    } else {
+        console.log('Territory Score: Not calculated yet');
+    }
+    
+    if (window.currentAreaScore) {
+        console.log('Area Score:');
+        console.log('  - Black Stones Alive:', window.currentAreaScore.blackStonesAlive);
+        console.log('  - White Stones Alive:', window.currentAreaScore.whiteStonesAlive);
+        console.log('  - Black Area Total:', window.currentAreaScore.blackArea);
+        console.log('  - White Area Total:', window.currentAreaScore.whiteArea);
+        console.log('  - Area Difference:', window.currentAreaScore.difference);
+        console.log('  - Winner:', window.currentAreaScore.winningColor, 'by', Math.abs(window.currentAreaScore.difference));
+    } else {
+        console.log('Area Score: Not calculated yet');
+    }
+    console.log('============================');
+};
+
+/**
+ * Toggle scoring mode (creator only)
+ * Usage: toggleScoringMode()
+ */
+window.toggleScoringMode = function() {
+    if (!gameState.isCreator) {
+        console.log('❌ Only room creator can change scoring mode');
+        return;
+    }
+    
+    if (gameState.phase !== 'lobby') {
+        console.log('❌ Can only change scoring mode in lobby');
+        return;
+    }
+    
+    const currentMode = gameState.settings?.scoringMode || 'territory';
+    const newMode = currentMode === 'territory' ? 'area' : 'territory';
+    console.log('🎯 Switching scoring mode from', currentMode, 'to', newMode);
+    
+    toggleRoomScoringMode();
+};
+
+/**
+ * Show debug help for scoring commands
+ * Usage: scoringHelp()
+ */
+window.scoringHelp = function() {
+    console.log('=== SCORING DEBUG COMMANDS ===');
+    console.log('showScoring()       - Show current scoring mode and calculated scores');
+    console.log('toggleScoringMode() - Toggle between territory and area scoring (creator only)');
+    console.log('scoringHelp()       - Show this help message');
+    console.log('');
+    console.log('Keyboard shortcuts in lobby:');
+    console.log('  G - Toggle difficulty (normal/hard)');
+    console.log('  S - Toggle scoring mode (territory/area)');
+    console.log('===============================');
+};

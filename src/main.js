@@ -99,8 +99,19 @@ function initializeApp() {
     // Initialize UI
     initializeUI();
     
-    // Show main menu
-    showMainMenu();
+    // Show main menu (with safety check)
+    if (typeof showMainMenu === 'function') {
+        showMainMenu();
+    } else {
+        console.warn('⚠️ showMainMenu not available yet, waiting...');
+        setTimeout(() => {
+            if (typeof showMainMenu === 'function') {
+                showMainMenu();
+            } else {
+                console.error('❌ showMainMenu function not found after delay');
+            }
+        }, 100);
+    }
     
     console.log('✅ Application initialized successfully');
 }
